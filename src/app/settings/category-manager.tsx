@@ -23,9 +23,6 @@ import {
 import { addCategory, toggleCategory, deleteCategory } from "./actions";
 
 const TYPES = Object.keys(CATEGORY_TYPE_LABELS) as CategoryType[];
-// Base UI Select butuh `items` (value→label) agar trigger menampilkan label,
-// bukan value mentah. Lihat catatan di AGENTS.md.
-const TYPE_ITEMS = TYPES.map((t) => ({ value: t, label: CATEGORY_TYPE_LABELS[t] }));
 
 export function CategoryManager({ data }: { data: Category[] }) {
   const [name, setName] = useState("");
@@ -69,15 +66,14 @@ export function CategoryManager({ data }: { data: Category[] }) {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Select items={TYPE_ITEMS} value={type}
-              onValueChange={(v) => setType(v ?? "client")}>
+            <Select value={type} onValueChange={(v) => setType(v as CategoryType)}>
               <SelectTrigger className="sm:w-64">
                 <SelectValue placeholder="Pilih jenis" />
               </SelectTrigger>
               <SelectContent>
-                {TYPE_ITEMS.map((it) => (
-                  <SelectItem key={it.value} value={it.value}>
-                    {it.label}
+                {TYPES.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {CATEGORY_TYPE_LABELS[t]}
                   </SelectItem>
                 ))}
               </SelectContent>

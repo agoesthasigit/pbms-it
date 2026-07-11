@@ -29,11 +29,11 @@ export function AppHeader({ email }: { email: string }) {
     <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b bg-background/95 px-4 backdrop-blur lg:px-8">
       {/* Menu mobile */}
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger asChild>
-          <Button variant="ghost" size="icon" className="lg:hidden">
-            <Menu className="h-5 w-5" />
-            <span className="sr-only">Buka menu</span>
-          </Button>
+        <SheetTrigger
+          render={<Button variant="ghost" size="icon" className="lg:hidden" />}
+        >
+          <Menu className="h-5 w-5" />
+          <span className="sr-only">Buka menu</span>
         </SheetTrigger>
         <SheetContent side="left" className="flex w-72 flex-col p-0">
           <SheetHeader className="sr-only">
@@ -47,13 +47,13 @@ export function AppHeader({ email }: { email: string }) {
       <div className="flex-1" />
 
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="gap-2 px-2">
-            <UserCircle2 className="h-5 w-5 text-muted-foreground" />
-            <span className="hidden max-w-45 truncate text-sm sm:inline">
-              {email}
-            </span>
-          </Button>
+        <DropdownMenuTrigger
+          render={<Button variant="ghost" className="gap-2 px-2" />}
+        >
+          <UserCircle2 className="h-5 w-5 text-muted-foreground" />
+          <span className="hidden max-w-45 truncate text-sm sm:inline">
+            {email}
+          </span>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuLabel className="truncate">{email}</DropdownMenuLabel>
