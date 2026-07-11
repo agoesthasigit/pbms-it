@@ -29,6 +29,13 @@ const newLine = (): Line => ({
   product_id: "", qty: "1", price: "", warranty_months: "12", serial_number: "",
 });
 
+// akhir bulan dari string "YYYY-MM" → "YYYY-MM-DD"
+function endOfMonth(ym: string): string {
+  const [y, m] = ym.split("-").map(Number);
+  const d = new Date(y, m, 0); // hari ke-0 bulan berikutnya = akhir bulan ini
+  return `${y}-${String(m).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export function SaleForm({
   open, onOpenChange, products, clients, wallets,
 }: {
@@ -41,10 +48,15 @@ export function SaleForm({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
   const [clientId, setClientId] = useState("");
   const [walletId, setWalletId] = useState("");
   const [date, setDate] = useState(todayISO());
   const [method, setMethod] = useState<PaymentMethod>("cash");
+  const [period, setPeriod] = useState(thisMonth);
+  const [dueDate, setDueDate] = useState(endOfMonth(thisMonth));
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<Line[]>([newLine()]);
 
@@ -61,8 +73,7 @@ export function SaleForm({
     .map((m) => ({ value: m, label: PAYMENT_METHOD_LABELS[m] }));
   const productItems = useMemo(
     () => products.map((p) => ({
-      value: p.id,
-      label: `${p.name} (stok ${p.current_stock})`,
+      value: p.id, label: `${p.name} (stok ${p.current_stock})`,
     })),
     [products]
   );
@@ -76,28 +87,30 @@ export function SaleForm({
   function removeLine(i: number) {
     setLines((prev) => (prev.length === 1 ? prev : prev.filter((_, idx) => idx !== i)));
   }
-  // Autofill harga jual & garansi default saat pilih produk
   function onPickProduct(i: number, productId: string) {
     const p = products.find((x) => x.id === productId);
     setLine(i, {
       product_id: productId,
-      price: p && Number(p.default_selling_price) > 0
-        ? String(p.default_selling_price) : "",
+      price: p && Number(p.default_selling_price) > 0 ? String(p.default_selling_price) : "",
       warranty_months: p ? String(p.default_warranty_months) : "12",
     });
   }
-
   function stockOf(productId: string) {
     return products.find((p) => p.id === productId)?.current_stock ?? 0;
+  }
+  // saat ganti periode, jatuh tempo default ikut ke akhir bulan periode
+  function onChangePeriod(ym: string) {
+    setPeriod(ym);
+    setDueDate(endOfMonth(ym));
   }
 
   function reset() {
     setClientId(""); setWalletId(""); setDate(todayISO());
-    setMethod("cash"); setNotes(""); setLines([newLine()]);
+    setMethod("cash"); setPeriod(thisMonth); setDueDate(endOfMonth(thisMonth));
+    setNotes(""); setLines([newLine()]);
   }
 
   function handleSave() {
-    // validasi stok sisi client (server tetap validasi ulang)
     for (const l of lines) {
       if (l.product_id && toNumber(l.qty) > stockOf(l.product_id)) {
         const p = products.find((x) => x.id === l.product_id);
@@ -113,18 +126,18 @@ export function SaleForm({
         payment_method: method,
         notes,
         items: lines.map((l) => ({
-          product_id: l.product_id,
-          qty: toNumber(l.qty),
-          price: toNumber(l.price),
+          product_id: l.product_id, qty: toNumber(l.qty), price: toNumber(l.price),
           warranty_months: toNumber(l.warranty_months),
           serial_number: l.serial_number || undefined,
         })),
+        period_month: method === "monthly_invoice" ? period : null,
+        due_date: method === "monthly_invoice" ? dueDate : null,
       });
       if (res.error) { toast.error(res.error); return; }
       toast.success(
         method === "cash"
-          ? "Penjualan tersimpan. Stok turun, asset client dibuat, wallet bertambah."
-          : "Penjualan piutang tersimpan. Akan ditagih via invoice bulanan."
+          ? "Penjualan tersimpan. Stok turun, asset dibuat, wallet bertambah."
+          : "Penjualan piutang tersimpan & otomatis masuk invoice bulanan."
       );
       reset();
       onOpenChange(false);
@@ -135,9 +148,7 @@ export function SaleForm({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>Penjualan Barang Baru</DialogTitle>
-        </DialogHeader>
+        <DialogHeader><DialogTitle>Penjualan Barang Baru</DialogTitle></DialogHeader>
 
         <div className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -154,7 +165,7 @@ export function SaleForm({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Tanggal</Label>
+              <Label>Tanggal Jual</Label>
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
             <div className="space-y-2">
@@ -185,10 +196,26 @@ export function SaleForm({
             )}
           </div>
 
+          {/* Periode & jatuh tempo hanya untuk invoice bulanan */}
           {method === "monthly_invoice" && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
-              Penjualan ini menjadi <b>piutang</b>. Uang belum masuk wallet — akan
-              ditagih lewat Invoice Bulanan di akhir bulan.
+            <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+              <p className="text-sm text-amber-800">
+                Penjualan ini menjadi <b>piutang</b> & otomatis masuk invoice bulanan.
+                Penjualan dengan <b>client + periode + jatuh tempo yang sama</b> akan
+                digabung ke satu invoice.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Periode (bulan tagihan) *</Label>
+                  <Input type="month" value={period}
+                    onChange={(e) => onChangePeriod(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Jatuh Tempo *</Label>
+                  <Input type="date" value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)} />
+                </div>
+              </div>
             </div>
           )}
 
@@ -247,13 +274,9 @@ export function SaleForm({
                           onChange={(e) => setLine(i, { serial_number: e.target.value })} />
                       </div>
                       <div className="col-span-12 sm:col-span-4 flex items-center justify-end text-sm">
-                        {over ? (
-                          <span className="text-destructive">Stok tidak cukup</span>
-                        ) : sub > 0 ? (
-                          <span className="text-muted-foreground">
-                            Subtotal: <b>{formatIDR(sub)}</b>
-                          </span>
-                        ) : null}
+                        {over ? <span className="text-destructive">Stok tidak cukup</span>
+                          : sub > 0 ? <span className="text-muted-foreground">Subtotal: <b>{formatIDR(sub)}</b></span>
+                          : null}
                       </div>
                     </div>
                   </div>

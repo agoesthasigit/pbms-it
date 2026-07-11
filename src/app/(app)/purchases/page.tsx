@@ -12,7 +12,7 @@ export default async function PurchasesPage() {
   const [{ data: purchases }, { data: products }, { data: distributors }, { data: balances }, { data: wallets }] =
     await Promise.all([
       supabase.from("purchases")
-        .select("*, distributor:distributors(name), wallet:wallets(name)")
+        .select("*, distributor:distributors(name), wallet:wallets(name), purchase_items(qty, price, product:products(name))")
         .order("purchase_date", { ascending: false }),
       supabase.from("v_product_stock").select("*").eq("is_active", true).order("name"),
       supabase.from("distributors").select("*").order("name"),

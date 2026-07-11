@@ -8,6 +8,8 @@ export const metadata = { title: "Stok Barang" };
 export default async function ProductsPage() {
   const supabase = await createClient();
 
+  // ambil SEMUA barang (untuk toggle "tampilkan stok habis"),
+  // default UI hanya menampilkan yang stok > 0
   const [{ data: products }, { data: categories }] = await Promise.all([
     supabase.from("v_product_stock").select("*").order("name"),
     supabase.from("categories").select("*")
@@ -18,7 +20,7 @@ export default async function ProductsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Stok Barang"
-        description="Stok dihitung otomatis dari pergerakan barang: pembelian, penjualan, dan penyesuaian."
+        description="Menampilkan barang yang masih ada stok. Barang yang habis terjual otomatis tersembunyi."
       />
       <ProductManager
         products={(products ?? []) as ProductWithStock[]}
