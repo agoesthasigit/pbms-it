@@ -63,6 +63,27 @@ const items = wallets.map((w) => ({ value: w.id, label: w.name }));
 Catatan: `onValueChange` memberi `string | null` (bukan `string`). Kalau state-nya
 `string`, tampung dengan `v ?? ""` (atau default lain) supaya tidak error TypeScript.
 
+### Nilai kosong: pakai `|| null`, JANGAN `|| undefined`
+
+Base UI menentukan controlled/uncontrolled dari render pertama: value `undefined`
+= *uncontrolled*, selain itu (termasuk `null`) = *controlled*. Kalau state awal `""`
+lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
+(uncontrolled), begitu dipilih berubah jadi string (controlled) → **console error
+"changing uncontrolled to controlled"** + value mentah (UUID) bocor ke trigger.
+
+```tsx
+// ❌ SALAH — render pertama `undefined` (uncontrolled), lalu controlled
+<Select value={walletId || undefined} ...>
+
+// ✅ BENAR — `null` tetap controlled sejak awal, placeholder tetap muncul
+<Select items={items} value={walletId || null}
+  onValueChange={(v) => setWalletId(v ?? "")} ...>
+```
+
+`null` adalah sentinel "belum dipilih" di Base UI dan tetap menampilkan
+`placeholder` pada `<SelectValue>`. Untuk value enum yang selalu terisi
+(mis. `method`, `type`, `status`) cukup `value={method}` tanpa `|| null`.
+
 ## Riwayat perbaikan
 
 - **2026-07-11 — Fix nested `<button>` hydration error.** Beberapa komponen ditulis
@@ -78,3 +99,10 @@ Catatan: `onValueChange` memberi `string | null` (bukan `string`). Kalau state-n
   Ditambahkan `items` + normalisasi `onValueChange` (`v ?? ...`) di:
   `wallets/wallet-manager.tsx`, `products/product-manager.tsx`,
   `clients/client-manager.tsx`, `(app)/settings/category-manager.tsx`.
+- **2026-07-11 — Fix Select "uncontrolled→controlled" + saldo wallet jadi UUID.**
+  Form Phase 3 memakai `value={x || undefined}` sehingga render pertama uncontrolled
+  lalu controlled (console error di `purchases/page.tsx`), dan trigger menampilkan
+  UUID. Diganti ke `value={x || null}` + ditambah prop `items` di:
+  `purchases/purchase-form.tsx`, `sales/sale-form.tsx`,
+  `components/shared/expense-manager.tsx`, plus category select di
+  `products/product-manager.tsx` & `clients/client-manager.tsx`.

@@ -217,7 +217,7 @@ export function ClientManager({
               </div>
               <div className="space-y-2">
                 <Label>Kategori</Label>
-                <Select items={categoryItems} value={form.category_id || undefined}
+                <Select items={categoryItems} value={form.category_id || null}
                   onValueChange={(v) => setForm({ ...form, category_id: v ?? "" })}>
                   <SelectTrigger><SelectValue placeholder="Pilih kategori" /></SelectTrigger>
                   <SelectContent>

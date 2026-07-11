@@ -150,7 +150,7 @@ export function WalletManager({ wallets }: { wallets: WalletWithBalance[] }) {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label>Dari</Label>
-                    <Select items={fromItems} value={tf.from_id}
+                    <Select items={fromItems} value={tf.from_id || null}
                       onValueChange={(v) => setTf({ ...tf, from_id: v ?? "" })}>
                       <SelectTrigger><SelectValue placeholder="Wallet asal" /></SelectTrigger>
                       <SelectContent>
@@ -164,7 +164,7 @@ export function WalletManager({ wallets }: { wallets: WalletWithBalance[] }) {
                   </div>
                   <div className="space-y-2">
                     <Label>Ke</Label>
-                    <Select items={toItems} value={tf.to_id}
+                    <Select items={toItems} value={tf.to_id || null}
                       onValueChange={(v) => setTf({ ...tf, to_id: v ?? "" })}>
                       <SelectTrigger><SelectValue placeholder="Wallet tujuan" /></SelectTrigger>
                       <SelectContent>
