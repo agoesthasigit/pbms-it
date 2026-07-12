@@ -16,7 +16,7 @@ import { createClient } from "@/lib/supabase/client";
 import { formatIDR } from "@/lib/utils/currency";
 
 // Formatter tooltip Recharts yang aman terhadap tipe ValueType (bisa undefined)
-const tipFormat = (v: number | string | Array<number | string> | undefined) => formatIDR(Number(v ?? 0));
+const tipFormat = (v: unknown) => formatIDR(Number(v ?? 0));
 import { formatDate } from "@/lib/utils/date";
 import { StatCard } from "@/components/shared/stat-card";
 import {
@@ -128,7 +128,7 @@ export function DashboardClient() {
                 <XAxis dataKey="name" fontSize={12} />
                 <YAxis fontSize={11}
                   tickFormatter={(v: number) => `${(Number(v) / 1_000_000).toFixed(0)}jt`} />
-                <Tooltip formatter={tipFormat} />
+                <Tooltip formatter={tipFormat as never} />
                 <Legend />
                 <Line type="monotone" dataKey="Penjualan" stroke="#10b981" strokeWidth={2} dot={false} />
                 <Line type="monotone" dataKey="Pengeluaran" stroke="#ef4444" strokeWidth={2} dot={false} />

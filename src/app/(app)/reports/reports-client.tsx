@@ -15,7 +15,7 @@ import { createClient } from "@/lib/supabase/client";
 import { formatIDR } from "@/lib/utils/currency";
 
 // Formatter tooltip Recharts yang aman terhadap tipe ValueType (bisa undefined)
-const tipFormat = (v: number | string | Array<number | string> | undefined) => formatIDR(Number(v ?? 0));
+const tipFormat = (v: unknown) => formatIDR(Number(v ?? 0));
 import { StatCard } from "@/components/shared/stat-card";
 import {
   PeriodPicker, presetThisMonth, type Period,
@@ -122,7 +122,7 @@ export function ReportsClient() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="name" fontSize={12} />
                 <YAxis fontSize={11} tickFormatter={(v: number) => `${(Number(v) / 1_000_000).toFixed(0)}jt`} />
-                <Tooltip formatter={tipFormat} />
+                <Tooltip formatter={tipFormat as never} />
                 <Legend />
                 <Bar dataKey="Penjualan" fill="#10b981" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="Pengeluaran" fill="#ef4444" radius={[4, 4, 0, 0]} />
@@ -142,7 +142,7 @@ export function ReportsClient() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="name" fontSize={12} />
                 <YAxis fontSize={11} tickFormatter={(v: number) => `${(Number(v) / 1_000_000).toFixed(0)}jt`} />
-                <Tooltip formatter={tipFormat} />
+                <Tooltip formatter={tipFormat as never} />
                 <Bar dataKey="Laba" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
