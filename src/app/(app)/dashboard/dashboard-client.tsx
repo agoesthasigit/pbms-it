@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   TrendingUp, TrendingDown, Wallet, Users, FileText, ShieldAlert,
-  ArrowRight,
+  ArrowRight, ShoppingCart, User2,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -72,7 +72,7 @@ export function DashboardClient() {
 
   const chartData = trend.map((t) => ({
     name: shortMonth(t.month_start),
-    Pemasukan: Number(t.income),
+    Penjualan: Number(t.income),
     Pengeluaran: Number(t.op_expense),
     Laba: Number(t.net_profit),
   }));
@@ -81,21 +81,25 @@ export function DashboardClient() {
     <div className="space-y-6">
       <PeriodPicker period={period} onChange={setPeriod} />
 
-      {/* Kartu ringkasan */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Total Pemasukan" icon={TrendingUp}
-          accent="text-emerald-600"
-          value={loading ? "…" : formatIDR(Number(summary?.total_income ?? 0))} />
+      {/* Kartu ringkasan keuangan — aturan laba baru */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <StatCard label="Total Penjualan" icon={TrendingUp} accent="text-emerald-600"
+          value={loading ? "…" : formatIDR(Number(summary?.total_sales ?? 0))} />
+        <StatCard label="Total Pembelian" icon={ShoppingCart}
+          value={loading ? "…" : formatIDR(Number(summary?.total_purchase ?? 0))} />
         <StatCard label="Pengeluaran Operasional" icon={TrendingDown}
           value={loading ? "…" : formatIDR(Number(summary?.total_op_expense ?? 0))} />
-        <StatCard label="Pengeluaran Pribadi" icon={Wallet}
-          hint="Tidak mengurangi laba bisnis"
+        <StatCard label="Pengeluaran Pribadi" icon={User2}
           value={loading ? "…" : formatIDR(Number(summary?.total_personal_expense ?? 0))} />
-        <StatCard label="Laba Bersih" icon={TrendingUp}
+        <StatCard label="Laba Bersih" icon={Wallet}
           accent={Number(summary?.net_profit ?? 0) >= 0 ? "text-emerald-600" : "text-destructive"}
           value={loading ? "…" : formatIDR(Number(summary?.net_profit ?? 0))} />
+        <StatCard label="Saldo Wallet Masuk" icon={Wallet}
+          hint="Uang yang benar-benar diterima"
+          value={loading ? "…" : formatIDR(Number(summary?.total_income ?? 0))} />
       </div>
 
+      {/* Kartu operasional */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Client Aktif" icon={Users}
           value={loading ? "…" : String(counts?.active_clients ?? 0)} />
@@ -105,8 +109,9 @@ export function DashboardClient() {
         <StatCard label="Garansi < 30 Hari" icon={ShieldAlert}
           accent={Number(counts?.expiring_warranty ?? 0) > 0 ? "text-amber-600" : undefined}
           value={loading ? "…" : String(counts?.expiring_warranty ?? 0)} />
-        <StatCard label="Total Pembelian" icon={TrendingDown}
-          value={loading ? "…" : formatIDR(Number(summary?.total_purchase ?? 0))} />
+        <StatCard label="Margin Laba" icon={TrendingUp}
+          value={loading || !summary || Number(summary.total_sales) === 0 ? "—"
+            : `${((Number(summary.net_profit) / Number(summary.total_sales)) * 100).toFixed(1)}%`} />
       </div>
 
       {/* Grafik tren */}
@@ -120,9 +125,9 @@ export function DashboardClient() {
                 <XAxis dataKey="name" fontSize={12} />
                 <YAxis fontSize={11}
                   tickFormatter={(v) => `${(v / 1_000_000).toFixed(0)}jt`} />
-                <Tooltip formatter={(v) => formatIDR(Number(v))} />
+                <Tooltip formatter={(v: number) => formatIDR(v)} />
                 <Legend />
-                <Line type="monotone" dataKey="Pemasukan" stroke="#10b981" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="Penjualan" stroke="#10b981" strokeWidth={2} dot={false} />
                 <Line type="monotone" dataKey="Pengeluaran" stroke="#ef4444" strokeWidth={2} dot={false} />
                 <Line type="monotone" dataKey="Laba" stroke="#0ea5e9" strokeWidth={2} dot={false} />
               </LineChart>

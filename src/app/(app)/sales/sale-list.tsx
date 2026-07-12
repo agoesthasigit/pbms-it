@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, ReceiptText, Loader2, Search, RotateCcw } from "lucide-react";
+import { Plus, Trash2, ReceiptText, Loader2, Search, RotateCcw, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,19 +15,23 @@ import {
 import { formatIDR } from "@/lib/utils/currency";
 import { formatDate } from "@/lib/utils/date";
 import { EmptyState } from "@/components/shared/empty-state";
+import { SummaryCard } from "@/components/shared/summary-card";
 import type { ProductWithStock, Client, WalletWithBalance } from "@/types/db";
 import { type SaleRow, PAYMENT_METHOD_LABELS } from "@/types/phase3";
 import { SaleForm } from "./sale-form";
 import { deleteSale } from "./actions";
 
-// awal & akhir bulan berjalan
+const fmt = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 function monthRange() {
   const now = new Date();
-  const first = new Date(now.getFullYear(), now.getMonth(), 1);
-  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  const fmt = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  return { from: fmt(first), to: fmt(last) };
+  return { from: fmt(new Date(now.getFullYear(), now.getMonth(), 1)),
+           to: fmt(new Date(now.getFullYear(), now.getMonth() + 1, 0)) };
+}
+function lastMonthRange() {
+  const now = new Date();
+  return { from: fmt(new Date(now.getFullYear(), now.getMonth() - 1, 1)),
+           to: fmt(new Date(now.getFullYear(), now.getMonth(), 0)) };
 }
 
 export function SaleList({
@@ -43,9 +47,9 @@ export function SaleList({
   const [pending, startTransition] = useTransition();
 
   const [q, setQ] = useState("");
-  const defRange = monthRange();
-  const [from, setFrom] = useState(defRange.from); // default awal bulan
-  const [to, setTo] = useState(defRange.to);        // default akhir bulan
+  const def = monthRange();
+  const [from, setFrom] = useState(def.from);
+  const [to, setTo] = useState(def.to);
 
   const filtered = useMemo(() => {
     const key = q.toLowerCase();
@@ -61,13 +65,25 @@ export function SaleList({
     });
   }, [sales, q, from, to]);
 
+  // total mengikuti rentang tanggal terpilih (default: bulan berjalan)
   const totalPeriod = filtered.reduce((s, x) => s + Number(x.total), 0);
 
-  function resetRange() {
-    setFrom(defRange.from);
-    setTo(defRange.to);
-    setQ("");
-  }
+  const isThisMonth = from === def.from && to === def.to;
+  const { compareTotal, percent, compareLabel } = useMemo(() => {
+    const lm = lastMonthRange();
+    const sumRange = (a: string, b: string) =>
+      sales.filter((s) => s.sale_date >= a && s.sale_date <= b)
+        .reduce((acc, s) => acc + Number(s.total), 0);
+    const lastM = sumRange(lm.from, lm.to);
+    const pct = lastM > 0 ? ((totalPeriod - lastM) / lastM) * 100 : (totalPeriod > 0 ? 100 : null);
+    return {
+      compareTotal: lastM,
+      percent: pct,
+      compareLabel: isThisMonth ? "Dari bulan lalu" : "Dibanding bulan lalu",
+    };
+  }, [sales, totalPeriod, isThisMonth]);
+
+  function resetRange() { setFrom(def.from); setTo(def.to); setQ(""); }
 
   function handleDelete(s: SaleRow) {
     if (!confirm("Hapus penjualan ini? Stok dikembalikan, asset & transaksi terkait dibatalkan.")) return;
@@ -81,7 +97,19 @@ export function SaleList({
 
   return (
     <div className="space-y-4">
-      {/* Toolbar: cari + rentang tanggal */}
+      {/* 1 kartu total — ikut filter tanggal */}
+      <div className="grid gap-4 sm:max-w-md">
+        <SummaryCard
+          title={isThisMonth ? "Total Penjualan Bulan Ini" : "Total Penjualan (Periode Dipilih)"}
+          value={totalPeriod}
+          icon={TrendingUp}
+          compareLabel={compareLabel}
+          compareValue={compareTotal}
+          percent={percent}
+        />
+      </div>
+
+      {/* Toolbar */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div className="grid flex-1 gap-3 sm:grid-cols-2 lg:max-w-2xl lg:grid-cols-3">
           <div className="space-y-1 sm:col-span-2 lg:col-span-1">
@@ -110,16 +138,6 @@ export function SaleList({
           </Button>
         </div>
       </div>
-
-      {/* Ringkasan total periode */}
-      <Card>
-        <CardContent className="flex items-center justify-between py-3">
-          <span className="text-sm text-muted-foreground">
-            Total penjualan {formatDate(from)} – {formatDate(to)} ({filtered.length} transaksi)
-          </span>
-          <span className="text-lg font-bold">{formatIDR(totalPeriod)}</span>
-        </CardContent>
-      </Card>
 
       <Card>
         <CardContent className="p-0">

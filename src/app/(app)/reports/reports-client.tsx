@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  TrendingUp, ShoppingCart, TrendingDown, User2, Wallet, Percent,
+} from "lucide-react";
+import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,14 +54,18 @@ export function ReportsClient() {
     return () => { active = false; };
   }, [supabase, period]);
 
-  const totalIncome = Number(summary?.total_income ?? 0);
+  const totalSales = Number(summary?.total_sales ?? 0);
+  const totalPurchase = Number(summary?.total_purchase ?? 0);
   const totalOpExpense = Number(summary?.total_op_expense ?? 0);
+  const totalPersonal = Number(summary?.total_personal_expense ?? 0);
   const netProfit = Number(summary?.net_profit ?? 0);
-  const margin = totalIncome > 0 ? (netProfit / totalIncome) * 100 : 0;
+  // margin = laba / total penjualan × 100
+  const margin = totalSales > 0 ? (netProfit / totalSales) * 100 : 0;
 
+  const dash = loading ? "…" : "";
   const trendData = trend.map((t) => ({
     name: shortMonth(t.month_start),
-    Pemasukan: Number(t.income),
+    Penjualan: Number(t.income),
     Pengeluaran: Number(t.op_expense),
     Laba: Number(t.net_profit),
   }));
@@ -67,23 +74,44 @@ export function ReportsClient() {
     <div className="space-y-6">
       <PeriodPicker period={period} onChange={setPeriod} />
 
-      {/* Ringkasan */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Total Pendapatan" accent="text-emerald-600"
-          value={loading ? "…" : formatIDR(totalIncome)} />
-        <StatCard label="Total Pengeluaran"
+      {/* 6 kartu sesuai urutan permintaan */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <StatCard label="Total Penjualan" icon={TrendingUp} accent="text-emerald-600"
+          value={loading ? "…" : formatIDR(totalSales)} />
+        <StatCard label="Total Pembelian" icon={ShoppingCart}
+          value={loading ? "…" : formatIDR(totalPurchase)} />
+        <StatCard label="Pengeluaran Operasional" icon={TrendingDown}
           value={loading ? "…" : formatIDR(totalOpExpense)} />
-        <StatCard label="Laba Bersih"
+        <StatCard label="Pengeluaran Pribadi" icon={User2}
+          value={loading ? "…" : formatIDR(totalPersonal)} />
+        <StatCard label="Laba Bersih" icon={Wallet}
           accent={netProfit >= 0 ? "text-emerald-600" : "text-destructive"}
           value={loading ? "…" : formatIDR(netProfit)} />
-        <StatCard label="Margin Laba"
+        <StatCard label="Margin Laba" icon={Percent}
           accent={margin >= 0 ? "text-emerald-600" : "text-destructive"}
-          value={loading ? "…" : `${margin.toFixed(1)}%`} />
+          value={loading ? "…" : `${margin.toFixed(1)}%`}
+          hint="Laba ÷ Total Penjualan" />
       </div>
 
-      {/* Grafik pendapatan vs pengeluaran */}
+      {/* Rumus laba (informasi) */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Pendapatan vs Pengeluaran per Bulan</CardTitle></CardHeader>
+        <CardContent className="py-4">
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">Laba Bersih</span> = Total Penjualan
+            − Total Pembelian − Pengeluaran Operasional − Pengeluaran Pribadi
+          </p>
+          {!loading && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {formatIDR(totalSales)} − {formatIDR(totalPurchase)} − {formatIDR(totalOpExpense)}
+              {" "}− {formatIDR(totalPersonal)} = <b className={netProfit >= 0 ? "text-emerald-600" : "text-destructive"}>{formatIDR(netProfit)}</b>
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Grafik penjualan vs pengeluaran per bulan */}
+      <Card>
+        <CardHeader><CardTitle className="text-base">Penjualan vs Pengeluaran per Bulan</CardTitle></CardHeader>
         <CardContent>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -91,9 +119,9 @@ export function ReportsClient() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="name" fontSize={12} />
                 <YAxis fontSize={11} tickFormatter={(v) => `${(v / 1_000_000).toFixed(0)}jt`} />
-                <Tooltip formatter={(v) => formatIDR(Number(v))} />
+                <Tooltip formatter={(v: number) => formatIDR(v)} />
                 <Legend />
-                <Bar dataKey="Pemasukan" fill="#10b981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Penjualan" fill="#10b981" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="Pengeluaran" fill="#ef4444" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -111,7 +139,7 @@ export function ReportsClient() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="name" fontSize={12} />
                 <YAxis fontSize={11} tickFormatter={(v) => `${(v / 1_000_000).toFixed(0)}jt`} />
-                <Tooltip formatter={(v) => formatIDR(Number(v))} />
+                <Tooltip formatter={(v: number) => formatIDR(v)} />
                 <Bar dataKey="Laba" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -119,10 +147,10 @@ export function ReportsClient() {
         </CardContent>
       </Card>
 
-      {/* Rincian pemasukan & pengeluaran */}
+      {/* Rincian pemasukan & pengeluaran operasional */}
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle className="text-base">Rincian Pemasukan</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Rincian Pemasukan (per Sumber)</CardTitle></CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
@@ -137,20 +165,14 @@ export function ReportsClient() {
                     Tidak ada pemasukan pada periode ini.
                   </TableCell></TableRow>
                 ) : (
-                  <>
-                    {income.map((r) => (
-                      <TableRow key={r.source}>
-                        <TableCell>{r.source}</TableCell>
-                        <TableCell className="text-right font-medium text-emerald-600">
-                          {formatIDR(Number(r.total))}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    <TableRow className="border-t-2">
-                      <TableCell className="font-bold">Total</TableCell>
-                      <TableCell className="text-right font-bold">{formatIDR(totalIncome)}</TableCell>
+                  income.map((r) => (
+                    <TableRow key={r.source}>
+                      <TableCell>{r.source}</TableCell>
+                      <TableCell className="text-right font-medium text-emerald-600">
+                        {formatIDR(Number(r.total))}
+                      </TableCell>
                     </TableRow>
-                  </>
+                  ))
                 )}
               </TableBody>
             </Table>
@@ -173,41 +195,20 @@ export function ReportsClient() {
                     Tidak ada pengeluaran pada periode ini.
                   </TableCell></TableRow>
                 ) : (
-                  <>
-                    {opExpense.map((r) => (
-                      <TableRow key={r.category}>
-                        <TableCell>{r.category}</TableCell>
-                        <TableCell className="text-right font-medium text-destructive">
-                          {formatIDR(Number(r.total))}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    <TableRow className="border-t-2">
-                      <TableCell className="font-bold">Total</TableCell>
-                      <TableCell className="text-right font-bold">{formatIDR(totalOpExpense)}</TableCell>
+                  opExpense.map((r) => (
+                    <TableRow key={r.category}>
+                      <TableCell>{r.category}</TableCell>
+                      <TableCell className="text-right font-medium text-destructive">
+                        {formatIDR(Number(r.total))}
+                      </TableCell>
                     </TableRow>
-                  </>
+                  ))
                 )}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
       </div>
-
-      {/* Catatan pengeluaran pribadi */}
-      <Card>
-        <CardContent className="flex items-center justify-between py-4">
-          <div>
-            <p className="text-sm font-medium">Pengeluaran Pribadi (informasi)</p>
-            <p className="text-xs text-muted-foreground">
-              Tidak dihitung dalam laba bisnis, hanya mengurangi saldo wallet.
-            </p>
-          </div>
-          <p className="text-lg font-bold">
-            {loading ? "…" : formatIDR(Number(summary?.total_personal_expense ?? 0))}
-          </p>
-        </CardContent>
-      </Card>
     </div>
   );
 }

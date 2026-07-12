@@ -1,9 +1,10 @@
 export type FinanceSummary = {
-  total_income: number;
+  total_sales: number;
+  total_purchase: number;
   total_op_expense: number;
   total_personal_expense: number;
-  total_purchase: number;
   net_profit: number;
+  total_income: number;
 };
 
 export type MonthlyTrend = {
