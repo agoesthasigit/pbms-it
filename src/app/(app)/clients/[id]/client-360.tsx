@@ -15,6 +15,9 @@ import {
 } from "@/components/ui/table";
 import { createClient } from "@/lib/supabase/client";
 import { formatIDR } from "@/lib/utils/currency";
+
+// Formatter tooltip Recharts yang aman terhadap tipe ValueType (bisa undefined)
+const tipFormat = (v: number | string | Array<number | string> | undefined) => formatIDR(Number(v ?? 0));
 import { formatDate } from "@/lib/utils/date";
 import { StatCard } from "@/components/shared/stat-card";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -143,8 +146,8 @@ export function Client360({ client }: { client: Client }) {
               <BarChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="name" fontSize={12} />
-                <YAxis fontSize={11} tickFormatter={(v) => `${(v / 1_000_000).toFixed(0)}jt`} />
-                <Tooltip formatter={(v) => formatIDR(Number(v))} />
+                <YAxis fontSize={11} tickFormatter={(v: number) => `${(Number(v) / 1_000_000).toFixed(0)}jt`} />
+                <Tooltip formatter={tipFormat} />
                 <Bar dataKey="Omzet" fill="#0f766e" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>

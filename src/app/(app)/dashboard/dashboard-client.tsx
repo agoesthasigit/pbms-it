@@ -14,6 +14,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/client";
 import { formatIDR } from "@/lib/utils/currency";
+
+// Formatter tooltip Recharts yang aman terhadap tipe ValueType (bisa undefined)
+const tipFormat = (v: number | string | Array<number | string> | undefined) => formatIDR(Number(v ?? 0));
 import { formatDate } from "@/lib/utils/date";
 import { StatCard } from "@/components/shared/stat-card";
 import {
@@ -124,8 +127,8 @@ export function DashboardClient() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="name" fontSize={12} />
                 <YAxis fontSize={11}
-                  tickFormatter={(v) => `${(v / 1_000_000).toFixed(0)}jt`} />
-                <Tooltip formatter={(v: number) => formatIDR(v)} />
+                  tickFormatter={(v: number) => `${(Number(v) / 1_000_000).toFixed(0)}jt`} />
+                <Tooltip formatter={tipFormat} />
                 <Legend />
                 <Line type="monotone" dataKey="Penjualan" stroke="#10b981" strokeWidth={2} dot={false} />
                 <Line type="monotone" dataKey="Pengeluaran" stroke="#ef4444" strokeWidth={2} dot={false} />
