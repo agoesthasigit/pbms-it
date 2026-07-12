@@ -39,7 +39,7 @@ export async function GET(
   }
 
   const buffer = await renderToBuffer(
-    InvoicePdf({ invoice, rows }) as React.ReactElement
+    InvoicePdf({ invoice, rows }) as unknown as Parameters<typeof renderToBuffer>[0]
   );
 
   return new NextResponse(buffer as unknown as BodyInit, {

@@ -25,7 +25,7 @@ export async function GET(
   const expense = (items ?? []).filter((i: RabItem) => i.item_type === "expense");
 
   const buffer = await renderToBuffer(
-    RabPdf({ project, budget, expense }) as React.ReactElement
+    RabPdf({ project, budget, expense }) as unknown as Parameters<typeof renderToBuffer>[0]
   );
 
   return new NextResponse(buffer as unknown as BodyInit, {

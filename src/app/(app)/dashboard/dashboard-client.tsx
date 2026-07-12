@@ -120,7 +120,7 @@ export function DashboardClient() {
                 <XAxis dataKey="name" fontSize={12} />
                 <YAxis fontSize={11}
                   tickFormatter={(v) => `${(v / 1_000_000).toFixed(0)}jt`} />
-                <Tooltip formatter={(v: number) => formatIDR(v)} />
+                <Tooltip formatter={(v) => formatIDR(Number(v))} />
                 <Legend />
                 <Line type="monotone" dataKey="Pemasukan" stroke="#10b981" strokeWidth={2} dot={false} />
                 <Line type="monotone" dataKey="Pengeluaran" stroke="#ef4444" strokeWidth={2} dot={false} />

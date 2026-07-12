@@ -91,7 +91,7 @@ export function ReportsClient() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="name" fontSize={12} />
                 <YAxis fontSize={11} tickFormatter={(v) => `${(v / 1_000_000).toFixed(0)}jt`} />
-                <Tooltip formatter={(v: number) => formatIDR(v)} />
+                <Tooltip formatter={(v) => formatIDR(Number(v))} />
                 <Legend />
                 <Bar dataKey="Pemasukan" fill="#10b981" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="Pengeluaran" fill="#ef4444" radius={[4, 4, 0, 0]} />
@@ -111,7 +111,7 @@ export function ReportsClient() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="name" fontSize={12} />
                 <YAxis fontSize={11} tickFormatter={(v) => `${(v / 1_000_000).toFixed(0)}jt`} />
-                <Tooltip formatter={(v: number) => formatIDR(v)} />
+                <Tooltip formatter={(v) => formatIDR(Number(v))} />
                 <Bar dataKey="Laba" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>

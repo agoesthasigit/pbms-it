@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 export function PasswordCell({
   kind, id, hasPassword,
 }: {
-  kind: "network" | "cctv";
+  kind: "network" | "cctv" | "wifi";
   id: string;
   hasPassword: boolean;
 }) {

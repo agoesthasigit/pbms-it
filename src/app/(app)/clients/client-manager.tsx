@@ -2,7 +2,8 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2, Loader2, Search, Users } from "lucide-react";
+import Link from "next/link";
+import { Plus, Pencil, Trash2, Loader2, Search, Users, LayoutDashboard } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,23 +43,31 @@ export function ClientManager({
   const [editing, setEditing] = useState<Client | null>(null);
   const [form, setForm] = useState(emptyForm);
 
-  // filter
   const [q, setQ] = useState("");
   const [fStatus, setFStatus] = useState("all");
   const [fCategory, setFCategory] = useState("all");
 
-  const catName = (id: string | null) =>
-    categories.find((c) => c.id === id)?.name ?? "-";
-
-  // Base UI Select butuh prop `items` (value→label) agar trigger menampilkan
-  // label, bukan value mentah (UUID/kode). Lihat catatan di AGENTS.md.
-  const categoryItems = categories.map((c) => ({ value: c.id, label: c.name }));
-  const statusItems = [
+  const categoryFilterItems = useMemo(
+    () => [{ value: "all", label: "Semua Kategori" },
+      ...categories.map((c) => ({ value: c.id, label: c.name }))],
+    [categories]
+  );
+  const statusFilterItems = [
+    { value: "all", label: "Semua Status" },
     { value: "active", label: "Aktif" },
     { value: "inactive", label: "Nonaktif" },
   ];
-  const categoryFilterItems = [{ value: "all", label: "Semua Kategori" }, ...categoryItems];
-  const statusFilterItems = [{ value: "all", label: "Semua Status" }, ...statusItems];
+  const categoryFormItems = useMemo(
+    () => categories.map((c) => ({ value: c.id, label: c.name })),
+    [categories]
+  );
+  const statusFormItems = [
+    { value: "active", label: "Aktif" },
+    { value: "inactive", label: "Nonaktif" },
+  ];
+
+  const catName = (id: string | null) =>
+    categories.find((c) => c.id === id)?.name ?? "-";
 
   const filtered = useMemo(() => {
     return clients.filter((c) => {
@@ -70,12 +79,7 @@ export function ClientManager({
     });
   }, [clients, q, fStatus, fCategory]);
 
-  function openAdd() {
-    setEditing(null);
-    setForm(emptyForm);
-    setOpen(true);
-  }
-
+  function openAdd() { setEditing(null); setForm(emptyForm); setOpen(true); }
   function openEdit(c: Client) {
     setEditing(c);
     setForm({
@@ -99,7 +103,6 @@ export function ClientManager({
       router.refresh();
     });
   }
-
   function handleDelete(c: Client) {
     if (!confirm(`Hapus client "${c.company_name}"?`)) return;
     startTransition(async () => {
@@ -112,7 +115,6 @@ export function ClientManager({
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -140,14 +142,12 @@ export function ClientManager({
         <Button onClick={openAdd}><Plus className="h-4 w-4" /> Tambah Client</Button>
       </div>
 
-      {/* Tabel */}
       <Card>
         <CardContent className="p-0">
           {filtered.length === 0 ? (
             <EmptyState icon={Users} title="Tidak ada client"
               description={clients.length === 0
-                ? "Tambahkan client pertama Anda."
-                : "Tidak ada hasil untuk filter/pencarian ini."} />
+                ? "Tambahkan client pertama Anda." : "Tidak ada hasil untuk filter/pencarian ini."} />
           ) : (
             <Table>
               <TableHeader>
@@ -157,8 +157,7 @@ export function ClientManager({
                   <TableHead>Kategori</TableHead>
                   <TableHead>Telepon</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Bergabung</TableHead>
-                  <TableHead className="w-24 text-right">Aksi</TableHead>
+                  <TableHead className="w-40 text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -166,19 +165,18 @@ export function ClientManager({
                   <TableRow key={c.id}>
                     <TableCell className="font-medium">{c.company_name}</TableCell>
                     <TableCell>{c.contact_name ?? "-"}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{catName(c.category_id)}</Badge>
-                    </TableCell>
+                    <TableCell><Badge variant="secondary">{catName(c.category_id)}</Badge></TableCell>
                     <TableCell>{c.phone ?? "-"}</TableCell>
                     <TableCell>
-                      {c.status === "active" ? (
-                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Aktif</Badge>
-                      ) : (
-                        <Badge variant="outline">Nonaktif</Badge>
-                      )}
+                      {c.status === "active"
+                        ? <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Aktif</Badge>
+                        : <Badge variant="outline">Nonaktif</Badge>}
                     </TableCell>
-                    <TableCell>{c.joined_date ? formatDate(c.joined_date) : "-"}</TableCell>
                     <TableCell className="text-right">
+                      <Button variant="outline" size="sm" nativeButton={false}
+                        title="Client 360" render={<Link href={`/clients/${c.id}`} />}>
+                        <LayoutDashboard className="h-3.5 w-3.5" /> 360
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -205,8 +203,7 @@ export function ClientManager({
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Nama Perusahaan *</Label>
-              <Input value={form.company_name}
-                placeholder="Contoh: Villa Sunset Bali"
+              <Input value={form.company_name} placeholder="Contoh: Villa Sunset Bali"
                 onChange={(e) => setForm({ ...form, company_name: e.target.value })} />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -217,12 +214,12 @@ export function ClientManager({
               </div>
               <div className="space-y-2">
                 <Label>Kategori</Label>
-                <Select items={categoryItems} value={form.category_id || null}
+                <Select items={categoryFormItems} value={form.category_id || null}
                   onValueChange={(v) => setForm({ ...form, category_id: v ?? "" })}>
                   <SelectTrigger><SelectValue placeholder="Pilih kategori" /></SelectTrigger>
                   <SelectContent>
-                    {categories.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    {categoryFormItems.map((it) => (
+                      <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -248,11 +245,11 @@ export function ClientManager({
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Status</Label>
-                <Select items={statusItems} value={form.status}
+                <Select items={statusFormItems} value={form.status}
                   onValueChange={(v) => setForm({ ...form, status: (v ?? "active") as ClientStatus })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {statusItems.map((it) => (
+                    {statusFormItems.map((it) => (
                       <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
                     ))}
                   </SelectContent>
@@ -271,6 +268,7 @@ export function ClientManager({
             </div>
           </div>
           <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Batal</Button>
             <Button onClick={handleSave} disabled={pending || !form.company_name.trim()}>
               {pending && <Loader2 className="h-4 w-4 animate-spin" />}
               {editing ? "Simpan Perubahan" : "Tambah"}
