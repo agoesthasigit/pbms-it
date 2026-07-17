@@ -14,6 +14,8 @@ export type RabProject = {
   grand_total_rab?: number;
   grand_total_expense?: number;
   net_profit?: number;
+  total_paid?: number;   // Σ termin
+  remaining?: number;    // nilai proyek − Σ termin
 };
 
 export type RabItem = {
@@ -24,6 +26,18 @@ export type RabItem = {
   qty: number;
   price: number;
   total: number;
+  sort_order: number;
+  paid_date: string | null;        // hanya untuk item_type 'expense'
+  paid_wallet_id: string | null;   // hanya untuk item_type 'expense'
+};
+
+export type RabPayment = {
+  id: string;
+  rab_id: string;
+  payment_date: string;
+  description: string;
+  amount: number;
+  wallet_id: string;
   sort_order: number;
 };
 

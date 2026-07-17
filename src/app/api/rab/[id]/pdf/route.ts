@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { RabPdf } from "./rab-pdf";
-import type { RabItem } from "@/types/phase7";
+import type { RabItem, RabPayment } from "@/types/phase7";
 
 export async function GET(
   _req: Request,
@@ -18,14 +18,27 @@ export async function GET(
     .from("v_rab_summary").select("*").eq("id", id).single();
   if (!project) return new NextResponse("RAB tidak ditemukan", { status: 404 });
 
-  const { data: items } = await supabase
-    .from("rab_items").select("*").eq("rab_id", id).order("sort_order");
+  const [{ data: items }, { data: payments }, { data: wallets }] = await Promise.all([
+    supabase.from("rab_items").select("*").eq("rab_id", id).order("sort_order"),
+    supabase.from("rab_payments").select("*").eq("rab_id", id).order("payment_date"),
+    supabase.from("wallets").select("id, name"),
+  ]);
 
-  const budget = (items ?? []).filter((i: RabItem) => i.item_type === "budget");
-  const expense = (items ?? []).filter((i: RabItem) => i.item_type === "expense");
+  const walletNames: Record<string, string> = {};
+  for (const w of (wallets ?? []) as { id: string; name: string }[]) {
+    walletNames[w.id] = w.name;
+  }
+
+  const all = (items ?? []) as RabItem[];
+  const budget = all.filter((i) => i.item_type === "budget");
+  const expense = all.filter((i) => i.item_type === "expense");
 
   const buffer = await renderToBuffer(
-    RabPdf({ project, budget, expense }) as unknown as Parameters<typeof renderToBuffer>[0]
+    RabPdf({
+      project, budget, expense,
+      payments: (payments ?? []) as RabPayment[],
+      walletNames,
+    }) as React.ReactElement
   );
 
   return new NextResponse(buffer as unknown as BodyInit, {

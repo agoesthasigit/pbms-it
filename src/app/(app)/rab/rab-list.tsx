@@ -33,11 +33,13 @@ export function RabList({ projects }: { projects: RabProject[] }) {
   }, [projects, q]);
 
   function handleDelete(p: RabProject) {
-    if (!confirm(`Hapus RAB "${p.project_name}"? Semua item ikut terhapus.`)) return;
+    if (!confirm(
+      `Hapus RAB "${p.project_name}"?\n\nSemua item, termin, dan efeknya di wallet akan ikut dibatalkan.`
+    )) return;
     startTransition(async () => {
       const res = await deleteRab(p.id);
       if (res.error) { toast.error(res.error); return; }
-      toast.success("RAB dihapus.");
+      toast.success("RAB dihapus & efek wallet dibatalkan.");
       router.refresh();
     });
   }
@@ -63,8 +65,9 @@ export function RabList({ projects }: { projects: RabProject[] }) {
                   <TableHead>Client</TableHead>
                   <TableHead>Tanggal</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Total RAB</TableHead>
-                  <TableHead className="text-right">Pengeluaran</TableHead>
+                  <TableHead className="text-right">Nilai</TableHead>
+                  <TableHead className="text-right">Diterima</TableHead>
+                  <TableHead className="text-right">Sisa</TableHead>
                   <TableHead className="text-right">Laba</TableHead>
                   <TableHead className="w-24 text-right">Aksi</TableHead>
                 </TableRow>
@@ -72,6 +75,10 @@ export function RabList({ projects }: { projects: RabProject[] }) {
               <TableBody>
                 {filtered.map((p) => {
                   const profit = Number(p.net_profit ?? 0);
+                  const value = Number(p.grand_total_rab ?? 0);
+                  const paid = Number(p.total_paid ?? 0);
+                  const remaining = Number(p.remaining ?? 0);
+                  const lunas = value > 0 && remaining <= 0;
                   return (
                     <TableRow key={p.id}>
                       <TableCell className="font-medium">{p.project_name}</TableCell>
@@ -82,11 +89,20 @@ export function RabList({ projects }: { projects: RabProject[] }) {
                           {RAB_STATUS_LABELS[p.status as RabStatus]}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
-                        {formatIDR(Number(p.grand_total_rab ?? 0))}
+                      <TableCell className="text-right">{formatIDR(value)}</TableCell>
+                      <TableCell className="text-right text-emerald-600">
+                        {formatIDR(paid)}
                       </TableCell>
                       <TableCell className="text-right">
-                        {formatIDR(Number(p.grand_total_expense ?? 0))}
+                        {lunas ? (
+                          <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+                            Lunas
+                          </Badge>
+                        ) : (
+                          <span className="font-medium text-amber-600">
+                            {formatIDR(Math.max(remaining, 0))}
+                          </span>
+                        )}
                       </TableCell>
                       <TableCell className={`text-right font-semibold ${
                         profit >= 0 ? "text-emerald-600" : "text-destructive"}`}>

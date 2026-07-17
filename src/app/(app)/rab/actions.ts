@@ -12,6 +12,16 @@ export type RabItemInput = {
   qty: number;
   price: number;
   sort_order: number;
+  paid_date?: string | null;
+  paid_wallet_id?: string | null;
+};
+
+export type RabPaymentInput = {
+  payment_date: string;
+  description: string;
+  amount: number;
+  wallet_id: string;
+  sort_order: number;
 };
 
 export async function saveRab(input: {
@@ -22,9 +32,26 @@ export async function saveRab(input: {
   status: RabStatus;
   notes?: string;
   items: RabItemInput[];
+  payments: RabPaymentInput[];
 }): Promise<Result> {
   if (!input.client_id) return { error: "Pilih client." };
   if (!input.project_name.trim()) return { error: "Nama proyek wajib diisi." };
+
+  const items = input.items.filter((i) => i.item_name.trim());
+  const payments = input.payments.filter((p) => p.amount > 0);
+
+  // validasi: termin wajib punya wallet
+  const noWallet = payments.find((p) => !p.wallet_id);
+  if (noWallet) {
+    return { error: `Termin "${noWallet.description || "(tanpa keterangan)"}" wajib memilih wallet.` };
+  }
+  // validasi: pengeluaran yang punya wallet wajib punya tanggal
+  const badExpense = items.find(
+    (i) => i.item_type === "expense" && i.paid_wallet_id && !i.paid_date
+  );
+  if (badExpense) {
+    return { error: `Pengeluaran "${badExpense.item_name}" sudah pilih wallet, tanggal bayar wajib diisi.` };
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("save_rab", {
@@ -34,11 +61,15 @@ export async function saveRab(input: {
     p_project_date: input.project_date,
     p_status: input.status,
     p_notes: input.notes ?? "",
-    p_items: input.items.filter((i) => i.item_name.trim()),
+    p_items: items,
+    p_payments: payments,
   });
 
   if (error) return { error: error.message || "Gagal menyimpan RAB." };
   revalidatePath("/rab");
+  revalidatePath("/wallets");
+  revalidatePath("/dashboard");
+  revalidatePath("/reports");
   return { success: true, rabId: data as string };
 }
 
@@ -48,21 +79,7 @@ export async function deleteRab(id: string): Promise<Result> {
   if (error) return { error: error.message || "Gagal menghapus RAB." };
   revalidatePath("/rab");
   revalidatePath("/wallets");
-  return { success: true };
-}
-
-export async function recordRabProfit(input: {
-  id: string;
-  wallet_id: string;
-  date: string;
-}): Promise<Result> {
-  if (!input.wallet_id) return { error: "Pilih wallet." };
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("record_rab_profit", {
-    p_id: input.id, p_wallet_id: input.wallet_id, p_date: input.date,
-  });
-  if (error) return { error: error.message || "Gagal mencatat laba." };
-  revalidatePath("/rab");
-  revalidatePath("/wallets");
+  revalidatePath("/dashboard");
+  revalidatePath("/reports");
   return { success: true };
 }
