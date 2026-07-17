@@ -38,7 +38,7 @@ export async function GET(
       project, budget, expense,
       payments: (payments ?? []) as RabPayment[],
       walletNames,
-    }) as React.ReactElement
+    }) as unknown as Parameters<typeof renderToBuffer>[0]
   );
 
   return new NextResponse(buffer as unknown as BodyInit, {

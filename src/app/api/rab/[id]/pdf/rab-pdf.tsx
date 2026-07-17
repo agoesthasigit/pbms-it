@@ -294,7 +294,7 @@ export function RabPdf({
 
         {/* ===== FOOTER ===== */}
         <Text style={s.footer} fixed>
-          {B.name} · {B.phone} · {B.email} · {B.website}
+          {B.name} · {B.phone} · {B.email}
         </Text>
       </Page>
     </Document>
