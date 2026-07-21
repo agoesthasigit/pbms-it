@@ -44,9 +44,15 @@ export const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
 
 // Data identitas usaha untuk kop invoice (edit sesuai usaha Anda)
 export const BUSINESS_IDENTITY = {
-  name: "PBMS-IT",
-  tagline: "IT Solution & Network Service",
-  address: "Jl Mahendradata Gg Puputan Baru II No 19b Denpasar, Bali",
-  phone: "083-1199-56442",
+  name: "ATHAYA COMPUTER",
+  tagline: "IT - Solution & Network Service",
+  address: "Jl Mahendradata Gg Puputan Baru II No 19b Denpasar - Bali",
+  phone: "083119956442",
   email: "athaya.it@gmail.com",
-};
+  website: "www.athayacomputer.com",
+  bankName: "BCA",
+  bankAccount: "6110823876",
+  bankHolder: "Agusta Sigit Dewantoro",
+} as const;
+
+export type BusinessIdentity = typeof BUSINESS_IDENTITY;
