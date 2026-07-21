@@ -33,6 +33,7 @@ export async function saveRab(input: {
   notes?: string;
   items: RabItemInput[];
   payments: RabPaymentInput[];
+  unlocked?: boolean; // true bila menyimpan proyek yang tadinya "Selesai" via buka-kunci
 }): Promise<Result> {
   if (!input.client_id) return { error: "Pilih client." };
   if (!input.project_name.trim()) return { error: "Nama proyek wajib diisi." };
@@ -63,6 +64,7 @@ export async function saveRab(input: {
     p_notes: input.notes ?? "",
     p_items: items,
     p_payments: payments,
+    p_unlocked: input.unlocked ?? false,
   });
 
   if (error) return { error: error.message || "Gagal menyimpan RAB." };

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-type Result = { success?: boolean; error?: string };
+type Result = { success?: boolean; error?: string; id?: string };
 
 export async function addManualAsset(input: {
   client_id: string;
@@ -17,7 +17,7 @@ export async function addManualAsset(input: {
   if (!input.product_name.trim()) return { error: "Nama barang wajib diisi." };
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("add_manual_asset", {
+  const { data, error } = await supabase.rpc("add_manual_asset", {
     p_client_id: input.client_id,
     p_product_name: input.product_name,
     p_serial: input.serial_number ?? "",
@@ -28,7 +28,7 @@ export async function addManualAsset(input: {
 
   if (error) return { error: error.message || "Gagal menambah asset." };
   revalidatePath("/assets");
-  return { success: true };
+  return { success: true, id: data as string };
 }
 
 export async function updateAsset(id: string, input: {
@@ -49,11 +49,18 @@ export async function updateAsset(id: string, input: {
   }).eq("id", id);
   if (error) return { error: "Gagal mengubah asset." };
   revalidatePath("/assets");
-  return { success: true };
+  return { success: true, id };
 }
 
 export async function deleteAsset(id: string): Promise<Result> {
   const supabase = await createClient();
+  // hapus foto di storage dulu (baris db ikut cascade saat aset dihapus)
+  const { data: photos } = await supabase
+    .from("asset_photos").select("storage_path").eq("asset_id", id);
+  if (photos && photos.length > 0) {
+    await supabase.storage.from("asset-photos")
+      .remove(photos.map((p) => p.storage_path));
+  }
   const { error } = await supabase.from("client_assets").delete().eq("id", id);
   if (error) return { error: "Gagal menghapus asset." };
   revalidatePath("/assets");

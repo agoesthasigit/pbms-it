@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft, Download, Lock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/page-header";
 import { RabEditor } from "../rab-editor";
+import { RabDeleteButton } from "./rab-delete-button";
 import type { Client, WalletWithBalance } from "@/types/db";
 import {
   type RabProject, type RabItem, type RabPayment, type RabStatus,
@@ -52,6 +53,11 @@ export default async function RabDetailPage({
         description={`${proj.company_name} · Laba: ${formatIDR(Number(proj.net_profit ?? 0))}`}>
         <div className="flex flex-wrap items-center gap-2">
           <Badge className={RAB_STATUS_STYLE[st]}>{RAB_STATUS_LABELS[st]}</Badge>
+          {st === "done" && (
+            <Badge variant="outline" className="gap-1 border-emerald-200 text-emerald-700">
+              <Lock className="h-3 w-3" /> Terkunci
+            </Badge>
+          )}
           {lunas ? (
             <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Lunas</Badge>
           ) : (
@@ -63,6 +69,7 @@ export default async function RabDetailPage({
             render={<a href={`/api/rab/${id}/pdf`} target="_blank" rel="noopener noreferrer" />}>
             <Download className="h-4 w-4" /> Unduh PDF
           </Button>
+          <RabDeleteButton id={id} projectName={proj.project_name} />
           <Button variant="outline" nativeButton={false} render={<Link href="/rab" />}>
             <ArrowLeft className="h-4 w-4" /> Kembali
           </Button>

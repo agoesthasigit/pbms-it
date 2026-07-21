@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X, Loader2, Save, Wallet as WalletIcon } from "lucide-react";
+import { Plus, X, Loader2, Save, Wallet as WalletIcon, Lock, LockOpen } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,10 +46,11 @@ type WalletItem = { value: string; label: string };
 
 // ============ TABEL 1: PENAWARAN (module-level, jangan dipindah ke dalam) ============
 function BudgetTable({
-  rows, onChange,
+  rows, onChange, readOnly = false,
 }: {
   rows: BudgetRow[];
   onChange: (rows: BudgetRow[]) => void;
+  readOnly?: boolean;
 }) {
   const total = sumRows(rows);
   const update = (i: number, patch: Partial<BudgetRow>) =>
@@ -62,44 +63,48 @@ function BudgetTable({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-base">1. Detail RAB (Penawaran)</CardTitle>
-        <Button type="button" variant="outline" size="sm" onClick={add}>
-          <Plus className="h-3.5 w-3.5" /> Tambah Item
-        </Button>
+        {!readOnly && (
+          <Button type="button" variant="outline" size="sm" onClick={add}>
+            <Plus className="h-3.5 w-3.5" /> Tambah Item
+          </Button>
+        )}
       </CardHeader>
       <CardContent className="space-y-2">
         <div className="hidden grid-cols-12 gap-2 px-1 text-xs font-medium text-muted-foreground sm:grid">
           <div className="col-span-5">Nama Barang</div>
           <div className="col-span-2 text-center">Qty</div>
           <div className="col-span-2 text-right">Harga</div>
-          <div className="col-span-2 text-right">Total</div>
-          <div className="col-span-1"></div>
+          <div className={readOnly ? "col-span-3 text-right" : "col-span-2 text-right"}>Total</div>
+          {!readOnly && <div className="col-span-1"></div>}
         </div>
         {rows.map((r, i) => (
           <div key={i} className="grid grid-cols-12 items-center gap-2">
             <div className="col-span-12 sm:col-span-5">
-              <Input placeholder="Nama barang" value={r.item_name}
+              <Input placeholder="Nama barang" value={r.item_name} disabled={readOnly}
                 onChange={(e) => update(i, { item_name: e.target.value })} />
             </div>
             <div className="col-span-4 sm:col-span-2">
               <Input type="number" min={0} placeholder="Qty" value={r.qty}
-                className="text-center"
+                className="text-center" disabled={readOnly}
                 onChange={(e) => update(i, { qty: e.target.value })} />
             </div>
             <div className="col-span-4 sm:col-span-2">
               <Input type="number" min={0} placeholder="Harga" value={r.price}
-                className="text-right"
+                className="text-right" disabled={readOnly}
                 onChange={(e) => update(i, { price: e.target.value })} />
             </div>
-            <div className="col-span-3 sm:col-span-2 text-right text-sm font-medium">
+            <div className={`${readOnly ? "col-span-4 sm:col-span-3" : "col-span-3 sm:col-span-2"} text-right text-sm font-medium`}>
               {formatIDR(toNumber(r.qty) * toNumber(r.price))}
             </div>
-            <div className="col-span-1 flex justify-end">
-              <Button type="button" variant="ghost" size="icon"
-                className="text-muted-foreground hover:text-destructive"
-                onClick={() => remove(i)} disabled={rows.length === 1}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+            {!readOnly && (
+              <div className="col-span-1 flex justify-end">
+                <Button type="button" variant="ghost" size="icon"
+                  className="text-muted-foreground hover:text-destructive"
+                  onClick={() => remove(i)} disabled={rows.length === 1}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
         ))}
         <div className="flex items-center justify-between rounded-lg bg-sky-50 px-4 py-2.5 text-sky-800">
@@ -113,11 +118,12 @@ function BudgetTable({
 
 // ============ TABEL 2: PENGELUARAN (+ wallet & tanggal) ============
 function ExpenseTable({
-  rows, onChange, walletItems,
+  rows, onChange, walletItems, readOnly = false,
 }: {
   rows: ExpenseRow[];
   onChange: (rows: ExpenseRow[]) => void;
   walletItems: WalletItem[];
+  readOnly?: boolean;
 }) {
   const total = sumRows(rows);
   const update = (i: number, patch: Partial<ExpenseRow>) =>
@@ -130,46 +136,52 @@ function ExpenseTable({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-base">2. Detail Pengeluaran (Realisasi)</CardTitle>
-        <Button type="button" variant="outline" size="sm" onClick={add}>
-          <Plus className="h-3.5 w-3.5" /> Tambah Item
-        </Button>
+        {!readOnly && (
+          <Button type="button" variant="outline" size="sm" onClick={add}>
+            <Plus className="h-3.5 w-3.5" /> Tambah Item
+          </Button>
+        )}
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-xs text-muted-foreground">
-          Pilih wallet bila uang benar-benar sudah keluar — saldo wallet otomatis berkurang
-          sesuai tanggal. Kosongkan wallet bila baru rencana/belum dibayar.
-        </p>
+        {!readOnly && (
+          <p className="text-xs text-muted-foreground">
+            Pilih wallet bila uang benar-benar sudah keluar — saldo wallet otomatis berkurang
+            sesuai tanggal. Kosongkan wallet bila baru rencana/belum dibayar.
+          </p>
+        )}
         {rows.map((r, i) => (
           <div key={i} className="space-y-2 rounded-lg border p-3">
             <div className="grid grid-cols-12 items-center gap-2">
               <div className="col-span-12 sm:col-span-5">
-                <Input placeholder="Nama barang / jasa" value={r.item_name}
+                <Input placeholder="Nama barang / jasa" value={r.item_name} disabled={readOnly}
                   onChange={(e) => update(i, { item_name: e.target.value })} />
               </div>
               <div className="col-span-4 sm:col-span-2">
                 <Input type="number" min={0} placeholder="Qty" value={r.qty}
-                  className="text-center"
+                  className="text-center" disabled={readOnly}
                   onChange={(e) => update(i, { qty: e.target.value })} />
               </div>
               <div className="col-span-4 sm:col-span-2">
                 <Input type="number" min={0} placeholder="Harga" value={r.price}
-                  className="text-right"
+                  className="text-right" disabled={readOnly}
                   onChange={(e) => update(i, { price: e.target.value })} />
               </div>
-              <div className="col-span-3 sm:col-span-2 text-right text-sm font-medium">
+              <div className={`${readOnly ? "col-span-4 sm:col-span-3" : "col-span-3 sm:col-span-2"} text-right text-sm font-medium`}>
                 {formatIDR(toNumber(r.qty) * toNumber(r.price))}
               </div>
-              <div className="col-span-1 flex justify-end">
-                <Button type="button" variant="ghost" size="icon"
-                  className="text-muted-foreground hover:text-destructive"
-                  onClick={() => remove(i)} disabled={rows.length === 1}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+              {!readOnly && (
+                <div className="col-span-1 flex justify-end">
+                  <Button type="button" variant="ghost" size="icon"
+                    className="text-muted-foreground hover:text-destructive"
+                    onClick={() => remove(i)} disabled={rows.length === 1}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-12 items-center gap-2">
               <div className="col-span-12 sm:col-span-5">
-                <Select items={walletItems} value={r.paid_wallet_id || null}
+                <Select items={walletItems} value={r.paid_wallet_id || null} disabled={readOnly}
                   onValueChange={(v) => update(i, { paid_wallet_id: v ?? "" })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Bayar dari wallet (opsional)" />
@@ -182,7 +194,7 @@ function ExpenseTable({
                 </Select>
               </div>
               <div className="col-span-8 sm:col-span-4">
-                <Input type="date" value={r.paid_date}
+                <Input type="date" value={r.paid_date} disabled={readOnly}
                   onChange={(e) => update(i, { paid_date: e.target.value })} />
               </div>
               <div className="col-span-4 sm:col-span-3 text-right text-xs">
@@ -206,12 +218,13 @@ function ExpenseTable({
 
 // ============ TABEL 3: TERMIN PEMBAYARAN ============
 function PaymentTable({
-  rows, onChange, walletItems, projectValue,
+  rows, onChange, walletItems, projectValue, readOnly = false,
 }: {
   rows: PaymentRow[];
   onChange: (rows: PaymentRow[]) => void;
   walletItems: WalletItem[];
   projectValue: number;
+  readOnly?: boolean;
 }) {
   const total = sumPayments(rows);
   const remaining = projectValue - total;
@@ -225,19 +238,23 @@ function PaymentTable({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-base">3. Termin Pembayaran</CardTitle>
-        <Button type="button" variant="outline" size="sm" onClick={add}>
-          <Plus className="h-3.5 w-3.5" /> Tambah Termin
-        </Button>
+        {!readOnly && (
+          <Button type="button" variant="outline" size="sm" onClick={add}>
+            <Plus className="h-3.5 w-3.5" /> Tambah Termin
+          </Button>
+        )}
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-xs text-muted-foreground">
-          Setiap termin yang disimpan langsung masuk ke wallet sesuai tanggalnya.
-          Catat semua pembayaran client di sini (deposit, cicilan, pelunasan).
-        </p>
+        {!readOnly && (
+          <p className="text-xs text-muted-foreground">
+            Setiap termin yang disimpan langsung masuk ke wallet sesuai tanggalnya.
+            Catat semua pembayaran client di sini (deposit, cicilan, pelunasan).
+          </p>
+        )}
 
         {rows.length === 0 ? (
           <div className="rounded-lg border border-dashed py-6 text-center text-sm text-muted-foreground">
-            Belum ada termin. Klik &quot;Tambah Termin&quot; saat client membayar.
+            {readOnly ? "Tidak ada termin pembayaran." : "Belum ada termin. Klik \u201CTambah Termin\u201D saat client membayar."}
           </div>
         ) : (
           <>
@@ -245,21 +262,21 @@ function PaymentTable({
               <div className="col-span-3">Tanggal</div>
               <div className="col-span-3">Keterangan</div>
               <div className="col-span-3">Wallet Penerima</div>
-              <div className="col-span-2 text-right">Nominal</div>
-              <div className="col-span-1"></div>
+              <div className={readOnly ? "col-span-3 text-right" : "col-span-2 text-right"}>Nominal</div>
+              {!readOnly && <div className="col-span-1"></div>}
             </div>
             {rows.map((r, i) => (
               <div key={i} className="grid grid-cols-12 items-center gap-2">
                 <div className="col-span-6 sm:col-span-3">
-                  <Input type="date" value={r.payment_date}
+                  <Input type="date" value={r.payment_date} disabled={readOnly}
                     onChange={(e) => update(i, { payment_date: e.target.value })} />
                 </div>
                 <div className="col-span-6 sm:col-span-3">
-                  <Input placeholder="mis. Deposit 1 (50%)" value={r.description}
+                  <Input placeholder="mis. Deposit 1 (50%)" value={r.description} disabled={readOnly}
                     onChange={(e) => update(i, { description: e.target.value })} />
                 </div>
                 <div className="col-span-8 sm:col-span-3">
-                  <Select items={walletItems} value={r.wallet_id || null}
+                  <Select items={walletItems} value={r.wallet_id || null} disabled={readOnly}
                     onValueChange={(v) => update(i, { wallet_id: v ?? "" })}>
                     <SelectTrigger><SelectValue placeholder="Pilih wallet *" /></SelectTrigger>
                     <SelectContent>
@@ -269,18 +286,20 @@ function PaymentTable({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="col-span-3 sm:col-span-2">
+                <div className={readOnly ? "col-span-4 sm:col-span-3" : "col-span-3 sm:col-span-2"}>
                   <Input type="number" min={0} placeholder="Nominal" value={r.amount}
-                    className="text-right"
+                    className="text-right" disabled={readOnly}
                     onChange={(e) => update(i, { amount: e.target.value })} />
                 </div>
-                <div className="col-span-1 flex justify-end">
-                  <Button type="button" variant="ghost" size="icon"
-                    className="text-muted-foreground hover:text-destructive"
-                    onClick={() => remove(i)}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
+                {!readOnly && (
+                  <div className="col-span-1 flex justify-end">
+                    <Button type="button" variant="ghost" size="icon"
+                      className="text-muted-foreground hover:text-destructive"
+                      onClick={() => remove(i)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
           </>
@@ -323,6 +342,19 @@ export function RabEditor({
   const [projectDate, setProjectDate] = useState(existing?.project_date ?? todayISO());
   const [status, setStatus] = useState<RabStatus>(existing?.status ?? "draft");
   const [notes, setNotes] = useState(existing?.notes ?? "");
+
+  // ===== KUNCI: proyek "Selesai" read-only sampai dibuka =====
+  // savedAsDone = status proyek yang TERSIMPAN di DB (bukan yang sedang diedit).
+  const savedAsDone = existing?.status === "done";
+  const [unlocked, setUnlocked] = useState(false);
+  const locked = savedAsDone && !unlocked;
+
+  // Buka kunci: form bisa diedit + status otomatis ke "Berjalan" (ongoing).
+  function handleUnlock() {
+    setUnlocked(true);
+    setStatus("ongoing");
+    toast.info("Kunci dibuka. Status menjadi Berjalan — jangan lupa Simpan.");
+  }
 
   const initBudget = (existingItems ?? [])
     .filter((i) => i.item_type === "budget")
@@ -393,6 +425,9 @@ export function RabEditor({
         client_id: clientId, project_name: projectName,
         project_date: projectDate, status, notes,
         items, payments: pays,
+        // server mengizinkan overwrite proyek "Selesai" hanya bila memang
+        // dibuka lewat tombol Buka Kunci (savedAsDone + unlocked).
+        unlocked: savedAsDone && unlocked,
       });
       if (res.error) { toast.error(res.error); return; }
       toast.success("RAB tersimpan. Termin & pengeluaran tercatat di wallet.");
@@ -403,13 +438,30 @@ export function RabEditor({
 
   return (
     <div className="space-y-6">
+      {/* Banner kunci (hanya untuk proyek Selesai yang belum dibuka) */}
+      {locked && (
+        <div className="flex flex-col gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-2 text-sm text-emerald-900">
+            <Lock className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              Proyek ini berstatus <b>Selesai</b> dan terkunci (mode baca) agar tidak
+              berubah tak sengaja. Buka kunci untuk mengedit — saldo wallet tidak berubah
+              sampai Anda menekan Simpan.
+            </span>
+          </div>
+          <Button type="button" onClick={handleUnlock} className="shrink-0">
+            <LockOpen className="h-4 w-4" /> Buka Kunci untuk Edit
+          </Button>
+        </div>
+      )}
+
       {/* Info proyek */}
       <Card>
         <CardHeader><CardTitle className="text-base">Informasi Proyek</CardTitle></CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label>Client *</Label>
-            <Select items={clientItems} value={clientId || null}
+            <Select items={clientItems} value={clientId || null} disabled={locked}
               onValueChange={(v) => setClientId(v ?? "")}>
               <SelectTrigger><SelectValue placeholder="Pilih client" /></SelectTrigger>
               <SelectContent>
@@ -422,16 +474,17 @@ export function RabEditor({
           <div className="space-y-2">
             <Label>Nama Proyek *</Label>
             <Input value={projectName} placeholder="mis. Pemasangan CCTV Villa Sunset"
+              disabled={locked}
               onChange={(e) => setProjectName(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label>Tanggal</Label>
-            <Input type="date" value={projectDate}
+            <Input type="date" value={projectDate} disabled={locked}
               onChange={(e) => setProjectDate(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label>Status Pekerjaan</Label>
-            <Select items={statusItems} value={status}
+            <Select items={statusItems} value={status} disabled={locked}
               onValueChange={(v) => setStatus((v ?? "draft") as RabStatus)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -441,21 +494,23 @@ export function RabEditor({
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Set &quot;Selesai&quot; saat pekerjaan kelar.
+              {unlocked
+                ? "Biarkan \u201CBerjalan\u201D agar tetap bisa diedit, atau pilih \u201CSelesai\u201D untuk mengunci lagi setelah Simpan."
+                : "Set \u201CSelesai\u201D saat pekerjaan kelar (proyek akan terkunci dari edit)."}
             </p>
           </div>
           <div className="space-y-2 sm:col-span-2">
             <Label>Catatan</Label>
-            <Textarea rows={2} value={notes}
+            <Textarea rows={2} value={notes} disabled={locked}
               onChange={(e) => setNotes(e.target.value)} />
           </div>
         </CardContent>
       </Card>
 
-      <BudgetTable rows={budget} onChange={setBudget} />
-      <ExpenseTable rows={expense} onChange={setExpense} walletItems={walletItems} />
+      <BudgetTable rows={budget} onChange={setBudget} readOnly={locked} />
+      <ExpenseTable rows={expense} onChange={setExpense} walletItems={walletItems} readOnly={locked} />
       <PaymentTable rows={payments} onChange={setPayments}
-        walletItems={walletItems} projectValue={grandRab} />
+        walletItems={walletItems} projectValue={grandRab} readOnly={locked} />
 
       {/* 3 kartu ringkasan */}
       <div className="grid gap-4 sm:grid-cols-3">
@@ -494,16 +549,33 @@ export function RabEditor({
 
       <div className="flex items-center justify-between gap-2">
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <WalletIcon className="h-3.5 w-3.5" />
-          Termin & pengeluaran berwallet otomatis tercatat di wallet.
+          {locked ? (
+            <>
+              <Lock className="h-3.5 w-3.5" />
+              Mode baca. Buka kunci untuk mengedit — wallet tidak berubah sampai Simpan.
+            </>
+          ) : (
+            <>
+              <WalletIcon className="h-3.5 w-3.5" />
+              Termin & pengeluaran berwallet otomatis tercatat di wallet.
+            </>
+          )}
         </p>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => router.back()}>Batal</Button>
-          <Button onClick={handleSave}
-            disabled={pending || !clientId || !projectName.trim()}>
-            {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Simpan RAB
+          <Button variant="outline" onClick={() => router.back()}>
+            {locked ? "Kembali" : "Batal"}
           </Button>
+          {locked ? (
+            <Button type="button" onClick={handleUnlock}>
+              <LockOpen className="h-4 w-4" /> Buka Kunci untuk Edit
+            </Button>
+          ) : (
+            <Button onClick={handleSave}
+              disabled={pending || !clientId || !projectName.trim()}>
+              {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Simpan RAB
+            </Button>
+          )}
         </div>
       </div>
     </div>
