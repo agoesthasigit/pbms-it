@@ -40,10 +40,26 @@ const s = StyleSheet.create({
     marginTop: 16, padding: 10, backgroundColor: "#f9fafb",
     borderLeftWidth: 3, borderLeftColor: "#0f766e", fontStyle: "italic",
   },
-  footer: { marginTop: 40, flexDirection: "row", justifyContent: "space-between" },
-  sign: { width: 180, alignItems: "center" },
-  signLine: { marginTop: 48, borderTopWidth: 1, borderTopColor: "#111827", width: 160, paddingTop: 4, textAlign: "center" },
+
+  // ===== Footer: Terms (kiri) + Pembayaran/bank (kanan) =====
+  payFooter: {
+    marginTop: 28, flexDirection: "row", justifyContent: "space-between",
+    borderTopWidth: 1, borderTopColor: "#e5e7eb", paddingTop: 14,
+  },
+  footBlockLeft: { flex: 1, paddingRight: 24 },
+  footBlockRight: { width: 210 },
+  footHeading: {
+    fontSize: 9, fontFamily: "Helvetica-Bold", color: "#0f766e",
+    marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5,
+  },
+  termsText: { fontSize: 8.5, color: "#4b5563", lineHeight: 1.5 },
+  payName: { fontSize: 11, fontFamily: "Helvetica-Bold", marginBottom: 2 },
+  payBank: { fontSize: 10, color: "#111827" },
+  payAcc: { fontSize: 13, fontFamily: "Helvetica-Bold", color: "#0f766e", marginTop: 2 },
 });
+
+const TERMS_TEXT =
+  "Thank you for your business. Please send payment within 30 days of receiving this invoice. There will be a 1.5% interest charge per month on late invoices.";
 
 export function InvoicePdf({
   invoice, rows,
@@ -51,6 +67,7 @@ export function InvoicePdf({
   invoice: MonthlyInvoice;
   rows: { name: string; qty: number; price: number; subtotal: number; date: string }[];
 }) {
+  const B = BUSINESS_IDENTITY;
   const periode = new Date(invoice.period_month).toLocaleDateString("id-ID", {
     month: "long", year: "numeric",
   });
@@ -61,10 +78,11 @@ export function InvoicePdf({
         {/* Kop */}
         <View style={s.between}>
           <View>
-            <Text style={s.bizName}>{BUSINESS_IDENTITY.name}</Text>
-            <Text style={s.muted}>{BUSINESS_IDENTITY.tagline}</Text>
-            <Text style={[s.muted, { marginTop: 4 }]}>{BUSINESS_IDENTITY.address}</Text>
-            <Text style={s.muted}>{BUSINESS_IDENTITY.phone} · {BUSINESS_IDENTITY.email}</Text>
+            <Text style={s.bizName}>{B.name}</Text>
+            <Text style={s.muted}>{B.tagline}</Text>
+            <Text style={[s.muted, { marginTop: 4 }]}>{B.address}</Text>
+            <Text style={s.muted}>{B.phone} · {B.email}</Text>
+            <Text style={s.muted}>{B.website}</Text>
           </View>
           <View>
             <Text style={s.title}>INVOICE</Text>
@@ -131,15 +149,17 @@ export function InvoicePdf({
           <Text>Terbilang: {terbilang(Number(invoice.total))}</Text>
         </View>
 
-        {/* Tanda tangan */}
-        <View style={s.footer}>
-          <View style={s.sign}>
-            <Text style={s.muted}>Hormat kami,</Text>
-            <Text style={s.signLine}>{BUSINESS_IDENTITY.name}</Text>
+        {/* Footer: Terms (kiri) + Bank (kanan) — menggantikan tanda tangan */}
+        <View style={s.payFooter}>
+          <View style={s.footBlockLeft}>
+            <Text style={s.footHeading}>Terms and conditions</Text>
+            <Text style={s.termsText}>{TERMS_TEXT}</Text>
           </View>
-          <View style={s.sign}>
-            <Text style={s.muted}>Diterima oleh,</Text>
-            <Text style={s.signLine}>{invoice.company_name}</Text>
+          <View style={s.footBlockRight}>
+            <Text style={s.footHeading}>Please make a payment to</Text>
+            <Text style={s.payName}>{B.bankHolder}</Text>
+            <Text style={s.payBank}>Bank {B.bankName}</Text>
+            <Text style={s.payAcc}>{B.bankAccount}</Text>
           </View>
         </View>
       </Page>
