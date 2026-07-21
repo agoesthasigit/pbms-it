@@ -39,13 +39,26 @@ export async function GET(
   }
 
   const buffer = await renderToBuffer(
-    InvoicePdf({ invoice, rows }) as unknown as Parameters<typeof renderToBuffer>[0]
+    InvoicePdf({ invoice, rows }) as React.ReactElement
   );
+
+  // ===== Nama file: <Nama Perusahaan>-<No Invoice>.pdf =====
+  // contoh: "Robpeetoom-Ubud-INV-2026-08-001.pdf"
+  const clientPart = String(invoice.company_name ?? "Client")
+    .replace(/[/\\:*?"<>|]/g, " ") // buang karakter ilegal utk nama file
+    .replace(/\s+/g, " ")          // rapikan spasi ganda
+    .trim()
+    .replace(/\s/g, "-");          // spasi -> tanda hubung
+  const invoicePart = String(invoice.invoice_no).replace(/\//g, "-"); // INV/2026/08/001 -> INV-2026-08-001
+  const fileName = `${clientPart}-${invoicePart}.pdf`;
+  // versi ASCII sebagai cadangan (untuk browser lama), + filename* UTF-8 (nama lengkap)
+  const asciiName = fileName.replace(/[^\x20-\x7E]/g, "");
 
   return new NextResponse(buffer as unknown as BodyInit, {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="${invoice.invoice_no.replace(/\//g, "-")}.pdf"`,
+      "Content-Disposition":
+        `inline; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
     },
   });
 }
