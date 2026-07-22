@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { renderToBuffer } from "@react-pdf/renderer";
+import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { AssetPdf, type AssetPdfItem, type AssetPdfClient } from "./asset-pdf";
 import type { WarrantyStatus } from "@/types/phase5";
@@ -104,7 +104,7 @@ export async function GET(req: Request) {
   const printedAt = new Date().toISOString().slice(0, 10);
 
   const buffer = await renderToBuffer(
-    AssetPdf({ client: pdfClient, assets: items, printedAt }) as React.ReactElement
+    AssetPdf({ client: pdfClient, assets: items, printedAt }) as React.ReactElement<DocumentProps>
   );
 
   const safeName = client.company_name.replace(/[^a-z0-9]/gi, "-");

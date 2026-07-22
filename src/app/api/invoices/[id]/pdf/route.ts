@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { renderToBuffer } from "@react-pdf/renderer";
+import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { InvoicePdf } from "./invoice-pdf";
 
@@ -39,7 +39,7 @@ export async function GET(
   }
 
   const buffer = await renderToBuffer(
-    InvoicePdf({ invoice, rows }) as React.ReactElement
+    InvoicePdf({ invoice, rows }) as React.ReactElement<DocumentProps>
   );
 
   // ===== Nama file: <Nama Perusahaan>-<No Invoice>.pdf =====
