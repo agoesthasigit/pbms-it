@@ -20,13 +20,21 @@ export async function GET(
 
   const { data: sales } = await supabase
     .from("sales")
-    .select("id, sale_date, sale_items(qty, price, subtotal, product:products(name))")
+    .select("id, sale_date, maintenance_contract_id, sale_items(qty, price, subtotal, product:products(name))")
     .eq("monthly_invoice_id", id)
     .order("sale_date");
 
   // rangkai baris item untuk PDF
+  // Baris maintenance selalu tampil PALING ATAS (item no.1), baru penjualan barang.
+  const ordered = [...(sales ?? [])].sort((a, b) => {
+    const am = (a as { maintenance_contract_id: string | null }).maintenance_contract_id ? 0 : 1;
+    const bm = (b as { maintenance_contract_id: string | null }).maintenance_contract_id ? 0 : 1;
+    if (am !== bm) return am - bm;
+    return String(a.sale_date).localeCompare(String(b.sale_date));
+  });
+
   const rows: { name: string; qty: number; price: number; subtotal: number; date: string }[] = [];
-  for (const s of sales ?? []) {
+  for (const s of ordered) {
     for (const it of (s.sale_items as unknown as {
       qty: number; price: number; subtotal: number; product: { name: string } | null;
     }[])) {

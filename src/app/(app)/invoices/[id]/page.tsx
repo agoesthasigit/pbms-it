@@ -41,7 +41,7 @@ export default async function InvoiceDetailPage({
   // penjualan yang tergabung + itemnya
   const { data: sales } = await supabase
     .from("sales")
-    .select("id, sale_date, total, notes, sale_items(qty, price, subtotal, product:products(name))")
+    .select("id, sale_date, total, notes, maintenance_contract_id, sale_items(qty, price, subtotal, product:products(name))")
     .eq("monthly_invoice_id", id)
     .order("sale_date");
 
@@ -51,6 +51,15 @@ export default async function InvoiceDetailPage({
     ...w,
     balance: Number(balances?.find((b) => b.id === w.id)?.balance ?? 0),
   }));
+
+  // Baris maintenance selalu tampil PALING ATAS (sama seperti di PDF),
+  // baru penjualan barang menurut tanggal.
+  const ordered = [...(sales ?? [])].sort((a, b) => {
+    const am = (a as { maintenance_contract_id: string | null }).maintenance_contract_id ? 0 : 1;
+    const bm = (b as { maintenance_contract_id: string | null }).maintenance_contract_id ? 0 : 1;
+    if (am !== bm) return am - bm;
+    return String(a.sale_date).localeCompare(String(b.sale_date));
+  });
 
   const inv = invoice as MonthlyInvoice;
   const st = (inv.effective_status ?? inv.status) as InvoiceStatus;
@@ -108,7 +117,7 @@ export default async function InvoiceDetailPage({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(sales ?? []).flatMap((s) =>
+              {ordered.flatMap((s) =>
                 (s.sale_items as unknown as {
                   qty: number; price: number; subtotal: number;
                   product: { name: string } | null;

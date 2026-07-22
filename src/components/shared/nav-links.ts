@@ -10,6 +10,7 @@ import {
   PiggyBank,
   Boxes,
   FileText,
+  Repeat,
   Wifi,
   Camera,
   Calculator,
@@ -51,6 +52,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "Asset Client", href: "/assets", icon: Boxes },
       { label: "Invoice Bulanan", href: "/invoices", icon: FileText },
+      { label: "Kontrak Maintenance", href: "/maintenance", icon: Repeat },
       { label: "Network Client", href: "/network", icon: Wifi },
       { label: "CCTV Client", href: "/cctv", icon: Camera },
       { label: "Rencana Anggaran (RAB)", href: "/rab", icon: Calculator },
