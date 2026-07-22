@@ -8,8 +8,8 @@ const BUCKET = "asset-photos";
 
 type Result = { success?: boolean; error?: string; path?: string };
 
-// Upload 1 foto (blob webp) untuk sebuah aset.
-// FormData: file (Blob webp), asset_id, file_size
+// Upload 1 foto (hasil kompresi browser, biasanya JPG) untuk sebuah aset.
+// FormData: file (Blob), asset_id, file_size, ext, mime
 export async function uploadAssetPhoto(form: FormData): Promise<Result> {
   const file = form.get("file") as File | null;
   const assetId = String(form.get("asset_id") ?? "");
@@ -31,13 +31,20 @@ export async function uploadAssetPhoto(form: FormData): Promise<Result> {
     return { error: `Maksimal ${MAX_PHOTOS_PER_ASSET} foto per aset.` };
   }
 
-  // path: <user_id>/<asset_id>/<uuid>.webp  (folder pertama = user_id untuk RLS)
+  // Ekstensi & tipe mengikuti hasil kompresi di browser (default JPG).
+  // Dibatasi daftar aman agar nilai dari klien tidak dipakai mentah-mentah.
+  const rawExt = String(form.get("ext") ?? "jpg").toLowerCase();
+  const ext = rawExt === "png" ? "png" : rawExt === "webp" ? "webp" : "jpg";
+  const contentType =
+    ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+
+  // path: <user_id>/<asset_id>/<uuid>.<ext>  (folder pertama = user_id untuk RLS)
   const uuid = crypto.randomUUID();
-  const path = `${user.id}/${assetId}/${uuid}.webp`;
+  const path = `${user.id}/${assetId}/${uuid}.${ext}`;
 
   const { error: upErr } = await supabase.storage
     .from(BUCKET)
-    .upload(path, file, { contentType: "image/webp", upsert: false });
+    .upload(path, file, { contentType, upsert: false });
   if (upErr) return { error: `Gagal upload foto: ${upErr.message}` };
 
   const { error: dbErr } = await supabase.from("asset_photos").insert({

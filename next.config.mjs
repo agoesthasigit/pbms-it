@@ -14,6 +14,15 @@ const nextConfig = {
   turbopack: {
     root: import.meta.dirname,
   },
+
+  // Jaring pengaman upload foto aset. Bawaan Next hanya 1MB per Server Action.
+  // Foto sudah dikompres ke ±100KB di browser, jadi ini hanya cadangan
+  // agar tidak pernah lagi gagal diam-diam.
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "5mb",
+    },
+  },
 };
 
 export default withSerwist(nextConfig);

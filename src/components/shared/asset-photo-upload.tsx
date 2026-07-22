@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { ImagePlus, X, Loader2, Camera } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { compressToWebp, formatFileSize } from "@/lib/utils/image-compress";
+import { compressImage, formatFileSize } from "@/lib/utils/image-compress";
 import { MAX_PHOTOS_PER_ASSET } from "@/types/asset-photo";
 
 // Foto yang dikelola di komponen (belum tentu tersimpan di server).
@@ -16,6 +16,8 @@ export type PendingPhoto = {
   previewUrl: string;      // untuk <img>
   blob?: Blob;             // ada bila foto baru
   size: number;            // byte
+  mime?: string;           // tipe hasil kompresi (image/jpeg)
+  ext?: string;            // ekstensi hasil kompresi (jpg)
   markedDelete?: boolean;  // foto lama yang ditandai hapus
 };
 
@@ -44,12 +46,14 @@ export function AssetPhotoUpload({
       const added: PendingPhoto[] = [];
       for (const file of toProcess) {
         try {
-          const result = await compressToWebp(file);
+          const result = await compressImage(file);
           added.push({
             key: crypto.randomUUID(),
             previewUrl: URL.createObjectURL(result.blob),
             blob: result.blob,
             size: result.size,
+            mime: result.mime,
+            ext: result.ext,
           });
         } catch (e) {
           const msg = e instanceof Error ? e.message : "Gagal memproses foto.";
@@ -81,7 +85,7 @@ export function AssetPhotoUpload({
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium">Foto Aset</p>
         <span className="text-xs text-muted-foreground">
-          {visible.length}/{MAX_PHOTOS_PER_ASSET} · WebP otomatis
+          {visible.length}/{MAX_PHOTOS_PER_ASSET} · dikompres otomatis
         </span>
       </div>
 
@@ -131,7 +135,7 @@ export function AssetPhotoUpload({
 
       <p className="flex items-center gap-1 text-xs text-muted-foreground">
         <Camera className="h-3 w-3" />
-        Foto otomatis dikompres ke WebP 1024×768 (±100KB) agar hemat penyimpanan.
+        Foto otomatis dikompres ke JPG maks 1024×768 (±100KB) agar hemat penyimpanan.
       </p>
     </div>
   );

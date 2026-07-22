@@ -176,10 +176,13 @@ export function AssetManager({
     }
     // upload foto baru
     for (const p of photos.filter((x) => x.blob && !x.markedDelete)) {
+      const ext = p.ext ?? "jpg";
       const fd = new FormData();
-      fd.append("file", p.blob!, "photo.webp");
+      fd.append("file", p.blob!, `photo.${ext}`);
       fd.append("asset_id", assetId);
       fd.append("file_size", String(p.size));
+      fd.append("ext", ext);
+      fd.append("mime", p.mime ?? "image/jpeg");
       const res = await uploadAssetPhoto(fd);
       if (res.error) { allOk = false; toast.error(`Foto gagal diupload: ${res.error}`); }
     }

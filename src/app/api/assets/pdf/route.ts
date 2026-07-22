@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
-import type { DocumentProps } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { AssetPdf, type AssetPdfItem, type AssetPdfClient } from "./asset-pdf";
 import type { WarrantyStatus } from "@/types/phase5";
@@ -8,15 +7,28 @@ import type { WarrantyStatus } from "@/types/phase5";
 const BUCKET = "asset-photos";
 const MAX_PHOTOS = 2;
 
+// @react-pdf/renderer HANYA bisa merender JPG & PNG (WebP tidak didukung).
+// Format lain sengaja dilewati agar PDF tetap terbentuk (aset tampil "Tanpa foto")
+// alih-alih gagal total.
+const PDF_SAFE_MIME: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+};
+
 // ubah file storage privat → data URI base64 (andal untuk @react-pdf di Vercel)
 async function toDataUri(
   supabase: Awaited<ReturnType<typeof createClient>>,
   path: string
 ): Promise<string | null> {
+  const ext = path.split(".").pop()?.toLowerCase() ?? "";
+  const mime = PDF_SAFE_MIME[ext];
+  if (!mime) return null; // mis. .webp lama → lewati
+
   const { data, error } = await supabase.storage.from(BUCKET).download(path);
   if (error || !data) return null;
   const buf = Buffer.from(await data.arrayBuffer());
-  return `data:image/webp;base64,${buf.toString("base64")}`;
+  return `data:${mime};base64,${buf.toString("base64")}`;
 }
 
 export async function GET(req: Request) {
@@ -92,7 +104,7 @@ export async function GET(req: Request) {
   const printedAt = new Date().toISOString().slice(0, 10);
 
   const buffer = await renderToBuffer(
-    AssetPdf({ client: pdfClient, assets: items, printedAt }) as unknown as React.ReactElement<DocumentProps>
+    AssetPdf({ client: pdfClient, assets: items, printedAt }) as React.ReactElement
   );
 
   const safeName = client.company_name.replace(/[^a-z0-9]/gi, "-");
