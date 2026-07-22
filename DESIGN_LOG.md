@@ -19,9 +19,9 @@ sebelum melanjutkan pekerjaan UI, supaya tahu sudah sampai fase mana.
 | 0 | DESIGN_LOG + branch | ✅ Selesai | `c1825d8` |
 | 1 | Token: font, palet teal, radius | ✅ Selesai | `ec60420` |
 | 2 | Shell: kanvas, kartu, sidebar, header | ✅ Selesai | lihat di bawah |
-| 3 | Tabel & badge | ✅ Selesai | lihat di bawah |
-| 4 | StatCard & baris stat | ⏳ Berjalan | — |
-| 5 | PWA / mobile | ⬜ Belum | — |
+| 3 | Tabel & badge | ✅ Selesai | `510cc24` |
+| 4 | StatCard & baris stat | ✅ Selesai | lihat di bawah |
+| 5 | PWA / mobile | ⏳ Berjalan | — |
 
 **Aturan:** satu fase = satu commit. Aplikasi harus tetap jalan di antara fase.
 Kalau hasil sebuah fase tidak disukai, cukup `git revert` commit fase itu.
@@ -188,6 +188,41 @@ File tersentuh: `table.tsx`, `badge.tsx`, `globals.css`, `types/phase5.ts`,
 file yang diubah 0 error. Sisa badge hardcoded: **0**.
 (Satu warning `formatDate is defined but never used` di `client-manager.tsx`
 sudah dikonfirmasi **pre-existing** lewat `git stash` — bukan dari perubahan ini.)
+
+### Fase 4 — 2026-07-22 · StatCard & baris stat
+
+**Akar masalah ruang kosong ditemukan.** Keluhan awal user — kartu "Total
+Pembelian" berdiri sendirian menyisakan ~60% layar kosong — disebabkan satu
+class: `sm:max-w-md` pada pembungkus grid, yang mengunci kartu di ~450px.
+Ada di dua tempat: `purchases/purchase-list.tsx` dan `sales/sale-list.tsx`.
+
+Diganti `lg:grid-cols-3` dan diisi dua `StatCard` pendamping:
+
+| Halaman | Kartu 1 (sudah ada) | Kartu 2 (baru) | Kartu 3 (baru) |
+| --- | --- | --- | --- |
+| Pembelian | Total Pembelian | Jumlah Nota + unit barang | Rata-rata per Nota |
+| Penjualan | Total Penjualan | Jumlah Transaksi + client berbeda | Rata-rata per Transaksi |
+
+Semua angka **diturunkan dari array `filtered` yang sudah ada** dan ikut filter
+tanggal/pencarian. **Tidak ada query, RPC, atau perhitungan bisnis baru** —
+murni agregasi tampilan (`length`, `reduce`, `Set`).
+
+**`stat-card.tsx`:** `tabular-nums`, `truncate` + `min-w-0` supaya nominal
+panjang tidak mendorong chip icon, chip jadi `rounded-xl`, hover
+`shadow-card-hover`.
+
+**`summary-card.tsx`:** chip icon `bg-amber-50 text-amber-500 ring-amber-100`
+→ `bg-primary/10 text-primary` (amber nyasar yang bikin palet terasa acak);
+indikator naik/turun `text-emerald-600`/`text-red-600` → token
+`text-success-strong`/`text-destructive-strong`; nominal `tabular-nums`.
+
+**Migrasi warna aksen** di 9 file: `text-emerald-600` → `text-success-strong`,
+`text-amber-600` → `text-warning-strong`, `text-red-600` →
+`text-destructive-strong`, `text-sky-600` → `text-primary`. Sisa: **0**.
+
+**Verifikasi:** `tsc --noEmit` bersih, `npm run build` sukses, eslint 0 masalah
+pada file yang diubah. Token dicek resolve di browser, dan kontras teks badge
+dihitung dari nilai L\*: **5.5–6.0:1**, di atas ambang WCAG AA (4.5:1).
 
 ## ⏭️ Lanjutan berikutnya
 

@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, ReceiptText, Loader2, Search, RotateCcw, TrendingUp } from "lucide-react";
+import { Plus, Trash2, ReceiptText, Loader2, Search, RotateCcw, TrendingUp, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import { formatIDR } from "@/lib/utils/currency";
 import { formatDate } from "@/lib/utils/date";
 import { EmptyState } from "@/components/shared/empty-state";
 import { SummaryCard } from "@/components/shared/summary-card";
+import { StatCard } from "@/components/shared/stat-card";
 import type { ProductWithStock, Client, WalletWithBalance } from "@/types/db";
 import { type SaleRow, PAYMENT_METHOD_LABELS } from "@/types/phase3";
 import { SaleForm } from "./sale-form";
@@ -68,6 +69,14 @@ export function SaleList({
   // total mengikuti rentang tanggal terpilih (default: bulan berjalan)
   const totalPeriod = filtered.reduce((s, x) => s + Number(x.total), 0);
 
+  // Ringkasan turunan untuk kartu pendamping — murni tampilan, dihitung dari
+  // `filtered` yang sudah ada. Tidak ada query atau perhitungan baru.
+  const trxCount = filtered.length;
+  const avgPerTrx = trxCount > 0 ? totalPeriod / trxCount : 0;
+  const clientCount = new Set(
+    filtered.map((s) => s.client?.company_name).filter(Boolean)
+  ).size;
+
   const isThisMonth = from === def.from && to === def.to;
   const { compareTotal, percent, compareLabel } = useMemo(() => {
     const lm = lastMonthRange();
@@ -97,8 +106,8 @@ export function SaleList({
 
   return (
     <div className="space-y-4">
-      {/* 1 kartu total — ikut filter tanggal */}
-      <div className="grid gap-4 sm:max-w-md">
+      {/* Baris ringkasan — semuanya ikut filter tanggal */}
+      <div className="grid gap-4 lg:grid-cols-3">
         <SummaryCard
           title={isThisMonth ? "Total Penjualan Bulan Ini" : "Total Penjualan (Periode Dipilih)"}
           value={totalPeriod}
@@ -106,6 +115,18 @@ export function SaleList({
           compareLabel={compareLabel}
           compareValue={compareTotal}
           percent={percent}
+        />
+        <StatCard
+          label="Jumlah Transaksi"
+          value={String(trxCount)}
+          icon={ReceiptText}
+          hint={`${clientCount} client berbeda`}
+        />
+        <StatCard
+          label="Rata-rata per Transaksi"
+          value={formatIDR(avgPerTrx)}
+          icon={Users}
+          hint={trxCount > 0 ? "Total dibagi jumlah transaksi" : "Belum ada transaksi"}
         />
       </div>
 

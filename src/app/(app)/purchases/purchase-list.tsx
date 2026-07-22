@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, ShoppingCart, Loader2, Search, RotateCcw } from "lucide-react";
+import { Plus, Trash2, ShoppingCart, Loader2, Search, RotateCcw, Receipt, Boxes } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { formatIDR } from "@/lib/utils/currency";
 import { formatDate } from "@/lib/utils/date";
 import { EmptyState } from "@/components/shared/empty-state";
 import { SummaryCard } from "@/components/shared/summary-card";
+import { StatCard } from "@/components/shared/stat-card";
 import type { ProductWithStock, Distributor, WalletWithBalance } from "@/types/db";
 import type { PurchaseRow } from "@/types/phase3";
 import { PurchaseForm } from "./purchase-form";
@@ -85,6 +86,12 @@ export function PurchaseList({
   // total mengikuti rentang tanggal terpilih (default: bulan berjalan)
   const totalPeriod = filtered.reduce((s, p) => s + Number(p.total), 0);
 
+  // Ringkasan turunan untuk kartu pendamping — murni tampilan, dihitung dari
+  // `filtered` yang sudah ada. Tidak ada query atau perhitungan baru.
+  const notaCount = filtered.length;
+  const unitCount = filtered.reduce((s, p) => s + totalQty(p), 0);
+  const avgPerNota = notaCount > 0 ? totalPeriod / notaCount : 0;
+
   // pembanding %: bandingkan rentang terpilih dengan periode SEBELUMNYA yang setara.
   // Default (bulan ini) → dibanding bulan lalu. Jika difilter custom → dibanding total bulan lalu penuh.
   const isThisMonth = from === def.from && to === def.to;
@@ -116,8 +123,8 @@ export function PurchaseList({
 
   return (
     <div className="space-y-4">
-      {/* 1 kartu total — ikut filter tanggal */}
-      <div className="grid gap-4 sm:max-w-md">
+      {/* Baris ringkasan — semuanya ikut filter tanggal */}
+      <div className="grid gap-4 lg:grid-cols-3">
         <SummaryCard
           title={isThisMonth ? "Total Pembelian Bulan Ini" : "Total Pembelian (Periode Dipilih)"}
           value={totalPeriod}
@@ -126,6 +133,18 @@ export function PurchaseList({
           compareValue={compareTotal}
           percent={percent}
           invertColor
+        />
+        <StatCard
+          label="Jumlah Nota"
+          value={String(notaCount)}
+          icon={Receipt}
+          hint={`${unitCount} unit barang masuk`}
+        />
+        <StatCard
+          label="Rata-rata per Nota"
+          value={formatIDR(avgPerNota)}
+          icon={Boxes}
+          hint={notaCount > 0 ? "Total dibagi jumlah nota" : "Belum ada nota"}
         />
       </div>
 

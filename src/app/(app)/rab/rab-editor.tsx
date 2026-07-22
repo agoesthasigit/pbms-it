@@ -199,7 +199,7 @@ function ExpenseTable({
               </div>
               <div className="col-span-4 sm:col-span-3 text-right text-xs">
                 {r.paid_wallet_id ? (
-                  <span className="font-medium text-emerald-600">✓ Keluar dari wallet</span>
+                  <span className="font-medium text-success-strong">✓ Keluar dari wallet</span>
                 ) : (
                   <span className="text-muted-foreground">Belum dibayar</span>
                 )}
@@ -527,7 +527,7 @@ export function RabEditor({
         <Card className="border-emerald-600/40">
           <CardContent className="py-4">
             <p className="text-xs text-muted-foreground">TOTAL DITERIMA</p>
-            <p className="mt-1 text-2xl font-bold text-emerald-600">{formatIDR(totalPaid)}</p>
+            <p className="mt-1 text-2xl font-bold text-success-strong">{formatIDR(totalPaid)}</p>
             <p className="mt-1 text-xs text-muted-foreground">Jumlah semua termin</p>
           </CardContent>
         </Card>
@@ -535,12 +535,12 @@ export function RabEditor({
           <CardContent className="py-4">
             <p className="text-xs text-muted-foreground">SISA TAGIHAN</p>
             <p className={`mt-1 text-2xl font-bold ${
-              remaining <= 0 ? "text-emerald-600" : "text-amber-600"}`}>
+              remaining <= 0 ? "text-success-strong" : "text-warning-strong"}`}>
               {formatIDR(Math.max(remaining, 0))}
             </p>
             <p className="mt-1 text-xs">
               {remaining <= 0 && grandRab > 0
-                ? <span className="font-semibold text-emerald-600">LUNAS ✓</span>
+                ? <span className="font-semibold text-success-strong">LUNAS ✓</span>
                 : <span className="text-muted-foreground">Nilai − Diterima</span>}
             </p>
           </CardContent>

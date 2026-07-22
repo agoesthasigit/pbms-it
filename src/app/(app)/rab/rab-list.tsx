@@ -90,7 +90,7 @@ export function RabList({ projects }: { projects: RabProject[] }) {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">{formatIDR(value)}</TableCell>
-                      <TableCell className="text-right text-emerald-600">
+                      <TableCell className="text-right text-success-strong">
                         {formatIDR(paid)}
                       </TableCell>
                       <TableCell className="text-right">
@@ -99,13 +99,13 @@ export function RabList({ projects }: { projects: RabProject[] }) {
                             Lunas
                           </Badge>
                         ) : (
-                          <span className="font-medium text-amber-600">
+                          <span className="font-medium text-warning-strong">
                             {formatIDR(Math.max(remaining, 0))}
                           </span>
                         )}
                       </TableCell>
                       <TableCell className={`text-right font-semibold ${
-                        profit >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                        profit >= 0 ? "text-success-strong" : "text-destructive"}`}>
                         {formatIDR(profit)}
                       </TableCell>
                       <TableCell className="text-right">

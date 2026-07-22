@@ -86,7 +86,7 @@ export function DashboardClient() {
 
       {/* Kartu ringkasan keuangan — aturan laba baru */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <StatCard label="Total Penjualan" icon={TrendingUp} accent="text-emerald-600"
+        <StatCard label="Total Penjualan" icon={TrendingUp} accent="text-success-strong"
           value={loading ? "…" : formatIDR(Number(summary?.total_sales ?? 0))} />
         <StatCard label="Total Pembelian" icon={ShoppingCart}
           value={loading ? "…" : formatIDR(Number(summary?.total_purchase ?? 0))} />
@@ -95,7 +95,7 @@ export function DashboardClient() {
         <StatCard label="Pengeluaran Pribadi" icon={User2}
           value={loading ? "…" : formatIDR(Number(summary?.total_personal_expense ?? 0))} />
         <StatCard label="Laba Bersih" icon={Wallet}
-          accent={Number(summary?.net_profit ?? 0) >= 0 ? "text-emerald-600" : "text-destructive"}
+          accent={Number(summary?.net_profit ?? 0) >= 0 ? "text-success-strong" : "text-destructive"}
           value={loading ? "…" : formatIDR(Number(summary?.net_profit ?? 0))} />
         <StatCard label="Saldo Wallet Masuk" icon={Wallet}
           hint="Uang yang benar-benar diterima"
@@ -110,7 +110,7 @@ export function DashboardClient() {
           value={loading ? "…" : String(counts?.pending_invoices ?? 0)}
           hint={counts ? `Piutang ${formatIDR(Number(counts.total_receivable))}` : undefined} />
         <StatCard label="Garansi < 30 Hari" icon={ShieldAlert}
-          accent={Number(counts?.expiring_warranty ?? 0) > 0 ? "text-amber-600" : undefined}
+          accent={Number(counts?.expiring_warranty ?? 0) > 0 ? "text-warning-strong" : undefined}
           value={loading ? "…" : String(counts?.expiring_warranty ?? 0)} />
         <StatCard label="Margin Laba" icon={TrendingUp}
           value={loading || !summary || Number(summary.total_sales) === 0 ? "—"

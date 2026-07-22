@@ -79,7 +79,7 @@ export function ReportsClient() {
 
       {/* 6 kartu sesuai urutan permintaan */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <StatCard label="Total Penjualan" icon={TrendingUp} accent="text-emerald-600"
+        <StatCard label="Total Penjualan" icon={TrendingUp} accent="text-success-strong"
           value={loading ? "…" : formatIDR(totalSales)} />
         <StatCard label="Total Pembelian" icon={ShoppingCart}
           value={loading ? "…" : formatIDR(totalPurchase)} />
@@ -88,10 +88,10 @@ export function ReportsClient() {
         <StatCard label="Pengeluaran Pribadi" icon={User2}
           value={loading ? "…" : formatIDR(totalPersonal)} />
         <StatCard label="Laba Bersih" icon={Wallet}
-          accent={netProfit >= 0 ? "text-emerald-600" : "text-destructive"}
+          accent={netProfit >= 0 ? "text-success-strong" : "text-destructive"}
           value={loading ? "…" : formatIDR(netProfit)} />
         <StatCard label="Margin Laba" icon={Percent}
-          accent={margin >= 0 ? "text-emerald-600" : "text-destructive"}
+          accent={margin >= 0 ? "text-success-strong" : "text-destructive"}
           value={loading ? "…" : `${margin.toFixed(1)}%`}
           hint="Laba ÷ Total Penjualan" />
       </div>
@@ -106,7 +106,7 @@ export function ReportsClient() {
           {!loading && (
             <p className="mt-1 text-xs text-muted-foreground">
               {formatIDR(totalSales)} − {formatIDR(totalPurchase)} − {formatIDR(totalOpExpense)}
-              {" "}− {formatIDR(totalPersonal)} = <b className={netProfit >= 0 ? "text-emerald-600" : "text-destructive"}>{formatIDR(netProfit)}</b>
+              {" "}− {formatIDR(totalPersonal)} = <b className={netProfit >= 0 ? "text-success-strong" : "text-destructive"}>{formatIDR(netProfit)}</b>
             </p>
           )}
         </CardContent>
@@ -171,7 +171,7 @@ export function ReportsClient() {
                   income.map((r) => (
                     <TableRow key={r.source}>
                       <TableCell>{r.source}</TableCell>
-                      <TableCell className="text-right font-medium text-emerald-600">
+                      <TableCell className="text-right font-medium text-success-strong">
                         {formatIDR(Number(r.total))}
                       </TableCell>
                     </TableRow>
