@@ -17,7 +17,7 @@ export default async function AppLayout({
   if (!user) redirect("/login");
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="min-h-screen bg-canvas">
       {/* Sidebar desktop */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r bg-background lg:flex">
         <Brand />

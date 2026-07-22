@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Menu, LogOut, UserCircle2 } from "lucide-react";
+import { Menu, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -48,9 +48,11 @@ export function AppHeader({ email }: { email: string }) {
 
       <DropdownMenu>
         <DropdownMenuTrigger
-          render={<Button variant="ghost" className="gap-2 px-2" />}
+          render={<Button variant="ghost" className="h-9 gap-2 px-1.5" />}
         >
-          <UserCircle2 className="h-5 w-5 text-muted-foreground" />
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary uppercase">
+            {email.charAt(0)}
+          </span>
           <span className="hidden max-w-45 truncate text-sm sm:inline">
             {email}
           </span>

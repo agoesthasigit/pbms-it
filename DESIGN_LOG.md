@@ -17,8 +17,8 @@ sebelum melanjutkan pekerjaan UI, supaya tahu sudah sampai fase mana.
 | Fase | Isi | Status | Commit |
 | --- | --- | --- | --- |
 | 0 | DESIGN_LOG + branch | ✅ Selesai | `c1825d8` |
-| 1 | Token: font, palet teal, radius | ✅ Selesai | lihat di bawah |
-| 2 | Shell: kanvas, kartu, sidebar, header | ⏳ Berjalan | — |
+| 1 | Token: font, palet teal, radius | ✅ Selesai | `ec60420` |
+| 2 | Shell: kanvas, kartu, sidebar, header | ✅ Selesai | lihat di bawah |
 | 3 | Tabel & badge | ⛔ Ditahan — tunggu review Fase 2 | — |
 | 4 | StatCard & baris stat | ⛔ Ditahan — tunggu review Fase 2 | — |
 | 5 | PWA / mobile | ⛔ Ditahan — tunggu review Fase 2 | — |
@@ -110,3 +110,56 @@ hitam). Semua didaftarkan di `@theme inline` sehingga tersedia sebagai utility
 Recharts berwarna.
 
 Verifikasi: `npm run build` sukses, 33 route terkompilasi.
+
+### Fase 2 — 2026-07-22 · shell aplikasi
+
+Empat file, semuanya presentasi murni. Tidak ada query, form, atau logika.
+
+| File | Perubahan | Alasan |
+| --- | --- | --- |
+| `src/app/(app)/layout.tsx` | `bg-muted/30` → `bg-canvas` | Kanvas abu lembut supaya kartu putih terlihat mengambang. Sebelumnya putih di atas putih — ciri khas admin panel. |
+| `src/components/ui/card.tsx` | `ring-1 ring-foreground/10` → `shadow-card ring-1 ring-border/60` | Kartu didefinisikan oleh shadow, bukan garis. Garis abu bikin kaku. |
+| `src/components/shared/sidebar-nav.tsx` | hover `bg-muted` → `bg-accent`; active `shadow-sm` → `shadow-card` | Hover ikut ber-tint teal supaya sidebar terasa satu keluarga. |
+| `src/components/shared/app-header.tsx` | `UserCircle2` → avatar bulat berisi inisial email, chip `bg-primary/10 text-primary` | Icon generik diganti identitas. Sekaligus menghapus import yang jadi tak terpakai. |
+
+`brand.tsx` sengaja **tidak** disentuh — sudah memakai `bg-primary`, jadi
+logonya berubah jadi teal dengan sendirinya.
+
+Ditambahkan juga `.claude/launch.json` supaya `npm run dev` bisa dijalankan
+lewat tooling preview.
+
+**Verifikasi:**
+
+- `npm run build` sukses, 27 halaman statis ter-generate.
+- `npx eslint` pada empat file yang diubah: **0 masalah**.
+  (Catatan: `npm run lint` seluruh proyek melaporkan 122 masalah — 33 error,
+  89 warning — semuanya **sudah ada sebelumnya** di file lain seperti
+  `global-search.tsx`, tidak berhubungan dengan pekerjaan UI ini.)
+- Computed style dicek langsung di browser pada `http://localhost:3000`:
+
+  | Properti | Hasil |
+  | --- | --- |
+  | `body` font-family | `"Plus Jakarta Sans", …, ui-sans-serif` ✅ (sebelumnya kosong → serif) |
+  | `--primary` | `lab(45.5% -34.1 -2.8)` ✅ teal (sebelumnya `a=0, b=0` abu murni) |
+  | `--radius` | `.75rem` ✅ |
+  | `--success` | `lab(55.3% -43.1 20.0)` ✅ hijau, terpisah dari teal |
+
+## ⏭️ Lanjutan berikutnya
+
+**Fase 2 sudah selesai dan menunggu review user.** Jangan mulai Fase 3 sebelum
+user melihat hasilnya dan menyetujui arah warnanya.
+
+Kalau disetujui, kerjakan berurutan:
+
+- **Fase 3 — tabel & badge.** `table.tsx`: zebra baris, `font-variant-numeric:
+  tabular-nums` untuk kolom angka, header lebih tenang. `badge.tsx`: tambah
+  varian `success`/`warning` yang memakai token dari Fase 1.
+- **Fase 4 — StatCard & baris stat.** `stat-card.tsx` dipoles, lalu isi ruang
+  kosong di kanan kartu "Total Pembelian" pada `purchases`, `sales`,
+  `dashboard`, `reports` dengan 3–4 kartu.
+- **Fase 5 — PWA/mobile.** `safe-area-inset`, skeleton loading, dan tabel
+  berubah jadi daftar kartu di layar kecil.
+
+Hal yang sengaja belum dikerjakan dan bisa diangkat kapan saja: date range
+picker custom (mengganti dua `<input type="date">` native yang saat ini
+menampilkan format US `MM/DD` padahal aplikasinya berbahasa Indonesia).
