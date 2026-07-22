@@ -20,8 +20,8 @@ sebelum melanjutkan pekerjaan UI, supaya tahu sudah sampai fase mana.
 | 1 | Token: font, palet teal, radius | ✅ Selesai | `ec60420` |
 | 2 | Shell: kanvas, kartu, sidebar, header | ✅ Selesai | lihat di bawah |
 | 3 | Tabel & badge | ✅ Selesai | `510cc24` |
-| 4 | StatCard & baris stat | ✅ Selesai | lihat di bawah |
-| 5 | PWA / mobile | ⏳ Berjalan | — |
+| 4 | StatCard & baris stat | ✅ Selesai | `4bccc8f` |
+| 5 | PWA / mobile | ✅ Selesai | lihat di bawah |
 
 **Aturan:** satu fase = satu commit. Aplikasi harus tetap jalan di antara fase.
 Kalau hasil sebuah fase tidak disukai, cukup `git revert` commit fase itu.
@@ -224,22 +224,68 @@ indikator naik/turun `text-emerald-600`/`text-red-600` → token
 pada file yang diubah. Token dicek resolve di browser, dan kontras teks badge
 dihitung dari nilai L\*: **5.5–6.0:1**, di atas ambang WCAG AA (4.5:1).
 
+### Fase 5 — 2026-07-22 · PWA & mobile
+
+**🔴 Bug PWA ditemukan: seluruh ikon 404.** `manifest.ts` menunjuk ke
+`/icons/icon-192.png` dan kawan-kawan, padahal file ikon ada di **`public/`
+(root)**, bukan `public/icons/`. Direktori `public/icons/` tidak pernah ada.
+Akibatnya PWA selalu terpasang dengan ikon default browser — inilah sebab
+utama keluhan "tampilan PWA tidak bagus". Bug ini sudah ada sejak awal, bukan
+akibat pekerjaan refresh ini.
+
+Diverifikasi lewat `fetch` di browser sebelum & sesudah:
+
+| Path | Sebelum | Sesudah |
+| --- | --- | --- |
+| `/icons/icon-192.png` | **404** | — (tidak dipakai lagi) |
+| `/icon-192.png` | — | **200** |
+| `/icon-512.png` | — | **200** |
+| `/icon-maskable-512.png` | — | **200** |
+
+Perubahan lain:
+
+- **`layout.tsx`** — `viewportFit: "cover"`. Tanpa ini `env(safe-area-inset-*)`
+  selalu bernilai `0` di iPhone bernotch, jadi seluruh penanganan safe-area
+  tidak akan berefek.
+- **`(app)/layout.tsx`** — padding `main` mengikuti
+  `max(1rem, env(safe-area-inset-*))` di bawah/kiri/kanan.
+- **`app-header.tsx`** — `pt-[env(safe-area-inset-top)]`, dan `h-14` diganti
+  **`min-h-14`**: tinggi tetap + padding-top akan menggencet isi header karena
+  `box-sizing: border-box`.
+- **`manifest.ts`** — tambah `id`, `scope`, `lang`, `dir`, `categories`;
+  `background_color` `#ffffff` → `#f4f7f6` disamakan dengan `--canvas` supaya
+  splash screen tidak "berkedip" putih saat app dibuka.
+- **`(app)/loading.tsx`** (baru) — kerangka skeleton bersama untuk semua route
+  grup `(app)`, bentuknya meniru susunan halaman umum (judul → 3 kartu →
+  tabel) supaya transisi tidak melompat. Sebelumnya buka app = layar kosong.
+- **`table.tsx`** — padding sel responsif `px-3 py-2.5` → `sm:px-4 sm:py-3`,
+  supaya tabel tidak terlalu boros ruang di layar HP.
+
+**Verifikasi:** `tsc --noEmit` bersih, `npm run build` sukses, eslint 0 masalah.
+Keempat `safe-area-inset-*` dikonfirmasi benar-benar ter-generate di CSS hasil
+build (arbitrary value Tailwind bisa diam-diam tidak ter-generate kalau salah
+tulis). Manifest hasil render dicek via HTTP. Console browser: 0 error.
+
 ## ⏭️ Lanjutan berikutnya
 
-**Fase 2 sudah selesai dan menunggu review user.** Jangan mulai Fase 3 sebelum
-user melihat hasilnya dan menyetujui arah warnanya.
+Fase 0–5 **selesai**. Yang sengaja **belum** dikerjakan, berikut alasannya:
 
-Kalau disetujui, kerjakan berurutan:
-
-- **Fase 3 — tabel & badge.** `table.tsx`: zebra baris, `font-variant-numeric:
-  tabular-nums` untuk kolom angka, header lebih tenang. `badge.tsx`: tambah
-  varian `success`/`warning` yang memakai token dari Fase 1.
-- **Fase 4 — StatCard & baris stat.** `stat-card.tsx` dipoles, lalu isi ruang
-  kosong di kanan kartu "Total Pembelian" pada `purchases`, `sales`,
-  `dashboard`, `reports` dengan 3–4 kartu.
-- **Fase 5 — PWA/mobile.** `safe-area-inset`, skeleton loading, dan tabel
-  berubah jadi daftar kartu di layar kecil.
-
-Hal yang sengaja belum dikerjakan dan bisa diangkat kapan saja: date range
-picker custom (mengganti dua `<input type="date">` native yang saat ini
-menampilkan format US `MM/DD` padahal aplikasinya berbahasa Indonesia).
+1. **Tabel → daftar kartu di layar HP.** Ini perubahan struktural di 15 file
+   dan berisiko jauh lebih tinggi daripada seluruh Fase 1–5 digabung. Saat ini
+   tabel di HP masih di-scroll horizontal. Layak dikerjakan sebagai fase
+   tersendiri, mulai dari halaman yang paling sering dibuka di HP saja.
+2. **Bottom navigation di mobile.** Saat ini masih hamburger + sheet. Perlu
+   memilih 4–5 menu utama dari 16+ item — itu keputusan produk, bukan desain.
+3. **Date range picker custom.** Dua `<input type="date">` native masih
+   menampilkan format US `MM/DD/YYYY` padahal aplikasinya berbahasa Indonesia.
+   Ini bug UX nyata dan pekerjaannya sedang, bukan berat.
+4. **Banner berwarna hardcoded.** Masih ada `bg-sky-50`, `bg-amber-50`,
+   `bg-emerald-50` di `products/product-manager.tsx`, `invoices/page.tsx`,
+   `assets/asset-manager.tsx`, `rab/rab-editor.tsx`. **Semua badge dan warna
+   aksen sudah token**, tapi blok banner belum. Risiko rendah, tinggal
+   diteruskan pola yang sama.
+5. **Dark mode.** Blok `.dark` masih palet abu-abu bawaan dan tidak dipakai.
+6. **Lint pre-existing.** `npm run lint` melaporkan 122 masalah (33 error,
+   89 warning) di file yang tidak berhubungan dengan UI — mis.
+   `set-state-in-effect` di `global-search.tsx`. Sudah ada sebelum pekerjaan
+   ini dan sengaja tidak disentuh.

@@ -26,7 +26,11 @@ export default async function AppLayout({
 
       <div className="flex min-h-screen flex-col lg:pl-64">
         <AppHeader email={user.email ?? "Admin"} />
-        <main className="flex-1 p-4 lg:p-8">{children}</main>
+        {/* Padding bawah + samping mengikuti safe-area supaya konten tidak
+            tertutup home indicator / notch saat dipasang sebagai PWA. */}
+        <main className="flex-1 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] lg:p-8">
+          {children}
+        </main>
       </div>
     </div>
   );

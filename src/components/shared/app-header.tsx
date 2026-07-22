@@ -26,7 +26,9 @@ export function AppHeader({ email }: { email: string }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b bg-background/95 px-4 backdrop-blur lg:px-8">
+    // `min-h-14`, bukan `h-14`: tinggi tetap + padding-top safe-area akan
+    // menggencet isi header karena box-sizing border-box.
+    <header className="sticky top-0 z-20 flex min-h-14 items-center gap-3 border-b bg-background/95 px-4 pt-[env(safe-area-inset-top)] backdrop-blur lg:px-8">
       {/* Menu mobile */}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger

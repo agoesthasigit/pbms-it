@@ -24,6 +24,9 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  // Wajib supaya `env(safe-area-inset-*)` punya nilai di iPhone bernotch.
+  // Tanpa ini konten tertutup notch / home indicator saat mode standalone.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
