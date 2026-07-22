@@ -129,7 +129,7 @@ export function Client360({ client }: { client: Client }) {
           <div className="sm:col-span-2"><span className="text-muted-foreground">Alamat:</span> {client.address ?? "-"}</div>
           <div><span className="text-muted-foreground">Status:</span>{" "}
             {client.status === "active"
-              ? <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Aktif</Badge>
+              ? <Badge className="bg-success-tint text-success-strong">Aktif</Badge>
               : <Badge variant="outline">Nonaktif</Badge>}
           </div>
           <div><span className="text-muted-foreground">Bergabung:</span> {client.joined_date ? formatDate(client.joined_date) : "-"}</div>

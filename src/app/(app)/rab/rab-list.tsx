@@ -95,7 +95,7 @@ export function RabList({ projects }: { projects: RabProject[] }) {
                       </TableCell>
                       <TableCell className="text-right">
                         {lunas ? (
-                          <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+                          <Badge className="bg-success-tint text-success-strong">
                             Lunas
                           </Badge>
                         ) : (

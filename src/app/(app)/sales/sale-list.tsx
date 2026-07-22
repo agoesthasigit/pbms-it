@@ -168,7 +168,7 @@ export function SaleList({
                     </TableCell>
                     <TableCell>
                       {s.payment_method === "cash" ? (
-                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Lunas</Badge>
+                        <Badge className="bg-success-tint text-success-strong">Lunas</Badge>
                       ) : (
                         <Badge variant="outline">Masuk invoice</Badge>
                       )}

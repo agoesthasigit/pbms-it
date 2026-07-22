@@ -19,9 +19,9 @@ sebelum melanjutkan pekerjaan UI, supaya tahu sudah sampai fase mana.
 | 0 | DESIGN_LOG + branch | ✅ Selesai | `c1825d8` |
 | 1 | Token: font, palet teal, radius | ✅ Selesai | `ec60420` |
 | 2 | Shell: kanvas, kartu, sidebar, header | ✅ Selesai | lihat di bawah |
-| 3 | Tabel & badge | ⛔ Ditahan — tunggu review Fase 2 | — |
-| 4 | StatCard & baris stat | ⛔ Ditahan — tunggu review Fase 2 | — |
-| 5 | PWA / mobile | ⛔ Ditahan — tunggu review Fase 2 | — |
+| 3 | Tabel & badge | ✅ Selesai | lihat di bawah |
+| 4 | StatCard & baris stat | ⏳ Berjalan | — |
+| 5 | PWA / mobile | ⬜ Belum | — |
 
 **Aturan:** satu fase = satu commit. Aplikasi harus tetap jalan di antara fase.
 Kalau hasil sebuah fase tidak disukai, cukup `git revert` commit fase itu.
@@ -143,6 +143,51 @@ lewat tooling preview.
   | `--primary` | `lab(45.5% -34.1 -2.8)` ✅ teal (sebelumnya `a=0, b=0` abu murni) |
   | `--radius` | `.75rem` ✅ |
   | `--success` | `lab(55.3% -43.1 20.0)` ✅ hijau, terpisah dari teal |
+
+### Fase 3 — 2026-07-22 · tabel & badge
+
+**Temuan:** ada **25+ badge dengan warna Tailwind hardcoded**
+(`bg-emerald-100`, `bg-red-100`, `bg-amber-100`, `bg-sky-100`, `bg-slate-100`)
+yang melewati sistem token. Inilah sumber inkonsistensi warna yang sebenarnya —
+mengganti `--primary` tidak akan pernah menyentuh badge-badge ini.
+
+**`table.tsx`** (menjangkau 15 file yang memakainya):
+
+| Bagian | Sebelum | Sesudah | Alasan |
+| --- | --- | --- | --- |
+| `Table` | — | `tabular-nums` | Digit jadi sama lebar, kolom rupiah rata sempurna. |
+| `TableHeader` | polos | `bg-muted/40` | Header terpisah jelas dari isi. |
+| `TableHead` | `h-10 px-2 text-foreground` | `h-11 px-4 text-xs uppercase tracking-wide text-muted-foreground` | Header jadi label tenang, bukan bersaing dengan data. |
+| `TableCell` | `p-2` | `px-4 py-3` | Baris bernapas; kerapatan referensi. |
+| `TableRow` | `border-b hover:bg-muted/50` | `border-b border-border/60 hover:bg-accent/40` | Garis lebih lembut, hover ber-tint teal. |
+
+**`badge.tsx`** — tiga varian baru: `success`, `warning`, `danger`.
+
+**Token baru** (`globals.css`): pasangan `--*-tint` (latar) dan `--*-strong`
+(teks) untuk success/warning/destructive. Dipisah karena `--success` saja
+(`L=0.6`) terlalu terang untuk teks kecil di atas latar terang — kontrasnya
+tidak memadai. Pasangan tint+strong memberi rasio ~5:1.
+
+**Migrasi ke token** — semua badge status kini tunable dari `globals.css`:
+
+| Status | Sebelum | Sesudah |
+| --- | --- | --- |
+| draft | `bg-slate-100 text-slate-700` | `bg-muted text-muted-foreground` |
+| sent / ongoing | `bg-sky-100 text-sky-700` | `bg-primary/10 text-primary` |
+| paid / done / active / aktif | `bg-emerald-100 text-emerald-700` | `bg-success-tint text-success-strong` |
+| expiring / jatuh tempo | `bg-amber-100 text-amber-700` | `bg-warning-tint text-warning-strong` |
+| overdue / expired | `bg-red-100 text-red-700` | `bg-destructive-tint text-destructive-strong` |
+
+`sent`/`ongoing` sengaja dipetakan ke **primary (teal)**, bukan biru: status
+"sedang berjalan" adalah keadaan aktif, cocok memakai warna brand.
+
+File tersentuh: `table.tsx`, `badge.tsx`, `globals.css`, `types/phase5.ts`,
+`types/phase7.ts`, dan 7 file halaman (hanya string className, tanpa logika).
+
+**Verifikasi:** `npx tsc --noEmit` bersih; `npm run build` sukses; eslint pada
+file yang diubah 0 error. Sisa badge hardcoded: **0**.
+(Satu warning `formatDate is defined but never used` di `client-manager.tsx`
+sudah dikonfirmasi **pre-existing** lewat `git stash` — bukan dari perubahan ini.)
 
 ## ⏭️ Lanjutan berikutnya
 

@@ -16,8 +16,14 @@
   --color-canvas: var(--canvas);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-success-tint: var(--success-tint);
+  --color-success-strong: var(--success-strong);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-warning-tint: var(--warning-tint);
+  --color-warning-strong: var(--warning-strong);
+  --color-destructive-tint: var(--destructive-tint);
+  --color-destructive-strong: var(--destructive-strong);
   --shadow-card: var(--shadow-card-value);
   --shadow-card-hover: var(--shadow-card-hover-value);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -86,6 +92,16 @@
   --warning: oklch(0.735 0.142 72);
   --warning-foreground: oklch(0.26 0.045 70);
   --destructive: oklch(0.585 0.196 25.5);
+
+  /* Pasangan tint (latar) + strong (teks) untuk badge status. Dipisah supaya
+     kontras teks tetap memadai; `--success` saja terlalu terang untuk teks
+     kecil di atas latar terang. */
+  --success-tint: oklch(0.949 0.035 157);
+  --success-strong: oklch(0.468 0.118 157);
+  --warning-tint: oklch(0.957 0.042 78);
+  --warning-strong: oklch(0.478 0.102 65);
+  --destructive-tint: oklch(0.951 0.03 25);
+  --destructive-strong: oklch(0.505 0.183 25.5);
 
   --border: oklch(0.915 0.008 192);
   --input: oklch(0.9 0.01 192);

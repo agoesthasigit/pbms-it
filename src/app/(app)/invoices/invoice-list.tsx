@@ -21,10 +21,10 @@ import {
 import { deleteInvoice } from "./actions";
 
 const STATUS_STYLE: Record<InvoiceStatus, string> = {
-  draft: "bg-slate-100 text-slate-700 hover:bg-slate-100",
-  sent: "bg-sky-100 text-sky-700 hover:bg-sky-100",
-  paid: "bg-emerald-100 text-emerald-700 hover:bg-emerald-100",
-  overdue: "bg-red-100 text-red-700 hover:bg-red-100",
+  draft: "bg-muted text-muted-foreground",
+  sent: "bg-primary/10 text-primary",
+  paid: "bg-success-tint text-success-strong",
+  overdue: "bg-destructive-tint text-destructive-strong",
 };
 
 export function InvoiceList({ invoices }: { invoices: MonthlyInvoice[] }) {

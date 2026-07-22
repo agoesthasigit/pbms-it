@@ -165,7 +165,7 @@ export function DashboardClient() {
                     <div className="text-right">
                       <p className="text-sm font-medium">{formatIDR(Number(inv.total))}</p>
                       {inv.effective_status === "overdue" && (
-                        <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Jatuh tempo</Badge>
+                        <Badge className="bg-destructive-tint text-destructive-strong">Jatuh tempo</Badge>
                       )}
                     </div>
                   </li>
@@ -194,7 +194,7 @@ export function DashboardClient() {
                       <p className="text-xs text-muted-foreground">{a.company_name}</p>
                     </div>
                     <div className="text-right">
-                      <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">
+                      <Badge className="bg-warning-tint text-warning-strong">
                         {a.days_left} hari
                       </Badge>
                       <p className="mt-0.5 text-xs text-muted-foreground">{formatDate(a.warranty_end)}</p>

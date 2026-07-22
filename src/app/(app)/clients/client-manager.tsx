@@ -169,7 +169,7 @@ export function ClientManager({
                     <TableCell>{c.phone ?? "-"}</TableCell>
                     <TableCell>
                       {c.status === "active"
-                        ? <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Aktif</Badge>
+                        ? <Badge className="bg-success-tint text-success-strong">Aktif</Badge>
                         : <Badge variant="outline">Nonaktif</Badge>}
                     </TableCell>
                     <TableCell className="text-right">
