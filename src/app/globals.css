@@ -7,9 +7,19 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  /* `--font-jakarta` di-set oleh next/font di layout.tsx. Sebelumnya baris ini
+     berbunyi `var(--font-sans)` — menunjuk ke dirinya sendiri, tidak pernah
+     terdefinisi, jadi seluruh aplikasi jatuh ke serif bawaan browser. */
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-heading: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --color-canvas: var(--canvas);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --shadow-card: var(--shadow-card-value);
+  --shadow-card-hover: var(--shadow-card-hover-value);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -49,41 +59,75 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  /* Netral di-tint ke arah teal (hue ~195) alih-alih abu murni, supaya
+     seluruh palet terasa satu keluarga dengan warna brand. */
+  --canvas: oklch(0.972 0.006 190); /* kanvas halaman, di bawah kartu */
+  --background: oklch(1 0 0); /* permukaan putih: sidebar, header, input */
+  --foreground: oklch(0.215 0.021 197);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.215 0.021 197);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --popover-foreground: oklch(0.215 0.021 197);
+
+  /* Teal-700 — sama dengan theme_color di manifest.ts (#0f766e). */
+  --primary: oklch(0.52 0.098 184);
+  --primary-foreground: oklch(0.99 0.004 190);
+
+  --secondary: oklch(0.966 0.008 190);
+  --secondary-foreground: oklch(0.3 0.032 192);
+  --muted: oklch(0.966 0.008 190);
+  --muted-foreground: oklch(0.522 0.019 197);
+  --accent: oklch(0.952 0.021 187); /* tint teal untuk hover */
+  --accent-foreground: oklch(0.4 0.068 185);
+
+  /* Naik/turun sengaja TIDAK pakai teal supaya tidak bentrok dengan brand. */
+  --success: oklch(0.6 0.132 157);
+  --success-foreground: oklch(0.99 0.004 190);
+  --warning: oklch(0.735 0.142 72);
+  --warning-foreground: oklch(0.26 0.045 70);
+  --destructive: oklch(0.585 0.196 25.5);
+
+  --border: oklch(0.915 0.008 192);
+  --input: oklch(0.9 0.01 192);
+  --ring: oklch(0.52 0.098 184);
+
+  --chart-1: oklch(0.52 0.098 184);
+  --chart-2: oklch(0.677 0.093 181);
+  --chart-3: oklch(0.75 0.108 156);
+  --chart-4: oklch(0.782 0.127 75);
+  --chart-5: oklch(0.6 0.042 202);
+
+  --radius: 0.75rem;
+
+  /* Shadow di-tint teal, bukan hitam murni — hitam bikin kartu terasa kaku. */
+  --shadow-card-value: 0 1px 2px 0 oklch(0.45 0.03 195 / 0.04),
+    0 4px 12px -2px oklch(0.45 0.03 195 / 0.06);
+  --shadow-card-hover-value: 0 2px 4px 0 oklch(0.45 0.03 195 / 0.05),
+    0 8px 20px -4px oklch(0.45 0.03 195 / 0.1);
+
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.215 0.021 197);
+  --sidebar-primary: oklch(0.52 0.098 184);
+  --sidebar-primary-foreground: oklch(0.99 0.004 190);
+  --sidebar-accent: oklch(0.952 0.021 187);
+  --sidebar-accent-foreground: oklch(0.4 0.068 185);
+  --sidebar-border: oklch(0.915 0.008 192);
+  --sidebar-ring: oklch(0.52 0.098 184);
 }
 
+/* Dark mode BELUM dikerjakan — masih palet abu-abu bawaan dan tidak dipakai
+   di mana pun (tidak ada toggle tema). Token baru di bawah ini hanya
+   ditambahkan supaya tidak ada referensi variabel yang menggantung. */
 .dark {
+  --canvas: oklch(0.145 0 0);
+  --success: oklch(0.65 0.13 157);
+  --success-foreground: oklch(0.205 0 0);
+  --warning: oklch(0.78 0.13 72);
+  --warning-foreground: oklch(0.205 0 0);
+  --shadow-card-value: 0 1px 2px 0 oklch(0 0 0 / 0.3),
+    0 4px 12px -2px oklch(0 0 0 / 0.35);
+  --shadow-card-hover-value: 0 2px 4px 0 oklch(0 0 0 / 0.35),
+    0 8px 20px -4px oklch(0 0 0 / 0.45);
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);

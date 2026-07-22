@@ -16,9 +16,9 @@ sebelum melanjutkan pekerjaan UI, supaya tahu sudah sampai fase mana.
 
 | Fase | Isi | Status | Commit |
 | --- | --- | --- | --- |
-| 0 | DESIGN_LOG + branch | ✅ Selesai | — |
-| 1 | Token: font, palet teal, radius | ⏳ Berjalan | — |
-| 2 | Shell: kanvas, kartu, sidebar, header | ⬜ Belum | — |
+| 0 | DESIGN_LOG + branch | ✅ Selesai | `c1825d8` |
+| 1 | Token: font, palet teal, radius | ✅ Selesai | lihat di bawah |
+| 2 | Shell: kanvas, kartu, sidebar, header | ⏳ Berjalan | — |
 | 3 | Tabel & badge | ⛔ Ditahan — tunggu review Fase 2 | — |
 | 4 | StatCard & baris stat | ⛔ Ditahan — tunggu review Fase 2 | — |
 | 5 | PWA / mobile | ⛔ Ditahan — tunggu review Fase 2 | — |
@@ -69,3 +69,44 @@ Menyiapkan infrastruktur pencatatan. Branch `ui/teal-refresh` dibuat supaya
 `main` tidak tersentuh. File ini dibuat.
 
 Tidak ada perubahan kode.
+
+### Fase 1 — 2026-07-22 · hanya `globals.css`
+
+Satu file. Tidak ada komponen, halaman, query, atau logika yang disentuh.
+
+**1. Font diperbaiki.** `--font-sans: var(--font-sans)` → `var(--font-jakarta)`
+plus rantai fallback. Plus Jakarta Sans akhirnya benar-benar tampil di seluruh
+aplikasi; serif bawaan browser hilang. `--font-heading` dan `--font-mono` juga
+diberi fallback yang benar (`--font-geist-mono` tidak pernah dimuat proyek ini,
+jadi tanpa fallback teks mono pun jatuh ke serif).
+
+**2. Palet abu-abu → teal.** Nilai sebelum/sesudah untuk token yang paling
+kelihatan:
+
+| Token | Sebelum | Sesudah |
+| --- | --- | --- |
+| `--primary` | `oklch(0.205 0 0)` hitam | `oklch(0.52 0.098 184)` teal-700 |
+| `--foreground` | `oklch(0.145 0 0)` | `oklch(0.215 0.021 197)` |
+| `--muted-foreground` | `oklch(0.556 0 0)` | `oklch(0.522 0.019 197)` |
+| `--accent` | `oklch(0.97 0 0)` | `oklch(0.952 0.021 187)` |
+| `--border` | `oklch(0.922 0 0)` | `oklch(0.915 0.008 192)` |
+| `--ring` | `oklch(0.708 0 0)` abu | `oklch(0.52 0.098 184)` teal |
+| `--chart-1..5` | 5 tingkat abu | teal → hijau → amber |
+
+Angka tengah pada `oklch()` adalah **chroma**; sebelumnya `0` di semua token,
+itulah penyebab teknis kesan hambar.
+
+**3. Token baru:** `--canvas` (kanvas halaman di bawah kartu), `--success` /
+`--warning` (dipisah dari teal supaya indikator naik-turun tidak bentrok dengan
+brand), `--shadow-card` / `--shadow-card-hover` (shadow di-tint teal, bukan
+hitam). Semua didaftarkan di `@theme inline` sehingga tersedia sebagai utility
+`bg-canvas`, `text-success`, `shadow-card`, dst.
+
+**4. Radius** `0.625rem` → `0.75rem`. Satu knob ini menggerakkan seluruh skala
+(`--radius-xl` yang dipakai `Card` ikut naik ~10px → ~17px).
+
+**Efek beruntun yang didapat gratis** (tanpa menyentuh file-nya): chip icon
+`StatCard` jadi teal, sidebar aktif jadi teal, focus ring jadi teal, grafik
+Recharts berwarna.
+
+Verifikasi: `npm run build` sukses, 33 route terkompilasi.
