@@ -29,7 +29,8 @@ sebelum melanjutkan pekerjaan UI, supaya tahu sudah sampai fase mana.
 | 3 | Tabel & badge | ✅ Selesai | `510cc24` |
 | 4 | StatCard & baris stat | ✅ Selesai | `4bccc8f` |
 | 5 | PWA / mobile | ✅ Selesai | lihat di bawah |
-| 6 | Balik ke gaya lama + bottom nav | ✅ Selesai | lihat di bawah |
+| 6 | Balik ke gaya lama + bottom nav | ✅ Selesai | `796f1ae` |
+| 7 | Revisi UX: paginasi aset + warna status | ✅ Selesai | `da9e009` |
 
 **Aturan:** satu fase = satu commit. Aplikasi harus tetap jalan di antara fase.
 Kalau hasil sebuah fase tidak disukai, cukup `git revert` commit fase itu.
@@ -329,26 +330,63 @@ token `--canvas` hilang. Halaman terautentikasi belum dicek visual karena
 preview tak punya sesi login; perlu dikonfirmasi user di browser yang login,
 khususnya bottom nav di layar HP.
 
+### Fase 7 — 2026-07-24 · revisi UX (paginasi + warna status)
+
+Tiga permintaan user setelah Fase 6 di-merge. Semua murni tampilan/UX, tidak
+menyentuh query, form, atau logika bisnis.
+
+- **Paginasi daftar aset** (`assets/asset-manager.tsx`). Daftar aset yang bisa
+  ratusan baris memaksa scroll jauh. Ditambah state `page`, konstanta
+  `PAGE_SIZE = 10`, slice `paged` dari `filtered`, plus bar kontrol
+  Sebelumnya/Berikutnya + indikator "Hal x/y" di bawah tabel (muncul hanya bila
+  `totalPages > 1`). Halaman reset ke 1 lewat `useEffect` setiap `q`/`fClient`/
+  `fStatus` berubah. Data & filter tidak diubah — hanya potong tampilan.
+- **Warna status invoice** (`invoices/invoice-list.tsx`). `draft` `bg-slate-100`
+  → `bg-red-100` supaya beda jelas dari `paid`/"Lunas" (hijau). ⚠️ Efek samping:
+  `overdue`/"Jatuh Tempo" **juga** merah, jadi draft & overdue kini sewarna —
+  lihat poin tracking di bawah.
+- **Warna status RAB** (`types/phase7.ts`, satu sumber untuk semua tampilan
+  RAB). `draft` slate → **merah**, `ongoing`/"Berjalan" sky → **kuning**
+  (amber), `done`/"Selesai" tetap **hijau**. Pola merah-kuning-hijau (lampu
+  lalu lintas) supaya progres proyek terbaca sekilas.
+
+**Verifikasi:** `tsc --noEmit` bersih; `npm run build` sukses (27 route; build
+sempat gagal sekali karena disk host 99% penuh — masalah lingkungan, bukan
+kode; lolos setelah disk dibersihkan). Di-merge ke `main` & di-push ke
+`origin/main`.
+
 ## ⏭️ Lanjutan berikutnya
 
-Fase 0–5 **selesai**. Yang sengaja **belum** dikerjakan, berikut alasannya:
+Fase 0–7 **selesai** (Fase 6 membalik rasa Fase 1–4 ke gaya lama; lihat catatan
+di atas). Yang sengaja **belum** dikerjakan / perlu di-track:
 
-1. **Tabel → daftar kartu di layar HP.** Ini perubahan struktural di 15 file
-   dan berisiko jauh lebih tinggi daripada seluruh Fase 1–5 digabung. Saat ini
-   tabel di HP masih di-scroll horizontal. Layak dikerjakan sebagai fase
-   tersendiri, mulai dari halaman yang paling sering dibuka di HP saja.
-2. **Bottom navigation di mobile.** Saat ini masih hamburger + sheet. Perlu
-   memilih 4–5 menu utama dari 16+ item — itu keputusan produk, bukan desain.
-3. **Date range picker custom.** Dua `<input type="date">` native masih
+1. **Invoice: `draft` & `overdue` sama-sama merah.** Sejak Fase 7 `draft` dibuat
+   merah sesuai permintaan, tapi `overdue`/"Jatuh Tempo" sudah merah lebih dulu
+   (`invoice-list.tsx` `STATUS_STYLE`). Dua status merah dalam satu daftar bisa
+   membingungkan. Belum diputuskan warna pembeda untuk salah satunya — tunggu
+   arahan user.
+2. **Paginasi untuk daftar panjang lain.** Baru daftar **aset** yang dipaginasi
+   (Fase 7). Daftar penjualan, pembelian, dan invoice masih menampilkan semua
+   baris sekaligus. Pola `PAGE_SIZE`/`paged`/bar kontrol di `asset-manager.tsx`
+   tinggal disalin bila daftar-daftar itu mulai panjang.
+3. **Tabel → daftar kartu di layar HP.** Perubahan struktural di ~15 file,
+   berisiko tinggi. Saat ini tabel di HP masih di-scroll horizontal. Layak
+   dikerjakan bertahap, mulai dari halaman yang paling sering dibuka di HP.
+4. **Date range picker custom.** Dua `<input type="date">` native masih
    menampilkan format US `MM/DD/YYYY` padahal aplikasinya berbahasa Indonesia.
-   Ini bug UX nyata dan pekerjaannya sedang, bukan berat.
-4. **Banner berwarna hardcoded.** Masih ada `bg-sky-50`, `bg-amber-50`,
+   Bug UX nyata, bobot pekerjaan sedang.
+5. **Banner berwarna hardcoded.** Masih ada `bg-sky-50`, `bg-amber-50`,
    `bg-emerald-50` di `products/product-manager.tsx`, `invoices/page.tsx`,
-   `assets/asset-manager.tsx`, `rab/rab-editor.tsx`. **Semua badge dan warna
-   aksen sudah token**, tapi blok banner belum. Risiko rendah, tinggal
-   diteruskan pola yang sama.
-5. **Dark mode.** Blok `.dark` masih palet abu-abu bawaan dan tidak dipakai.
-6. **Lint pre-existing.** `npm run lint` melaporkan 122 masalah (33 error,
-   89 warning) di file yang tidak berhubungan dengan UI — mis.
-   `set-state-in-effect` di `global-search.tsx`. Sudah ada sebelum pekerjaan
-   ini dan sengaja tidak disentuh.
+   `assets/asset-manager.tsx`, `rab/rab-editor.tsx`. Badge & aksen sudah rapi,
+   blok banner belum. Risiko rendah.
+6. **Dark mode.** Blok `.dark` masih palet abu-abu bawaan dan tidak dipakai.
+7. **`theme_color` PWA masih teal `#0f766e`.** Konsisten dengan `main` lama,
+   tapi jadi satu-satunya jejak teal (strip status bar saat mode standalone).
+   Mudah dinetralkan bila mengganggu.
+8. **Lint pre-existing.** `npm run lint` melaporkan 122 masalah (33 error,
+   89 warning) di file non-UI (mis. `set-state-in-effect` di
+   `global-search.tsx`). Sudah ada sebelum pekerjaan ini, sengaja tak disentuh.
+
+> **Sudah selesai (dulu di daftar ini):** bottom navigation mobile — dikerjakan
+> di Fase 6 (`components/shared/bottom-nav.tsx`: Pembelian, Penjualan,
+> Operasional, Laporan).
