@@ -22,6 +22,8 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
+import { usePagination } from "@/components/shared/use-pagination";
+import { PaginationBar } from "@/components/shared/pagination-bar";
 import { PasswordCell } from "@/components/shared/password-cell";
 import { RepairDialog } from "@/components/shared/repair-dialog";
 import { RepairHistory } from "@/components/shared/repair-history";
@@ -76,6 +78,8 @@ export function CctvManager({
       return true;
     });
   }, [items, q, fClient]);
+
+  const pg = usePagination(filtered, 10, `${q}|${fClient}`);
 
   function openAdd() {
     setEditing(null);
@@ -147,6 +151,7 @@ export function CctvManager({
             <EmptyState icon={Camera} title="Belum ada data CCTV"
               description="Simpan data NVR/DVR client: merk, jumlah channel, dan kredensial (terenkripsi)." />
           ) : (
+            <>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -160,7 +165,7 @@ export function CctvManager({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((c) => {
+                {pg.paged.map((c) => {
                   const logCount = repairLogsByTarget[c.id]?.length ?? 0;
                   return (
                     <TableRow key={c.id}>
@@ -197,6 +202,10 @@ export function CctvManager({
                 })}
               </TableBody>
             </Table>
+            <PaginationBar page={pg.page} totalPages={pg.totalPages}
+              from={pg.from} to={pg.to} total={pg.total}
+              onPageChange={pg.setPage} unit="CCTV" />
+            </>
           )}
         </CardContent>
       </Card>

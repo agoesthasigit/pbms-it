@@ -24,6 +24,8 @@ import { formatDate, todayISO } from "@/lib/utils/date";
 import type { Client, ClientStatus, Category } from "@/types/db";
 import { addClientData, updateClientData, deleteClientData } from "./actions";
 import { EmptyState } from "@/components/shared/empty-state";
+import { usePagination } from "@/components/shared/use-pagination";
+import { PaginationBar } from "@/components/shared/pagination-bar";
 
 const emptyForm = {
   company_name: "", contact_name: "", category_id: "", email: "",
@@ -78,6 +80,8 @@ export function ClientManager({
       return true;
     });
   }, [clients, q, fStatus, fCategory]);
+
+  const pg = usePagination(filtered, 10, `${q}|${fStatus}|${fCategory}`);
 
   function openAdd() { setEditing(null); setForm(emptyForm); setOpen(true); }
   function openEdit(c: Client) {
@@ -149,6 +153,7 @@ export function ClientManager({
               description={clients.length === 0
                 ? "Tambahkan client pertama Anda." : "Tidak ada hasil untuk filter/pencarian ini."} />
           ) : (
+            <>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -161,7 +166,7 @@ export function ClientManager({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((c) => (
+                {pg.paged.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell className="font-medium">{c.company_name}</TableCell>
                     <TableCell>{c.contact_name ?? "-"}</TableCell>
@@ -190,6 +195,10 @@ export function ClientManager({
                 ))}
               </TableBody>
             </Table>
+            <PaginationBar page={pg.page} totalPages={pg.totalPages}
+              from={pg.from} to={pg.to} total={pg.total}
+              onPageChange={pg.setPage} unit="client" />
+            </>
           )}
         </CardContent>
       </Card>

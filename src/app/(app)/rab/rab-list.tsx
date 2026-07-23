@@ -15,6 +15,8 @@ import {
 import { formatIDR } from "@/lib/utils/currency";
 import { formatDate } from "@/lib/utils/date";
 import { EmptyState } from "@/components/shared/empty-state";
+import { usePagination } from "@/components/shared/use-pagination";
+import { PaginationBar } from "@/components/shared/pagination-bar";
 import {
   type RabProject, type RabStatus, RAB_STATUS_LABELS, RAB_STATUS_STYLE,
 } from "@/types/phase7";
@@ -31,6 +33,8 @@ export function RabList({ projects }: { projects: RabProject[] }) {
     return projects.filter((p) =>
       `${p.project_name} ${p.company_name ?? ""}`.toLowerCase().includes(key));
   }, [projects, q]);
+
+  const pg = usePagination(filtered, 10, q);
 
   function handleDelete(p: RabProject) {
     if (!confirm(
@@ -58,6 +62,7 @@ export function RabList({ projects }: { projects: RabProject[] }) {
             <EmptyState icon={Calculator} title="Belum ada RAB"
               description="Buat rencana anggaran biaya proyek pertama Anda." />
           ) : (
+            <>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -73,7 +78,7 @@ export function RabList({ projects }: { projects: RabProject[] }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((p) => {
+                {pg.paged.map((p) => {
                   const profit = Number(p.net_profit ?? 0);
                   const value = Number(p.grand_total_rab ?? 0);
                   const paid = Number(p.total_paid ?? 0);
@@ -124,6 +129,10 @@ export function RabList({ projects }: { projects: RabProject[] }) {
                 })}
               </TableBody>
             </Table>
+            <PaginationBar page={pg.page} totalPages={pg.totalPages}
+              from={pg.from} to={pg.to} total={pg.total}
+              onPageChange={pg.setPage} unit="RAB" />
+            </>
           )}
         </CardContent>
       </Card>

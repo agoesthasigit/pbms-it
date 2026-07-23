@@ -16,6 +16,8 @@ import { formatDate } from "@/lib/utils/date";
 import { EmptyState } from "@/components/shared/empty-state";
 import { SummaryCard } from "@/components/shared/summary-card";
 import { StatCard } from "@/components/shared/stat-card";
+import { usePagination } from "@/components/shared/use-pagination";
+import { PaginationBar } from "@/components/shared/pagination-bar";
 import type { ProductWithStock, Distributor, WalletWithBalance } from "@/types/db";
 import type { PurchaseRow } from "@/types/phase3";
 import { PurchaseForm } from "./purchase-form";
@@ -82,6 +84,8 @@ export function PurchaseList({
       return true;
     });
   }, [purchases, q, from, to]);
+
+  const pg = usePagination(filtered, 10, `${q}|${from}|${to}`);
 
   // total mengikuti rentang tanggal terpilih (default: bulan berjalan)
   const totalPeriod = filtered.reduce((s, p) => s + Number(p.total), 0);
@@ -184,6 +188,7 @@ export function PurchaseList({
             <EmptyState icon={ShoppingCart} title="Tidak ada pembelian"
               description="Tidak ada pembelian pada rentang tanggal ini. Ubah filter atau catat pembelian baru." />
           ) : (
+            <>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -196,7 +201,7 @@ export function PurchaseList({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((p) => (
+                {pg.paged.map((p) => (
                   <TableRow key={p.id}>
                     <TableCell>{formatDate(p.purchase_date)}</TableCell>
                     <TableCell className="font-medium">{p.distributor?.name ?? "-"}</TableCell>
@@ -223,6 +228,10 @@ export function PurchaseList({
                 ))}
               </TableBody>
             </Table>
+            <PaginationBar page={pg.page} totalPages={pg.totalPages}
+              from={pg.from} to={pg.to} total={pg.total}
+              onPageChange={pg.setPage} unit="nota" />
+            </>
           )}
         </CardContent>
       </Card>

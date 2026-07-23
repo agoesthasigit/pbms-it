@@ -31,6 +31,8 @@ import {
   AssetPhotoUpload, type PendingPhoto,
 } from "@/components/shared/asset-photo-upload";
 import { formatFileSize } from "@/lib/utils/image-compress";
+import { usePagination } from "@/components/shared/use-pagination";
+import { PaginationBar } from "@/components/shared/pagination-bar";
 import type { Client, WalletWithBalance, Category } from "@/types/db";
 import {
   type ClientAsset, type RepairLog, type WarrantyStatus,
@@ -67,7 +69,6 @@ export function AssetManager({
   const [q, setQ] = useState("");
   const [fClient, setFClient] = useState("all");
   const [fStatus, setFStatus] = useState("all");
-  const [page, setPage] = useState(1);
 
   // tambah/edit
   const [formOpen, setFormOpen] = useState(false);
@@ -119,14 +120,7 @@ export function AssetManager({
   const expiringCount = assets.filter((a) => a.warranty_status === "expiring").length;
 
   // Paginasi 10-per-halaman supaya daftar panjang tidak perlu di-scroll jauh.
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const current = Math.min(page, totalPages);
-  const paged = filtered.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
-
-  // balik ke halaman 1 setiap kali filter/pencarian berubah
-  useEffect(() => {
-    setPage(1);
-  }, [q, fClient, fStatus]);
+  const pg = usePagination(filtered, PAGE_SIZE, `${q}|${fClient}|${fStatus}`);
 
   // buang object URL saat dialog ditutup (hindari memory leak)
   useEffect(() => {
@@ -320,7 +314,7 @@ export function AssetManager({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paged.map((a) => {
+                {pg.paged.map((a) => {
                   const st = (a.warranty_status ?? "active") as WarrantyStatus;
                   const logCount = repairLogsByAsset[a.id]?.length ?? 0;
                   const pb = photoBrief[a.id];
@@ -382,28 +376,9 @@ export function AssetManager({
                 })}
               </TableBody>
             </Table>
-            {totalPages > 1 && (
-              <div className="flex flex-col gap-2 border-t px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-                <span className="text-muted-foreground">
-                  Menampilkan {(current - 1) * PAGE_SIZE + 1}–
-                  {Math.min(current * PAGE_SIZE, filtered.length)} dari{" "}
-                  {filtered.length} aset
-                </span>
-                <div className="flex items-center justify-end gap-2">
-                  <Button variant="outline" size="sm" disabled={current <= 1}
-                    onClick={() => setPage(current - 1)}>
-                    Sebelumnya
-                  </Button>
-                  <span className="text-muted-foreground">
-                    Hal {current}/{totalPages}
-                  </span>
-                  <Button variant="outline" size="sm" disabled={current >= totalPages}
-                    onClick={() => setPage(current + 1)}>
-                    Berikutnya
-                  </Button>
-                </div>
-              </div>
-            )}
+            <PaginationBar page={pg.page} totalPages={pg.totalPages}
+              from={pg.from} to={pg.to} total={pg.total}
+              onPageChange={pg.setPage} unit="aset" />
             </>
           )}
         </CardContent>

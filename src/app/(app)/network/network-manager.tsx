@@ -19,6 +19,8 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
+import { usePagination } from "@/components/shared/use-pagination";
+import { PaginationBar } from "@/components/shared/pagination-bar";
 import { PasswordCell } from "@/components/shared/password-cell";
 import { RepairDialog } from "@/components/shared/repair-dialog";
 import { RepairHistory } from "@/components/shared/repair-history";
@@ -73,6 +75,8 @@ export function NetworkManager({
       return true;
     });
   }, [items, q, fClient]);
+
+  const pg = usePagination(filtered, 10, `${q}|${fClient}`);
 
   function openAdd() { setEditing(null); setForm(emptyForm); setFormOpen(true); }
   function openEdit(n: NetworkCredential) {
@@ -140,6 +144,7 @@ export function NetworkManager({
             <EmptyState icon={Wifi} title="Belum ada credential network"
               description="Simpan data WiFi client: SSID + password WiFi, dan username + password perangkat." />
           ) : (
+            <>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -153,7 +158,7 @@ export function NetworkManager({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((n) => {
+                {pg.paged.map((n) => {
                   const logCount = repairLogsByTarget[n.id]?.length ?? 0;
                   return (
                     <TableRow key={n.id}>
@@ -190,6 +195,10 @@ export function NetworkManager({
                 })}
               </TableBody>
             </Table>
+            <PaginationBar page={pg.page} totalPages={pg.totalPages}
+              from={pg.from} to={pg.to} total={pg.total}
+              onPageChange={pg.setPage} unit="WiFi" />
+            </>
           )}
         </CardContent>
       </Card>

@@ -15,6 +15,8 @@ import {
 import { formatIDR } from "@/lib/utils/currency";
 import { formatDate } from "@/lib/utils/date";
 import { EmptyState } from "@/components/shared/empty-state";
+import { usePagination } from "@/components/shared/use-pagination";
+import { PaginationBar } from "@/components/shared/pagination-bar";
 import {
   type MonthlyInvoice, type InvoiceStatus, INVOICE_STATUS_LABELS,
 } from "@/types/phase4";
@@ -38,6 +40,8 @@ export function InvoiceList({ invoices }: { invoices: MonthlyInvoice[] }) {
     return invoices.filter((inv) =>
       `${inv.invoice_no} ${inv.company_name ?? ""}`.toLowerCase().includes(key));
   }, [invoices, q]);
+
+  const pg = usePagination(filtered, 10, q);
 
   function handleDelete(inv: MonthlyInvoice) {
     if (!confirm(
@@ -67,6 +71,7 @@ export function InvoiceList({ invoices }: { invoices: MonthlyInvoice[] }) {
             <EmptyState icon={FileText} title="Belum ada invoice"
               description="Invoice terbentuk otomatis saat Anda menyimpan penjualan metode Invoice Bulanan." />
           ) : (
+            <>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -80,7 +85,7 @@ export function InvoiceList({ invoices }: { invoices: MonthlyInvoice[] }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((inv) => {
+                {pg.paged.map((inv) => {
                   const st = (inv.effective_status ?? inv.status) as InvoiceStatus;
                   return (
                     <TableRow key={inv.id}>
@@ -114,6 +119,10 @@ export function InvoiceList({ invoices }: { invoices: MonthlyInvoice[] }) {
                 })}
               </TableBody>
             </Table>
+            <PaginationBar page={pg.page} totalPages={pg.totalPages}
+              from={pg.from} to={pg.to} total={pg.total}
+              onPageChange={pg.setPage} unit="invoice" />
+            </>
           )}
         </CardContent>
       </Card>

@@ -18,6 +18,8 @@ import {
 import type { Distributor } from "@/types/db";
 import { addDistributor, updateDistributor, deleteDistributor } from "./actions";
 import { EmptyState } from "@/components/shared/empty-state";
+import { usePagination } from "@/components/shared/use-pagination";
+import { PaginationBar } from "@/components/shared/pagination-bar";
 
 const emptyForm = {
   name: "", contact_name: "", phone: "", email: "", address: "", notes: "",
@@ -40,6 +42,8 @@ export function DistributorManager({ distributors }: { distributors: Distributor
       ),
     [distributors, q]
   );
+
+  const pg = usePagination(filtered, 10, q);
 
   function openAdd() {
     setEditing(null);
@@ -95,6 +99,7 @@ export function DistributorManager({ distributors }: { distributors: Distributor
             <EmptyState icon={Truck} title="Tidak ada distributor"
               description="Tambahkan tempat Anda biasa membeli barang." />
           ) : (
+            <>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -107,7 +112,7 @@ export function DistributorManager({ distributors }: { distributors: Distributor
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((d) => (
+                {pg.paged.map((d) => (
                   <TableRow key={d.id}>
                     <TableCell className="font-medium">{d.name}</TableCell>
                     <TableCell>{d.contact_name ?? "-"}</TableCell>
@@ -128,6 +133,10 @@ export function DistributorManager({ distributors }: { distributors: Distributor
                 ))}
               </TableBody>
             </Table>
+            <PaginationBar page={pg.page} totalPages={pg.totalPages}
+              from={pg.from} to={pg.to} total={pg.total}
+              onPageChange={pg.setPage} unit="distributor" />
+            </>
           )}
         </CardContent>
       </Card>

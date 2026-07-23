@@ -23,6 +23,8 @@ import { formatIDR } from "@/lib/utils/currency";
 import { formatDate, todayISO } from "@/lib/utils/date";
 import { toNumber } from "@/lib/utils/number";
 import { EmptyState } from "@/components/shared/empty-state";
+import { usePagination } from "@/components/shared/use-pagination";
+import { PaginationBar } from "@/components/shared/pagination-bar";
 import type { WalletWithBalance, Category, Label as LabelType } from "@/types/db";
 import type { ExpenseRow } from "@/types/phase3";
 import { createExpense, deleteExpense } from "./expense-actions";
@@ -64,6 +66,8 @@ export function ExpenseManager({
   );
 
   const totalThisList = expenses.reduce((s, e) => s + Number(e.amount), 0);
+
+  const pg = usePagination(expenses, 10, kind);
 
   function reset() {
     setWalletId(""); setCategoryId(""); setLabelId("");
@@ -118,6 +122,7 @@ export function ExpenseManager({
             <EmptyState icon={WalletIcon} title="Belum ada pengeluaran"
               description="Catat pengeluaran Anda. Saldo wallet berkurang otomatis." />
           ) : (
+            <>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -131,7 +136,7 @@ export function ExpenseManager({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {expenses.map((e) => (
+                {pg.paged.map((e) => (
                   <TableRow key={e.id}>
                     <TableCell>{formatDate(e.expense_date)}</TableCell>
                     <TableCell>
@@ -164,6 +169,10 @@ export function ExpenseManager({
                 ))}
               </TableBody>
             </Table>
+            <PaginationBar page={pg.page} totalPages={pg.totalPages}
+              from={pg.from} to={pg.to} total={pg.total}
+              onPageChange={pg.setPage} unit="pengeluaran" />
+            </>
           )}
         </CardContent>
       </Card>

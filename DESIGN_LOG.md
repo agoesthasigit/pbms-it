@@ -31,6 +31,7 @@ sebelum melanjutkan pekerjaan UI, supaya tahu sudah sampai fase mana.
 | 5 | PWA / mobile | ✅ Selesai | lihat di bawah |
 | 6 | Balik ke gaya lama + bottom nav | ✅ Selesai | `796f1ae` |
 | 7 | Revisi UX: paginasi aset + warna status | ✅ Selesai | `da9e009` |
+| 8 | Paginasi semua daftar (hook bersama) | ✅ Selesai | lihat di bawah |
 
 **Aturan:** satu fase = satu commit. Aplikasi harus tetap jalan di antara fase.
 Kalau hasil sebuah fase tidak disukai, cukup `git revert` commit fase itu.
@@ -355,35 +356,51 @@ sempat gagal sekali karena disk host 99% penuh — masalah lingkungan, bukan
 kode; lolos setelah disk dibersihkan). Di-merge ke `main` & di-push ke
 `origin/main`.
 
+### Fase 8 — 2026-07-24 · paginasi semua daftar (hook bersama)
+
+Lanjutan poin tracking "paginasi untuk daftar panjang lain". Alih-alih menyalin
+logika 11×, dibuat **satu hook + satu komponen bar** yang dipakai ulang, dan
+`asset-manager` (Fase 7) ikut dirapikan ke pola ini.
+
+- **`components/shared/use-pagination.ts`** (baru) — hook generik
+  `usePagination(items, pageSize=10, resetKey?)`. Menghitung `totalPages`,
+  meng-clamp halaman aktif, meng-slice `paged`, dan reset ke hal. 1 saat
+  `resetKey` (gabungan state filter/pencarian) berubah.
+- **`components/shared/pagination-bar.tsx`** (baru) — bar "Menampilkan a–b dari
+  N • Sebelumnya/Berikutnya • Hal x/y". Return `null` saat cuma 1 halaman.
+- **Dipasang di 12 daftar** (semuanya 10 baris/halaman): client, distributor,
+  stok barang, pembelian, penjualan, pengeluaran operasional & pribadi (via
+  `expense-manager`), invoice, network, cctv, RAB, dan aset (refactor). Tiap
+  daftar mengoper `resetKey` dari state filter/pencariannya sendiri.
+
+Murni tampilan — data, query, filter, dan logika tidak disentuh; hanya potongan
+baris yang dirender. **Verifikasi:** `tsc --noEmit` bersih, `npm run build`
+sukses (27 route).
+
 ## ⏭️ Lanjutan berikutnya
 
-Fase 0–7 **selesai** (Fase 6 membalik rasa Fase 1–4 ke gaya lama; lihat catatan
-di atas). Yang sengaja **belum** dikerjakan / perlu di-track:
+Fase 0–8 **selesai**. Yang sengaja **belum** dikerjakan / perlu di-track:
 
 1. **Invoice: `draft` & `overdue` sama-sama merah.** Sejak Fase 7 `draft` dibuat
    merah sesuai permintaan, tapi `overdue`/"Jatuh Tempo" sudah merah lebih dulu
    (`invoice-list.tsx` `STATUS_STYLE`). Dua status merah dalam satu daftar bisa
    membingungkan. Belum diputuskan warna pembeda untuk salah satunya — tunggu
    arahan user.
-2. **Paginasi untuk daftar panjang lain.** Baru daftar **aset** yang dipaginasi
-   (Fase 7). Daftar penjualan, pembelian, dan invoice masih menampilkan semua
-   baris sekaligus. Pola `PAGE_SIZE`/`paged`/bar kontrol di `asset-manager.tsx`
-   tinggal disalin bila daftar-daftar itu mulai panjang.
-3. **Tabel → daftar kartu di layar HP.** Perubahan struktural di ~15 file,
+2. **Tabel → daftar kartu di layar HP.** Perubahan struktural di ~15 file,
    berisiko tinggi. Saat ini tabel di HP masih di-scroll horizontal. Layak
    dikerjakan bertahap, mulai dari halaman yang paling sering dibuka di HP.
-4. **Date range picker custom.** Dua `<input type="date">` native masih
+3. **Date range picker custom.** Dua `<input type="date">` native masih
    menampilkan format US `MM/DD/YYYY` padahal aplikasinya berbahasa Indonesia.
    Bug UX nyata, bobot pekerjaan sedang.
-5. **Banner berwarna hardcoded.** Masih ada `bg-sky-50`, `bg-amber-50`,
+4. **Banner berwarna hardcoded.** Masih ada `bg-sky-50`, `bg-amber-50`,
    `bg-emerald-50` di `products/product-manager.tsx`, `invoices/page.tsx`,
    `assets/asset-manager.tsx`, `rab/rab-editor.tsx`. Badge & aksen sudah rapi,
    blok banner belum. Risiko rendah.
-6. **Dark mode.** Blok `.dark` masih palet abu-abu bawaan dan tidak dipakai.
-7. **`theme_color` PWA masih teal `#0f766e`.** Konsisten dengan `main` lama,
+5. **Dark mode.** Blok `.dark` masih palet abu-abu bawaan dan tidak dipakai.
+6. **`theme_color` PWA masih teal `#0f766e`.** Konsisten dengan `main` lama,
    tapi jadi satu-satunya jejak teal (strip status bar saat mode standalone).
    Mudah dinetralkan bila mengganggu.
-8. **Lint pre-existing.** `npm run lint` melaporkan 122 masalah (33 error,
+7. **Lint pre-existing.** `npm run lint` melaporkan 122 masalah (33 error,
    89 warning) di file non-UI (mis. `set-state-in-effect` di
    `global-search.tsx`). Sudah ada sebelum pekerjaan ini, sengaja tak disentuh.
 

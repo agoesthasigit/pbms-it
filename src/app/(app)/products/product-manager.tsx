@@ -27,6 +27,8 @@ import { formatIDR } from "@/lib/utils/currency";
 import type { ProductWithStock, Category } from "@/types/db";
 import { updateProduct, deleteProduct, adjustStock } from "./actions";
 import { EmptyState } from "@/components/shared/empty-state";
+import { usePagination } from "@/components/shared/use-pagination";
+import { PaginationBar } from "@/components/shared/pagination-bar";
 
 export function ProductManager({
   products, categories,
@@ -74,6 +76,8 @@ export function ProductManager({
       return true;
     });
   }, [products, q, showEmpty]);
+
+  const pg = usePagination(filtered, 10, `${q}|${showEmpty}`);
 
   const catName = (id: string | null) =>
     categories.find((c) => c.id === id)?.name ?? "-";
@@ -175,6 +179,7 @@ export function ProductManager({
                 ? "Barang muncul di sini setelah Anda mencatat pembelian pertama."
                 : "Semua barang stoknya habis. Aktifkan 'Tampilkan stok habis' atau catat pembelian baru."} />
           ) : (
+            <>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -188,7 +193,7 @@ export function ProductManager({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((p) => {
+                {pg.paged.map((p) => {
                   const low = p.current_stock <= p.min_stock;
                   const empty = p.current_stock <= 0;
                   return (
@@ -244,6 +249,10 @@ export function ProductManager({
                 })}
               </TableBody>
             </Table>
+            <PaginationBar page={pg.page} totalPages={pg.totalPages}
+              from={pg.from} to={pg.to} total={pg.total}
+              onPageChange={pg.setPage} unit="barang" />
+            </>
           )}
         </CardContent>
       </Card>

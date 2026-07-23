@@ -17,6 +17,8 @@ import { formatDate } from "@/lib/utils/date";
 import { EmptyState } from "@/components/shared/empty-state";
 import { SummaryCard } from "@/components/shared/summary-card";
 import { StatCard } from "@/components/shared/stat-card";
+import { usePagination } from "@/components/shared/use-pagination";
+import { PaginationBar } from "@/components/shared/pagination-bar";
 import type { ProductWithStock, Client, WalletWithBalance } from "@/types/db";
 import { type SaleRow, PAYMENT_METHOD_LABELS } from "@/types/phase3";
 import { SaleForm } from "./sale-form";
@@ -65,6 +67,8 @@ export function SaleList({
       return true;
     });
   }, [sales, q, from, to]);
+
+  const pg = usePagination(filtered, 10, `${q}|${from}|${to}`);
 
   // total mengikuti rentang tanggal terpilih (default: bulan berjalan)
   const totalPeriod = filtered.reduce((s, x) => s + Number(x.total), 0);
@@ -166,6 +170,7 @@ export function SaleList({
             <EmptyState icon={ReceiptText} title="Tidak ada penjualan"
               description="Tidak ada penjualan pada rentang tanggal ini. Ubah filter atau catat penjualan baru." />
           ) : (
+            <>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -178,7 +183,7 @@ export function SaleList({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((s) => (
+                {pg.paged.map((s) => (
                   <TableRow key={s.id}>
                     <TableCell>{formatDate(s.sale_date)}</TableCell>
                     <TableCell className="font-medium">{s.client?.company_name ?? "-"}</TableCell>
@@ -208,6 +213,10 @@ export function SaleList({
                 ))}
               </TableBody>
             </Table>
+            <PaginationBar page={pg.page} totalPages={pg.totalPages}
+              from={pg.from} to={pg.to} total={pg.total}
+              onPageChange={pg.setPage} unit="transaksi" />
+            </>
           )}
         </CardContent>
       </Card>
