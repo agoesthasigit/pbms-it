@@ -48,7 +48,7 @@ export const RAB_STATUS_LABELS: Record<RabStatus, string> = {
 };
 
 export const RAB_STATUS_STYLE: Record<RabStatus, string> = {
-  draft: "bg-slate-100 text-slate-700 hover:bg-slate-100",
-  ongoing: "bg-sky-100 text-sky-700 hover:bg-sky-100",
+  draft: "bg-red-100 text-red-700 hover:bg-red-100",
+  ongoing: "bg-amber-100 text-amber-700 hover:bg-amber-100",
   done: "bg-emerald-100 text-emerald-700 hover:bg-emerald-100",
 };
