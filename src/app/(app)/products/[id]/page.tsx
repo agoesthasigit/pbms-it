@@ -77,7 +77,7 @@ export default async function ProductHistoryPage({
                     </TableCell>
                     <TableCell className="text-center">
                       <span className={m.qty >= 0
-                        ? "font-medium text-success-strong"
+                        ? "font-medium text-emerald-600"
                         : "font-medium text-destructive"}>
                         {m.qty >= 0 ? `+${m.qty}` : m.qty}
                       </span>

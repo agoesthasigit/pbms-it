@@ -11,9 +11,7 @@ export default function manifest(): MetadataRoute.Manifest {
     dir: "ltr",
     start_url: "/dashboard",
     display: "standalone",
-    // Disamakan dengan token --canvas supaya splash screen menyatu dengan
-    // kanvas aplikasi; putih murni bikin ada "kedip" saat app dibuka.
-    background_color: "#f4f7f6",
+    background_color: "#ffffff",
     theme_color: "#0f766e",
     orientation: "portrait-primary",
     categories: ["business", "finance", "productivity"],

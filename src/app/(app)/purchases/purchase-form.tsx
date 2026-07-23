@@ -182,12 +182,12 @@ export function PurchaseForm({
                           value={l.name}
                           onChange={(e) => setLine(i, { name: e.target.value })} />
                         {matched && (
-                          <p className="mt-1 text-xs text-success-strong">
+                          <p className="mt-1 text-xs text-emerald-600">
                             Sudah ada di stok ({matched.current_stock} {matched.unit}) — akan digabung
                           </p>
                         )}
                         {!matched && l.name.trim() && (
-                          <p className="mt-1 text-xs text-primary">
+                          <p className="mt-1 text-xs text-sky-600">
                             Barang baru — akan ditambahkan ke stok
                           </p>
                         )}

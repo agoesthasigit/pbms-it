@@ -177,7 +177,7 @@ export function IssueManager({
             {issuedRows.map((r) => (
               <div key={r.contract_id}
                 className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/40 p-3">
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-success-strong" />
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{r.company_name}</p>
                   <p className="line-clamp-1 text-xs text-muted-foreground">

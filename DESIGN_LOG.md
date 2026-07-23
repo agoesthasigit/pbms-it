@@ -3,6 +3,13 @@
 Catatan permanen pengerjaan refresh tampilan PBMS-IT. **Baca file ini dulu**
 sebelum melanjutkan pekerjaan UI, supaya tahu sudah sampai fase mana.
 
+> **⚠️ 2026-07-24 — Arah dibalik (lihat Fase 6).** Setelah di-review, tampilan
+> teal ditolak; user memilih kembali ke gaya lama hitam-putih + font serif.
+> Fase 6 me-*revert* rasa/warna Fase 1–4, **tetapi mempertahankan** perbaikan
+> bug (font tidak lagi jadi soal karena serif memang diinginkan, ikon PWA,
+> safe-area, skeleton) dan struktur 3-kartu, serta **menambah bottom nav
+> mobile**. Bagian di bawah (Fase 0–5) dibiarkan sebagai catatan sejarah.
+
 - **Branch:** `ui/teal-refresh` (dicabang dari `main` @ `4c8839e`)
 - **Mulai:** 2026-07-22
 - **Pendekatan:** *token-first*. Ubah variabel desain di satu tempat, biarkan
@@ -22,6 +29,7 @@ sebelum melanjutkan pekerjaan UI, supaya tahu sudah sampai fase mana.
 | 3 | Tabel & badge | ✅ Selesai | `510cc24` |
 | 4 | StatCard & baris stat | ✅ Selesai | `4bccc8f` |
 | 5 | PWA / mobile | ✅ Selesai | lihat di bawah |
+| 6 | Balik ke gaya lama + bottom nav | ✅ Selesai | lihat di bawah |
 
 **Aturan:** satu fase = satu commit. Aplikasi harus tetap jalan di antara fase.
 Kalau hasil sebuah fase tidak disukai, cukup `git revert` commit fase itu.
@@ -265,6 +273,61 @@ Perubahan lain:
 Keempat `safe-area-inset-*` dikonfirmasi benar-benar ter-generate di CSS hasil
 build (arbitrary value Tailwind bisa diam-diam tidak ter-generate kalau salah
 tulis). Manifest hasil render dicek via HTTP. Console browser: 0 error.
+
+### Fase 6 — 2026-07-24 · balik ke gaya lama + bottom nav
+
+**Keputusan user setelah review:** tampilan teal "terlalu ramai"; yang lama
+(hitam-putih, font serif, kartu datar) dinilai lebih enak — terutama font serif
+yang lebih rapat sehingga screenshot lebih mudah dibaca. Tapi **bukan** revert
+total: perbaikan bug dan satu penambahan struktural tetap dipertahankan.
+
+**Dibalik ke `main` (rasa/warna Fase 1–4):**
+
+- `globals.css` di-*checkout* utuh dari `main` → palet abu/hitam-putih (chroma 0),
+  font serif kembali (`--font-sans` menunjuk ke dirinya sendiri lagi — dulu
+  dianggap bug, sekarang justru yang diinginkan), radius kecil `.625rem`. Ini
+  saklar utama: StatCard, sidebar aktif, focus ring otomatis ikut mono.
+- Komponen presentasi di-*checkout* dari `main`: `card.tsx` (garis tipis, tanpa
+  shadow), `sidebar-nav.tsx`, `stat-card.tsx`, `summary-card.tsx`, `table.tsx`,
+  `badge.tsx`.
+- **Badge status kembali berwarna** (pilihan user): `types/phase5.ts`,
+  `types/phase7.ts`, dan ~13 file halaman (clients, dashboard, invoices, rab,
+  reports, maintenance, dll) di-*checkout* dari `main` → emerald/red/amber/sky
+  hardcoded balik seperti semula. Satu badge inline "Lunas" di `sale-list.tsx`
+  di-edit tangan (`bg-success-tint` → `bg-emerald-100`).
+- `app-header.tsx` — avatar inisial dikembalikan ke ikon `UserCircle2`.
+- `(app)/layout.tsx` — `bg-canvas` → `bg-muted/30`.
+- `manifest.ts` — `background_color` `#f4f7f6` → `#ffffff` (splash putih lagi).
+
+**Dipertahankan (perbaikan bug & struktur, sengaja TIDAK dibalik):**
+
+- Ikon PWA (`manifest.ts` path `/icon-*.png`) + metadata `id/scope/lang/categories`.
+- `viewportFit: "cover"` (`layout.tsx` root) + safe-area di `(app)/layout.tsx`
+  (padding samping) & `app-header.tsx` (`min-h-14` + `pt-[env(safe-area-inset-top)]`).
+- `(app)/loading.tsx` skeleton.
+- **Isi 3 kartu** di `purchase-list.tsx` & `sale-list.tsx` — struktur `lg:grid-cols-3`
+  + StatCard pendamping tetap; warnanya jadi mono otomatis lewat token.
+
+**Baru — bottom navigation mobile** (`components/shared/bottom-nav.tsx`):
+bar tetap di bawah, **hanya tampil di mobile** (`lg:hidden`, di desktop ada
+sidebar). 4 menu tersering: **Pembelian** (`/purchases`), **Penjualan**
+(`/sales`), **Operasional** (`/expenses/operational`), **Laporan** (`/reports`)
+— rute & ikon disamakan dengan `nav-links.ts`. Menu lengkap tetap lewat
+hamburger + sheet. `(app)/layout.tsx`: `<BottomNav />` dipasang + padding bawah
+`main` jadi `pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-8` supaya
+konten tidak tertutup bar (di-reset di lg).
+
+**Catatan:** `theme_color` PWA dibiarkan teal `#0f766e` — nilai ini sudah ada di
+`main` sebelum refresh (bukan hasil Fase 1–5), jadi "kembali seperti semula"
+berarti tetap teal. Mudah dinetralkan nanti kalau strip status bar teal terasa
+mengganggu di PWA.
+
+**Verifikasi:** `tsc --noEmit` bersih; `npm run build` sukses (27 route);
+computed style di browser pada `/login` dikonfirmasi — font `Times New Roman`
+(serif), `--primary` `lab(7.8% ~0 0)` (hitam, chroma ~0), `--radius` `.625rem`,
+token `--canvas` hilang. Halaman terautentikasi belum dicek visual karena
+preview tak punya sesi login; perlu dikonfirmasi user di browser yang login,
+khususnya bottom nav di layar HP.
 
 ## ⏭️ Lanjutan berikutnya
 

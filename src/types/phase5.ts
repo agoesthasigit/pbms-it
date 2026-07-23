@@ -37,7 +37,7 @@ export const WARRANTY_STATUS_LABELS: Record<WarrantyStatus, string> = {
 };
 
 export const WARRANTY_STATUS_STYLE: Record<WarrantyStatus, string> = {
-  active: "bg-success-tint text-success-strong",
-  expiring: "bg-warning-tint text-warning-strong",
-  expired: "bg-destructive-tint text-destructive-strong",
+  active: "bg-emerald-100 text-emerald-700 hover:bg-emerald-100",
+  expiring: "bg-amber-100 text-amber-700 hover:bg-amber-100",
+  expired: "bg-red-100 text-red-700 hover:bg-red-100",
 };

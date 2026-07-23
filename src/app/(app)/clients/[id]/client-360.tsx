@@ -109,10 +109,10 @@ export function Client360({ client }: { client: Client }) {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Total Penjualan" icon={TrendingUp}
           value={loading ? "…" : formatIDR(Number(stats?.total_sales ?? 0))} />
-        <StatCard label="Sudah Dibayar" accent="text-success-strong"
+        <StatCard label="Sudah Dibayar" accent="text-emerald-600"
           value={loading ? "…" : formatIDR(Number(stats?.total_paid ?? 0))} />
         <StatCard label="Piutang Berjalan"
-          accent={Number(stats?.total_receivable ?? 0) > 0 ? "text-warning-strong" : undefined}
+          accent={Number(stats?.total_receivable ?? 0) > 0 ? "text-amber-600" : undefined}
           value={loading ? "…" : formatIDR(Number(stats?.total_receivable ?? 0))} />
         <StatCard label="Laba Proyek (RAB)"
           value={loading ? "…" : formatIDR(Number(stats?.total_project_profit ?? 0))} />
@@ -129,7 +129,7 @@ export function Client360({ client }: { client: Client }) {
           <div className="sm:col-span-2"><span className="text-muted-foreground">Alamat:</span> {client.address ?? "-"}</div>
           <div><span className="text-muted-foreground">Status:</span>{" "}
             {client.status === "active"
-              ? <Badge className="bg-success-tint text-success-strong">Aktif</Badge>
+              ? <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Aktif</Badge>
               : <Badge variant="outline">Nonaktif</Badge>}
           </div>
           <div><span className="text-muted-foreground">Bergabung:</span> {client.joined_date ? formatDate(client.joined_date) : "-"}</div>
@@ -256,7 +256,7 @@ export function Client360({ client }: { client: Client }) {
                       <TableCell className="font-medium">{r.project_name}</TableCell>
                       <TableCell>{formatDate(r.project_date)}</TableCell>
                       <TableCell className="text-right">{formatIDR(Number(r.grand_total_rab))}</TableCell>
-                      <TableCell className={`text-right font-medium ${Number(r.net_profit) >= 0 ? "text-success-strong" : "text-destructive"}`}>
+                      <TableCell className={`text-right font-medium ${Number(r.net_profit) >= 0 ? "text-emerald-600" : "text-destructive"}`}>
                         {formatIDR(Number(r.net_profit))}
                       </TableCell>
                     </TableRow>

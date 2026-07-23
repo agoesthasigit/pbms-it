@@ -70,7 +70,7 @@ export function PasswordCell({
       </Button>
       <Button variant="ghost" size="icon" className="h-7 w-7"
         onClick={copy} disabled={loading} title="Salin password">
-        {copied ? <Check className="h-3.5 w-3.5 text-success-strong" />
+        {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" />
           : <Copy className="h-3.5 w-3.5" />}
       </Button>
     </div>

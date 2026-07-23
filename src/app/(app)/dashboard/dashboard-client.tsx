@@ -86,7 +86,7 @@ export function DashboardClient() {
 
       {/* Kartu ringkasan keuangan — aturan laba baru */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <StatCard label="Total Penjualan" icon={TrendingUp} accent="text-success-strong"
+        <StatCard label="Total Penjualan" icon={TrendingUp} accent="text-emerald-600"
           value={loading ? "…" : formatIDR(Number(summary?.total_sales ?? 0))} />
         <StatCard label="Total Pembelian" icon={ShoppingCart}
           value={loading ? "…" : formatIDR(Number(summary?.total_purchase ?? 0))} />
@@ -95,7 +95,7 @@ export function DashboardClient() {
         <StatCard label="Pengeluaran Pribadi" icon={User2}
           value={loading ? "…" : formatIDR(Number(summary?.total_personal_expense ?? 0))} />
         <StatCard label="Laba Bersih" icon={Wallet}
-          accent={Number(summary?.net_profit ?? 0) >= 0 ? "text-success-strong" : "text-destructive"}
+          accent={Number(summary?.net_profit ?? 0) >= 0 ? "text-emerald-600" : "text-destructive"}
           value={loading ? "…" : formatIDR(Number(summary?.net_profit ?? 0))} />
         <StatCard label="Saldo Wallet Masuk" icon={Wallet}
           hint="Uang yang benar-benar diterima"
@@ -110,7 +110,7 @@ export function DashboardClient() {
           value={loading ? "…" : String(counts?.pending_invoices ?? 0)}
           hint={counts ? `Piutang ${formatIDR(Number(counts.total_receivable))}` : undefined} />
         <StatCard label="Garansi < 30 Hari" icon={ShieldAlert}
-          accent={Number(counts?.expiring_warranty ?? 0) > 0 ? "text-warning-strong" : undefined}
+          accent={Number(counts?.expiring_warranty ?? 0) > 0 ? "text-amber-600" : undefined}
           value={loading ? "…" : String(counts?.expiring_warranty ?? 0)} />
         <StatCard label="Margin Laba" icon={TrendingUp}
           value={loading || !summary || Number(summary.total_sales) === 0 ? "—"
@@ -165,7 +165,7 @@ export function DashboardClient() {
                     <div className="text-right">
                       <p className="text-sm font-medium">{formatIDR(Number(inv.total))}</p>
                       {inv.effective_status === "overdue" && (
-                        <Badge className="bg-destructive-tint text-destructive-strong">Jatuh tempo</Badge>
+                        <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Jatuh tempo</Badge>
                       )}
                     </div>
                   </li>
@@ -194,7 +194,7 @@ export function DashboardClient() {
                       <p className="text-xs text-muted-foreground">{a.company_name}</p>
                     </div>
                     <div className="text-right">
-                      <Badge className="bg-warning-tint text-warning-strong">
+                      <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">
                         {a.days_left} hari
                       </Badge>
                       <p className="mt-0.5 text-xs text-muted-foreground">{formatDate(a.warranty_end)}</p>

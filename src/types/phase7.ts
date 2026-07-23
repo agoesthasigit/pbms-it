@@ -48,7 +48,7 @@ export const RAB_STATUS_LABELS: Record<RabStatus, string> = {
 };
 
 export const RAB_STATUS_STYLE: Record<RabStatus, string> = {
-  draft: "bg-muted text-muted-foreground",
-  ongoing: "bg-primary/10 text-primary",
-  done: "bg-success-tint text-success-strong",
+  draft: "bg-slate-100 text-slate-700 hover:bg-slate-100",
+  ongoing: "bg-sky-100 text-sky-700 hover:bg-sky-100",
+  done: "bg-emerald-100 text-emerald-700 hover:bg-emerald-100",
 };
