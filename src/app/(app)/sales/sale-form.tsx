@@ -78,6 +78,9 @@ export function SaleForm({
     [products]
   );
 
+  // tunai & transfer = uang diterima saat itu juga (butuh wallet)
+  const paysNow = method === "cash" || method === "transfer";
+
   const total = lines.reduce((s, l) => s + toNumber(l.qty) * toNumber(l.price), 0);
 
   function setLine(i: number, patch: Partial<Line>) {
@@ -121,7 +124,7 @@ export function SaleForm({
     startTransition(async () => {
       const res = await createSale({
         client_id: clientId,
-        wallet_id: method === "cash" ? walletId : null,
+        wallet_id: paysNow ? walletId : null,
         sale_date: date,
         payment_method: method,
         notes,
@@ -131,13 +134,15 @@ export function SaleForm({
           serial_number: l.serial_number || undefined,
         })),
         period_month: method === "monthly_invoice" ? period : null,
-        due_date: method === "monthly_invoice" ? dueDate : null,
+        due_date: (method === "monthly_invoice" || method === "terhutang") ? dueDate : null,
       });
       if (res.error) { toast.error(res.error); return; }
       toast.success(
-        method === "cash"
+        paysNow
           ? "Penjualan tersimpan. Stok turun, asset dibuat, wallet bertambah."
-          : "Penjualan piutang tersimpan & otomatis masuk invoice bulanan."
+          : method === "monthly_invoice"
+            ? "Penjualan piutang tersimpan & otomatis masuk invoice bulanan."
+            : "Penjualan terhutang tersimpan. Lunasi lewat tombol Tandai Lunas saat dibayar."
       );
       reset();
       onOpenChange(false);
@@ -180,7 +185,7 @@ export function SaleForm({
                 </SelectContent>
               </Select>
             </div>
-            {method === "cash" && (
+            {paysNow && (
               <div className="space-y-2">
                 <Label>Wallet Penerima *</Label>
                 <Select items={walletItems} value={walletId || null}
@@ -195,6 +200,21 @@ export function SaleForm({
               </div>
             )}
           </div>
+
+          {/* Jatuh tempo untuk penjualan terhutang (piutang non-invoice) */}
+          {method === "terhutang" && (
+            <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+              <p className="text-sm text-amber-800">
+                Penjualan ini menjadi <b>piutang (terhutang)</b> dan <b>belum</b> menambah
+                saldo wallet. Tandai lunas nanti saat client membayar.
+              </p>
+              <div className="space-y-2 sm:max-w-xs">
+                <Label>Jatuh Tempo (opsional)</Label>
+                <Input type="date" value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)} />
+              </div>
+            </div>
+          )}
 
           {/* Periode & jatuh tempo hanya untuk invoice bulanan */}
           {method === "monthly_invoice" && (
@@ -299,7 +319,7 @@ export function SaleForm({
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Batal</Button>
           <Button onClick={handleSave}
-            disabled={pending || !clientId || total <= 0 || (method === "cash" && !walletId)}>
+            disabled={pending || !clientId || total <= 0 || (paysNow && !walletId)}>
             {pending && <Loader2 className="h-4 w-4 animate-spin" />}
             Simpan Penjualan
           </Button>

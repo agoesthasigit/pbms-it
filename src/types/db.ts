@@ -38,6 +38,7 @@ export type Wallet = {
   type: WalletType;
   initial_balance: number;
   is_active: boolean;
+  color: string | null;
   created_at: string;
 };
 

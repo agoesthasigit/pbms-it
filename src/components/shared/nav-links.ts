@@ -15,6 +15,7 @@ import {
   Camera,
   Calculator,
   BarChart3,
+  ArrowLeftRight,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -61,6 +62,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: "Analisa",
     items: [
+      { label: "Riwayat Transaksi", href: "/transactions", icon: ArrowLeftRight },
       { label: "Laporan Keuangan", href: "/reports", icon: BarChart3 },
     ],
   },

@@ -24,9 +24,10 @@ export async function createSale(input: {
   period_month?: string | null;   // untuk piutang
   due_date?: string | null;       // untuk piutang
 }): Promise<Result> {
+  const paysNow = input.payment_method === "cash" || input.payment_method === "transfer";
   if (!input.client_id) return { error: "Pilih client." };
-  if (input.payment_method === "cash" && !input.wallet_id)
-    return { error: "Penjualan tunai wajib memilih wallet." };
+  if (paysNow && !input.wallet_id)
+    return { error: "Penjualan tunai/transfer wajib memilih wallet." };
   if (input.payment_method === "monthly_invoice" && !input.period_month)
     return { error: "Penjualan invoice wajib memilih periode." };
   const valid = input.items.filter((i) => i.product_id && i.qty > 0);
@@ -35,14 +36,16 @@ export async function createSale(input: {
   const supabase = await createClient();
   const { error } = await supabase.rpc("create_sale", {
     p_client_id: input.client_id,
-    p_wallet_id: input.payment_method === "cash" ? input.wallet_id : null,
+    p_wallet_id: paysNow ? input.wallet_id : null,
     p_sale_date: input.sale_date,
     p_payment_method: input.payment_method,
     p_notes: input.notes ?? "",
     p_items: valid,
     p_period_month: input.payment_method === "monthly_invoice"
       ? `${input.period_month}-01` : null,
-    p_due_date: input.payment_method === "monthly_invoice"
+    // due_date dipakai invoice bulanan (jatuh tempo invoice) & terhutang (jatuh tempo piutang)
+    p_due_date: (input.payment_method === "monthly_invoice"
+      || input.payment_method === "terhutang")
       ? (input.due_date || null) : null,
   });
 
@@ -52,6 +55,24 @@ export async function createSale(input: {
   revalidatePath("/wallets");
   revalidatePath("/assets");
   revalidatePath("/invoices");
+  return { success: true };
+}
+
+export async function paySale(input: {
+  sale_id: string;
+  wallet_id: string;
+  paid_date: string;
+}): Promise<Result> {
+  if (!input.wallet_id) return { error: "Pilih wallet penerima." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("pay_sale", {
+    p_sale_id: input.sale_id,
+    p_wallet_id: input.wallet_id,
+    p_paid_date: input.paid_date,
+  });
+  if (error) return { error: error.message || "Gagal melunasi penjualan." };
+  revalidatePath("/sales");
+  revalidatePath("/wallets");
   return { success: true };
 }
 

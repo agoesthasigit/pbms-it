@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, ReceiptText, Loader2, Search, RotateCcw, TrendingUp, Users } from "lucide-react";
+import { Plus, Trash2, ReceiptText, Loader2, Search, RotateCcw, TrendingUp, Users, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,10 +10,16 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { formatIDR } from "@/lib/utils/currency";
-import { formatDate } from "@/lib/utils/date";
+import { formatDate, todayISO } from "@/lib/utils/date";
 import { EmptyState } from "@/components/shared/empty-state";
 import { SummaryCard } from "@/components/shared/summary-card";
 import { StatCard } from "@/components/shared/stat-card";
@@ -22,7 +28,7 @@ import { PaginationBar } from "@/components/shared/pagination-bar";
 import type { ProductWithStock, Client, WalletWithBalance } from "@/types/db";
 import { type SaleRow, PAYMENT_METHOD_LABELS } from "@/types/phase3";
 import { SaleForm } from "./sale-form";
-import { deleteSale } from "./actions";
+import { deleteSale, paySale } from "./actions";
 
 const fmt = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -53,6 +59,16 @@ export function SaleList({
   const def = monthRange();
   const [from, setFrom] = useState(def.from);
   const [to, setTo] = useState(def.to);
+
+  // Dialog pelunasan penjualan terhutang
+  const [payRow, setPayRow] = useState<SaleRow | null>(null);
+  const [payWallet, setPayWallet] = useState("");
+  const [payDate, setPayDate] = useState(todayISO());
+  const walletItems = useMemo(
+    () => wallets.filter((w) => w.is_active)
+      .map((w) => ({ value: w.id, label: `${w.name} · ${formatIDR(Number(w.balance))}` })),
+    [wallets]
+  );
 
   const filtered = useMemo(() => {
     const key = q.toLowerCase();
@@ -104,6 +120,20 @@ export function SaleList({
       const res = await deleteSale(s.id);
       if (res.error) { toast.error(res.error); return; }
       toast.success("Penjualan dihapus & efeknya dibatalkan.");
+      router.refresh();
+    });
+  }
+
+  function openPay(s: SaleRow) {
+    setPayRow(s); setPayWallet(""); setPayDate(todayISO());
+  }
+  function handlePay() {
+    if (!payRow) return;
+    startTransition(async () => {
+      const res = await paySale({ sale_id: payRow.id, wallet_id: payWallet, paid_date: payDate });
+      if (res.error) { toast.error(res.error); return; }
+      toast.success("Penjualan dilunasi & saldo wallet bertambah.");
+      setPayRow(null);
       router.refresh();
     });
   }
@@ -188,26 +218,40 @@ export function SaleList({
                     <TableCell>{formatDate(s.sale_date)}</TableCell>
                     <TableCell className="font-medium">{s.client?.company_name ?? "-"}</TableCell>
                     <TableCell>
-                      <Badge variant={s.payment_method === "cash" ? "default" : "secondary"}>
+                      <Badge variant={s.payment_method === "cash" || s.payment_method === "transfer"
+                        ? "default" : "secondary"}>
                         {PAYMENT_METHOD_LABELS[s.payment_method]}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {s.payment_method === "cash" ? (
+                      {s.payment_method === "cash" || s.payment_method === "transfer" ? (
+                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Lunas</Badge>
+                      ) : s.payment_method === "monthly_invoice" ? (
+                        <Badge variant="outline">Masuk invoice</Badge>
+                      ) : s.paid_date ? (
                         <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Lunas</Badge>
                       ) : (
-                        <Badge variant="outline">Masuk invoice</Badge>
+                        <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">Terhutang</Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-right font-medium">
                       {formatIDR(Number(s.total))}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon"
-                        className="text-muted-foreground hover:text-destructive"
-                        onClick={() => handleDelete(s)} disabled={pending}>
-                        {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        {s.payment_method === "terhutang" && !s.paid_date && (
+                          <Button variant="ghost" size="icon"
+                            className="text-muted-foreground hover:text-emerald-600"
+                            onClick={() => openPay(s)} disabled={pending} title="Tandai Lunas">
+                            <CheckCircle2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="icon"
+                          className="text-muted-foreground hover:text-destructive"
+                          onClick={() => handleDelete(s)} disabled={pending}>
+                          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -223,6 +267,52 @@ export function SaleList({
 
       <SaleForm open={open} onOpenChange={setOpen}
         products={products} clients={clients} wallets={wallets} />
+
+      {/* Dialog pelunasan penjualan terhutang */}
+      <Dialog open={payRow !== null} onOpenChange={(v) => !v && setPayRow(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Tandai Lunas</DialogTitle>
+          </DialogHeader>
+          {payRow && (
+            <div className="space-y-4">
+              <div className="rounded-lg bg-muted px-4 py-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Client</span>
+                  <span className="font-medium">{payRow.client?.company_name ?? "-"}</span>
+                </div>
+                <div className="mt-1 flex justify-between">
+                  <span className="text-muted-foreground">Total piutang</span>
+                  <span className="font-bold">{formatIDR(Number(payRow.total))}</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Wallet Penerima *</Label>
+                <Select items={walletItems} value={payWallet || null}
+                  onValueChange={(v) => setPayWallet(v ?? "")}>
+                  <SelectTrigger><SelectValue placeholder="Pilih wallet" /></SelectTrigger>
+                  <SelectContent>
+                    {walletItems.map((it) => (
+                      <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Tanggal Bayar</Label>
+                <Input type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPayRow(null)}>Batal</Button>
+            <Button onClick={handlePay} disabled={pending || !payWallet}>
+              {pending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Lunasi
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

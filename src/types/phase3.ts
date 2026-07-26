@@ -1,5 +1,5 @@
 // Tipe tambahan Phase 3 — gabungkan ke src/types/db.ts atau import terpisah.
-export type PaymentMethod = "cash" | "monthly_invoice";
+export type PaymentMethod = "cash" | "transfer" | "monthly_invoice" | "terhutang";
 
 export type PurchaseRow = {
   id: string;
@@ -24,6 +24,9 @@ export type SaleRow = {
   monthly_invoice_id: string | null;
   notes: string | null;
   created_at: string;
+  due_date?: string | null;
+  paid_date?: string | null;
+  paid_wallet_id?: string | null;
   client?: { company_name: string } | null;
   wallet?: { name: string } | null;
 };
@@ -52,5 +55,7 @@ export type LineItem = {
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   cash: "Tunai",
+  transfer: "Transfer",
   monthly_invoice: "Invoice Bulanan",
+  terhutang: "Terhutang",
 };

@@ -11,6 +11,7 @@ export type WalletInput = {
   type: WalletType;
   initial_balance: number;
   is_active?: boolean;
+  color?: string | null;
 };
 
 export async function addWallet(input: WalletInput): Promise<Result> {
@@ -20,6 +21,7 @@ export async function addWallet(input: WalletInput): Promise<Result> {
     name: input.name.trim(),
     type: input.type,
     initial_balance: input.initial_balance || 0,
+    color: input.color ?? null,
   });
   if (error) return { error: "Gagal menambah wallet." };
   revalidatePath("/wallets");
@@ -39,6 +41,7 @@ export async function updateWallet(
       type: input.type,
       initial_balance: input.initial_balance || 0,
       is_active: input.is_active ?? true,
+      color: input.color ?? null,
     })
     .eq("id", id);
   if (error) return { error: "Gagal mengubah wallet." };

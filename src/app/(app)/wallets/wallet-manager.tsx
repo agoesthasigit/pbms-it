@@ -31,8 +31,19 @@ import { EmptyState } from "@/components/shared/empty-state";
 
 const TYPE_ICONS = { cash: Banknote, bank: Landmark, ewallet: Smartphone };
 
+// Palet warna kartu wallet (samakan dengan pemilih warna Label agar konsisten)
+const PRESET_COLORS = [
+  "#0ea5e9", "#10b981", "#6366f1", "#f59e0b",
+  "#ef4444", "#8b5cf6", "#ec4899", "#64748b",
+];
+// Warna default per jenis, dipakai bila wallet belum punya warna sendiri
+const TYPE_COLOR: Record<WalletType, string> = {
+  cash: "#10b981", bank: "#0ea5e9", ewallet: "#8b5cf6",
+};
+
 const emptyForm = {
   name: "", type: "cash" as WalletType, initial_balance: "", is_active: true,
+  color: PRESET_COLORS[0],
 };
 
 export function WalletManager({ wallets }: { wallets: WalletWithBalance[] }) {
@@ -74,6 +85,7 @@ export function WalletManager({ wallets }: { wallets: WalletWithBalance[] }) {
     setForm({
       name: w.name, type: w.type,
       initial_balance: String(w.initial_balance), is_active: w.is_active,
+      color: w.color ?? TYPE_COLOR[w.type],
     });
     setOpen(true);
   }
@@ -85,6 +97,7 @@ export function WalletManager({ wallets }: { wallets: WalletWithBalance[] }) {
         type: form.type,
         initial_balance: Number(form.initial_balance) || 0,
         is_active: form.is_active,
+        color: form.color,
       };
       const res = editing
         ? await updateWallet(editing.id, input)
@@ -224,11 +237,14 @@ export function WalletManager({ wallets }: { wallets: WalletWithBalance[] }) {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {wallets.map((w) => {
             const Icon = TYPE_ICONS[w.type];
+            const color = w.color ?? TYPE_COLOR[w.type];
             return (
-              <Card key={w.id} className={!w.is_active ? "opacity-60" : ""}>
+              <Card key={w.id} className={!w.is_active ? "opacity-60" : ""}
+                style={{ borderLeftWidth: 4, borderLeftColor: color }}>
                 <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                   <div className="flex items-center gap-2">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg"
+                      style={{ backgroundColor: `${color}1a`, color }}>
                       <Icon className="h-4.5 w-4.5" />
                     </div>
                     <div>
@@ -293,6 +309,18 @@ export function WalletManager({ wallets }: { wallets: WalletWithBalance[] }) {
                 <Label>Saldo Awal (Rp)</Label>
                 <Input type="number" min={0} value={form.initial_balance}
                   onChange={(e) => setForm({ ...form, initial_balance: e.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Warna Kartu</Label>
+              <div className="flex flex-wrap items-center gap-2">
+                {PRESET_COLORS.map((c) => (
+                  <button key={c} type="button" onClick={() => setForm({ ...form, color: c })}
+                    className={`h-7 w-7 rounded-full transition-transform ${
+                      form.color === c ? "scale-110 ring-2 ring-offset-2 ring-ring" : ""
+                    }`}
+                    style={{ backgroundColor: c }} aria-label={`Pilih warna ${c}`} />
+                ))}
               </div>
             </div>
             {editing && (

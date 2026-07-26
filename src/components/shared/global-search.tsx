@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Search, LayoutDashboard, Wallet, Users, Truck, Package,
   ShoppingCart, ReceiptText, TrendingDown, User2, Boxes,
-  FileText, Wifi, Camera, Calculator, BarChart3, Settings, CornerDownLeft,
+  FileText, Wifi, Camera, Calculator, BarChart3, ArrowLeftRight, Settings, CornerDownLeft,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -27,6 +27,7 @@ const DESTINATIONS: Dest[] = [
   { label: "Network / WiFi", href: "/network", icon: Wifi, keywords: "wifi ssid router jaringan password credential" },
   { label: "CCTV", href: "/cctv", icon: Camera, keywords: "kamera nvr dvr cctv password" },
   { label: "RAB", href: "/rab", icon: Calculator, keywords: "anggaran proyek rab penawaran laba" },
+  { label: "Riwayat Transaksi", href: "/transactions", icon: ArrowLeftRight, keywords: "riwayat transaksi history arus kas pemasukan pengeluaran mutasi buku kas" },
   { label: "Laporan Keuangan", href: "/reports", icon: BarChart3, keywords: "laporan keuangan laba margin report" },
   { label: "Pengaturan", href: "/settings", icon: Settings, keywords: "setting kategori label konfigurasi" },
 ];
