@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, Loader2, Wallet as WalletIcon } from "lucide-react";
+import { Plus, Trash2, Loader2, Wallet as WalletIcon, Receipt, Boxes, Search, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
+import { SummaryCard } from "@/components/shared/summary-card";
+import { StatCard } from "@/components/shared/stat-card";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -30,6 +32,19 @@ import type { ExpenseRow } from "@/types/phase3";
 import { createExpense, deleteExpense } from "./expense-actions";
 
 type Kind = "operational" | "personal";
+
+const fmt = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+function monthRange() {
+  const now = new Date();
+  return { from: fmt(new Date(now.getFullYear(), now.getMonth(), 1)),
+           to: fmt(new Date(now.getFullYear(), now.getMonth() + 1, 0)) };
+}
+function lastMonthRange() {
+  const now = new Date();
+  return { from: fmt(new Date(now.getFullYear(), now.getMonth() - 1, 1)),
+           to: fmt(new Date(now.getFullYear(), now.getMonth(), 0)) };
+}
 
 export function ExpenseManager({
   kind, expenses, wallets, categories, labels,
@@ -65,9 +80,51 @@ export function ExpenseManager({
     [labels]
   );
 
-  const totalThisList = expenses.reduce((s, e) => s + Number(e.amount), 0);
+  // Ringkasan bulan berjalan — dihitung dari data yang sudah dimuat, tanpa query baru.
+  const { totalMonth, countMonth, avgMonth, compareTotal, percent } = useMemo(() => {
+    const mr = monthRange();
+    const lm = lastMonthRange();
+    const inRange = (a: string, b: string) =>
+      expenses.filter((e) => e.expense_date >= a && e.expense_date <= b);
+    const thisMonth = inRange(mr.from, mr.to);
+    const total = thisMonth.reduce((s, e) => s + Number(e.amount), 0);
+    const count = thisMonth.length;
+    const lastM = inRange(lm.from, lm.to).reduce((s, e) => s + Number(e.amount), 0);
+    const pct = lastM > 0 ? ((total - lastM) / lastM) * 100 : (total > 0 ? 100 : null);
+    return {
+      totalMonth: total,
+      countMonth: count,
+      avgMonth: count > 0 ? total / count : 0,
+      compareTotal: lastM,
+      percent: pct,
+    };
+  }, [expenses]);
 
-  const pg = usePagination(expenses, 10, kind);
+  // Filter daftar: rentang tanggal (default bulan berjalan) + kata kunci.
+  const def = monthRange();
+  const [q, setQ] = useState("");
+  const [from, setFrom] = useState(def.from);
+  const [to, setTo] = useState(def.to);
+
+  const filtered = useMemo(() => {
+    const key = q.toLowerCase();
+    return expenses.filter((e) => {
+      if (from && e.expense_date < from) return false;
+      if (to && e.expense_date > to) return false;
+      if (key) {
+        const hay = [
+          e.description ?? "", e.category?.name ?? "",
+          e.label?.name ?? "", e.wallet?.name ?? "",
+        ].join(" ").toLowerCase();
+        if (!hay.includes(key)) return false;
+      }
+      return true;
+    });
+  }, [expenses, q, from, to]);
+
+  const pg = usePagination(filtered, 10, `${kind}|${q}|${from}|${to}`);
+
+  function resetFilter() { setFrom(def.from); setTo(def.to); setQ(""); }
 
   function reset() {
     setWalletId(""); setCategoryId(""); setLabelId("");
@@ -104,23 +161,69 @@ export function ExpenseManager({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Card className="sm:min-w-64">
-          <CardContent className="py-4">
-            <p className="text-sm text-muted-foreground">Total (tampil di daftar)</p>
-            <p className="mt-1 text-2xl font-bold">{formatIDR(totalThisList)}</p>
-          </CardContent>
-        </Card>
-        <Button onClick={() => setOpen(true)}>
-          <Plus className="h-4 w-4" /> Tambah Pengeluaran
-        </Button>
+      {/* Ringkasan bulan berjalan */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <SummaryCard
+          title="Total Pengeluaran Bulan Ini"
+          value={totalMonth}
+          icon={WalletIcon}
+          compareLabel="Dari bulan lalu"
+          compareValue={compareTotal}
+          percent={percent}
+          invertColor
+        />
+        <StatCard
+          label="Jumlah Pengeluaran"
+          value={String(countMonth)}
+          icon={Receipt}
+          hint={countMonth > 0 ? "transaksi bulan ini" : "Belum ada transaksi bulan ini"}
+        />
+        <StatCard
+          label="Rata-rata Pengeluaran"
+          value={formatIDR(avgMonth)}
+          icon={Boxes}
+          hint={countMonth > 0 ? "Total dibagi jumlah transaksi" : "Belum ada transaksi"}
+        />
+      </div>
+
+      {/* Toolbar: cari + rentang tanggal */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div className="grid flex-1 gap-3 sm:grid-cols-2 lg:max-w-2xl lg:grid-cols-3">
+          <div className="space-y-1 sm:col-span-2 lg:col-span-1">
+            <Label className="text-xs">Cari</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input className="pl-9" placeholder="Keterangan / kategori / label / wallet..."
+                value={q} onChange={(e) => setQ(e.target.value)} />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Dari Tanggal</Label>
+            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Sampai Tanggal</Label>
+            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={resetFilter} title="Kembali ke bulan ini">
+            <RotateCcw className="h-4 w-4" /> Bulan Ini
+          </Button>
+          <Button onClick={() => setOpen(true)}>
+            <Plus className="h-4 w-4" /> Tambah Pengeluaran
+          </Button>
+        </div>
       </div>
 
       <Card>
         <CardContent className="p-0">
-          {expenses.length === 0 ? (
-            <EmptyState icon={WalletIcon} title="Belum ada pengeluaran"
-              description="Catat pengeluaran Anda. Saldo wallet berkurang otomatis." />
+          {filtered.length === 0 ? (
+            <EmptyState icon={WalletIcon}
+              title={expenses.length === 0 ? "Belum ada pengeluaran" : "Tidak ada hasil"}
+              description={expenses.length === 0
+                ? "Catat pengeluaran Anda. Saldo wallet berkurang otomatis."
+                : "Tidak ada pengeluaran pada rentang tanggal / kata kunci ini. Ubah filter atau klik Bulan Ini."} />
           ) : (
             <>
             <Table>

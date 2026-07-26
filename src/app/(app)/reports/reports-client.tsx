@@ -3,10 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   TrendingUp, ShoppingCart, TrendingDown, User2, Wallet, Percent,
+  ArrowUpRight, ArrowDownRight, Receipt,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  PieChart, Pie, Cell,
 } from "recharts";
+import { Gauge } from "@/components/shared/gauge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -27,6 +30,50 @@ import type {
 const shortMonth = (iso: string) =>
   new Date(iso).toLocaleDateString("id-ID", { month: "short", year: "2-digit" });
 
+const dateTime = (iso: string) =>
+  new Date(iso).toLocaleString("id-ID", {
+    day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
+  });
+
+// Format ringkas Rupiah untuk ruang sempit (kartu gauge & legenda donut).
+function compactIDR(v: number): string {
+  const a = Math.abs(v);
+  const s = v < 0 ? "-" : "";
+  if (a >= 1e9) return `${s}Rp ${(a / 1e9).toFixed(1)} M`;
+  if (a >= 1e6) return `${s}Rp ${(a / 1e6).toFixed(1)} jt`;
+  if (a >= 1e3) return `${s}Rp ${(a / 1e3).toFixed(0)} rb`;
+  return `${s}Rp ${a}`;
+}
+
+// Periode sebelumnya yang setara panjangnya (untuk pembanding %).
+function prevPeriod(p: Period): Period {
+  const from = new Date(`${p.from}T00:00:00`);
+  const to = new Date(`${p.to}T00:00:00`);
+  const days = Math.round((to.getTime() - from.getTime()) / 86_400_000) + 1;
+  const prevTo = new Date(from.getTime() - 86_400_000);
+  const prevFrom = new Date(prevTo.getTime() - (days - 1) * 86_400_000);
+  const f = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return { from: f(prevFrom), to: f(prevTo) };
+}
+
+const PIE_COLORS = [
+  "#ef4444", "#22c55e", "#3b82f6", "#f59e0b",
+  "#8b5cf6", "#ec4899", "#14b8a6", "#64748b",
+];
+
+type RecordRow = {
+  id: string; kind: "op" | "personal";
+  amount: number; created_at: string; category: string; wallet: string;
+};
+type ExpRow = {
+  amount: number; category: { name: string } | null;
+};
+type LastRow = {
+  id: string; amount: number; created_at: string;
+  category: { name: string } | null; wallet: { name: string } | null;
+};
+
 export function ReportsClient() {
   const supabase = useMemo(() => createClient(), []);
   const [period, setPeriod] = useState<Period>(presetThisMonth());
@@ -36,22 +83,69 @@ export function ReportsClient() {
   const [trend, setTrend] = useState<MonthlyTrend[]>([]);
   const [income, setIncome] = useState<IncomeBreakdown[]>([]);
   const [opExpense, setOpExpense] = useState<OpExpenseBreakdown[]>([]);
+  const [balance, setBalance] = useState(0);
+  const [prevSpending, setPrevSpending] = useState(0);
+  const [catBreakdown, setCatBreakdown] = useState<{ name: string; value: number }[]>([]);
+  const [lastRecords, setLastRecords] = useState<RecordRow[]>([]);
 
   useEffect(() => {
     let active = true;
     (async () => {
       setLoading(true);
-      const [sumRes, trendRes, incRes, opRes] = await Promise.all([
+      const pv = prevPeriod(period);
+      const catSel = "amount, category:categories(name)";
+      const lastSel = "id, amount, created_at, category:categories(name), wallet:wallets(name)";
+      const [
+        sumRes, trendRes, incRes, opRes,
+        balRes, prevRes, opRowsRes, persRowsRes, opLastRes, persLastRes,
+      ] = await Promise.all([
         supabase.rpc("finance_summary", { p_from: period.from, p_to: period.to }),
         supabase.rpc("monthly_trend", { p_months: 12 }),
         supabase.rpc("income_breakdown", { p_from: period.from, p_to: period.to }),
         supabase.rpc("op_expense_breakdown", { p_from: period.from, p_to: period.to }),
+        supabase.from("v_wallet_balances").select("balance"),
+        supabase.rpc("finance_summary", { p_from: pv.from, p_to: pv.to }),
+        supabase.from("operational_expenses").select(catSel)
+          .gte("expense_date", period.from).lte("expense_date", period.to),
+        supabase.from("personal_expenses").select(catSel)
+          .gte("expense_date", period.from).lte("expense_date", period.to),
+        supabase.from("operational_expenses").select(lastSel)
+          .order("created_at", { ascending: false }).limit(5),
+        supabase.from("personal_expenses").select(lastSel)
+          .order("created_at", { ascending: false }).limit(5),
       ]);
       if (!active) return;
       setSummary((sumRes.data?.[0] as FinanceSummary) ?? null);
       setTrend((trendRes.data as MonthlyTrend[]) ?? []);
       setIncome((incRes.data as IncomeBreakdown[]) ?? []);
       setOpExpense((opRes.data as OpExpenseBreakdown[]) ?? []);
+
+      setBalance(((balRes.data ?? []) as { balance: number }[])
+        .reduce((s, w) => s + Number(w.balance), 0));
+
+      const prev = (prevRes.data?.[0] as FinanceSummary) ?? null;
+      setPrevSpending(Number(prev?.total_op_expense ?? 0) + Number(prev?.total_personal_expense ?? 0));
+
+      // Gabung kategori operasional + pribadi untuk donut.
+      const map = new Map<string, number>();
+      for (const r of [...(opRowsRes.data ?? []), ...(persRowsRes.data ?? [])] as unknown as ExpRow[]) {
+        const name = r.category?.name ?? "Tanpa kategori";
+        map.set(name, (map.get(name) ?? 0) + Number(r.amount));
+      }
+      setCatBreakdown([...map.entries()]
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value));
+
+      // Gabung transaksi terakhir dari kedua tabel, urut terbaru, ambil 5.
+      const toRec = (rows: unknown, kind: "op" | "personal"): RecordRow[] =>
+        ((rows ?? []) as LastRow[]).map((r) => ({
+          id: r.id, kind, amount: Number(r.amount), created_at: r.created_at,
+          category: r.category?.name ?? "Tanpa kategori", wallet: r.wallet?.name ?? "-",
+        }));
+      setLastRecords([...toRec(opLastRes.data, "op"), ...toRec(persLastRes.data, "personal")]
+        .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+        .slice(0, 5));
+
       setLoading(false);
     })();
     return () => { active = false; };
@@ -64,6 +158,30 @@ export function ReportsClient() {
   const netProfit = Number(summary?.net_profit ?? 0);
   // margin = laba / total penjualan × 100
   const margin = totalSales > 0 ? (netProfit / totalSales) * 100 : 0;
+
+  // ── Gauge (skala auto dari riwayat 12 bulan) ──────────────────────────────
+  const spending = totalOpExpense + totalPersonal;
+  const cashFlow = netProfit;
+  const monthlyOp = trend.map((t) => Number(t.op_expense));
+  const monthlyNet = trend.map((t) => Number(t.net_profit));
+  const spendMax = Math.max(1, ...monthlyOp, spending);
+  const cfBound = Math.max(1, ...monthlyNet.map(Math.abs), Math.abs(cashFlow));
+  const avgMonthlySpend = monthlyOp.length
+    ? monthlyOp.reduce((s, v) => s + v, 0) / monthlyOp.length : 0;
+  // "runway" = berapa bulan saldo bertahan pada rata-rata pengeluaran; penuh di ≥6 bln
+  const runway = avgMonthlySpend > 0 ? balance / avgMonthlySpend : 6;
+
+  // pembanding pengeluaran vs periode sebelumnya
+  const spendPercent = prevSpending > 0
+    ? ((spending - prevSpending) / prevSpending) * 100
+    : (spending > 0 ? 100 : null);
+  const spendUp = (spendPercent ?? 0) >= 0;
+
+  const gauges = [
+    { label: "BALANCE", value: runway, min: 0, max: 6, text: compactIDR(balance), reverse: false },
+    { label: "CASH FLOW", value: cashFlow, min: -cfBound, max: cfBound, text: compactIDR(cashFlow), reverse: false },
+    { label: "SPENDING", value: spending, min: 0, max: spendMax, text: compactIDR(-spending), reverse: true },
+  ];
 
   const dash = loading ? "…" : "";
   const trendData = trend.map((t) => ({
@@ -209,6 +327,110 @@ export function ReportsClient() {
                 )}
               </TableBody>
             </Table>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Dashboard visual: gauge, struktur pengeluaran, transaksi terakhir */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* Gauge */}
+        <Card>
+          <CardHeader><CardTitle className="text-base">Dashboard</CardTitle></CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-2">
+              {gauges.map((g) => (
+                <div key={g.label} className="text-center">
+                  <Gauge value={g.value} min={g.min} max={g.max} reverse={g.reverse} />
+                  <p className="mt-1 text-[10px] font-medium tracking-wide text-muted-foreground">
+                    {g.label}
+                  </p>
+                  <p className="text-sm font-bold">{loading ? "…" : g.text}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Struktur pengeluaran (donut) */}
+        <Card>
+          <CardHeader><CardTitle className="text-base">Struktur Pengeluaran</CardTitle></CardHeader>
+          <CardContent>
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Periode ini</p>
+                <p className="text-xl font-bold text-destructive">
+                  {loading ? "…" : compactIDR(-spending)}
+                </p>
+              </div>
+              {spendPercent !== null && (
+                <div className={`flex items-center gap-1 text-sm font-semibold ${spendUp ? "text-red-600" : "text-emerald-600"}`}>
+                  {spendUp ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+                  {Math.abs(spendPercent).toFixed(0)}%
+                  <span className="text-xs font-normal text-muted-foreground">vs sebelumnya</span>
+                </div>
+              )}
+            </div>
+            <div className="mt-2 flex items-center gap-3">
+              <div className="h-40 w-40 shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={catBreakdown} dataKey="value" nameKey="name"
+                      innerRadius={45} outerRadius={70} paddingAngle={2} stroke="none">
+                      {catBreakdown.map((_, i) => (
+                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={tipFormat as never} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <ul className="flex-1 space-y-1.5 text-sm">
+                {catBreakdown.slice(0, 5).map((c, i) => (
+                  <li key={c.name} className="flex items-center justify-between gap-2">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                      <span className="truncate">{c.name}</span>
+                    </span>
+                    <span className="shrink-0 text-muted-foreground">{compactIDR(c.value)}</span>
+                  </li>
+                ))}
+                {catBreakdown.length === 0 && !loading && (
+                  <li className="text-muted-foreground">Tidak ada pengeluaran.</li>
+                )}
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Transaksi terakhir */}
+        <Card>
+          <CardHeader><CardTitle className="text-base">Transaksi Terakhir</CardTitle></CardHeader>
+          <CardContent className="p-0">
+            <ul className="divide-y">
+              {lastRecords.map((r) => (
+                <li key={`${r.kind}-${r.id}`} className="flex items-center gap-3 px-4 py-2.5">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+                    <Receipt className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{r.category}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {r.wallet} · {r.kind === "op" ? "Operasional" : "Pribadi"}
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-sm font-semibold text-destructive">-{formatIDR(r.amount)}</p>
+                    <p className="text-xs text-muted-foreground">{dateTime(r.created_at)}</p>
+                  </div>
+                </li>
+              ))}
+              {lastRecords.length === 0 && !loading && (
+                <li className="px-4 py-6 text-center text-sm text-muted-foreground">
+                  Belum ada transaksi.
+                </li>
+              )}
+            </ul>
           </CardContent>
         </Card>
       </div>
