@@ -86,33 +86,34 @@ export function DashboardClient() {
 
       {/* Kartu ringkasan keuangan — aturan laba baru */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <StatCard label="Total Penjualan" icon={TrendingUp} accent="text-emerald-600"
+        <StatCard label="Total Penjualan" icon={TrendingUp} accent="text-emerald-600" tone="emerald"
           value={loading ? "…" : formatIDR(Number(summary?.total_sales ?? 0))} />
-        <StatCard label="Total Pembelian" icon={ShoppingCart}
+        <StatCard label="Total Pembelian" icon={ShoppingCart} tone="blue"
           value={loading ? "…" : formatIDR(Number(summary?.total_purchase ?? 0))} />
-        <StatCard label="Pengeluaran Operasional" icon={TrendingDown}
+        <StatCard label="Pengeluaran Operasional" icon={TrendingDown} tone="orange"
           value={loading ? "…" : formatIDR(Number(summary?.total_op_expense ?? 0))} />
-        <StatCard label="Pengeluaran Pribadi" icon={User2}
+        <StatCard label="Pengeluaran Pribadi" icon={User2} tone="teal"
           value={loading ? "…" : formatIDR(Number(summary?.total_personal_expense ?? 0))} />
         <StatCard label="Laba Bersih" icon={Wallet}
           accent={Number(summary?.net_profit ?? 0) >= 0 ? "text-emerald-600" : "text-destructive"}
+          tone={Number(summary?.net_profit ?? 0) >= 0 ? "emerald" : "red"}
           value={loading ? "…" : formatIDR(Number(summary?.net_profit ?? 0))} />
-        <StatCard label="Saldo Wallet Masuk" icon={Wallet}
+        <StatCard label="Saldo Wallet Masuk" icon={Wallet} tone="teal"
           hint="Uang yang benar-benar diterima"
           value={loading ? "…" : formatIDR(Number(summary?.total_income ?? 0))} />
       </div>
 
       {/* Kartu operasional */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Client Aktif" icon={Users}
+        <StatCard label="Client Aktif" icon={Users} tone="teal"
           value={loading ? "…" : String(counts?.active_clients ?? 0)} />
-        <StatCard label="Invoice Pending" icon={FileText}
+        <StatCard label="Invoice Pending" icon={FileText} tone="amber"
           value={loading ? "…" : String(counts?.pending_invoices ?? 0)}
           hint={counts ? `Piutang ${formatIDR(Number(counts.total_receivable))}` : undefined} />
-        <StatCard label="Garansi < 30 Hari" icon={ShieldAlert}
+        <StatCard label="Garansi < 30 Hari" icon={ShieldAlert} tone="orange"
           accent={Number(counts?.expiring_warranty ?? 0) > 0 ? "text-amber-600" : undefined}
           value={loading ? "…" : String(counts?.expiring_warranty ?? 0)} />
-        <StatCard label="Margin Laba" icon={TrendingUp}
+        <StatCard label="Margin Laba" icon={TrendingUp} tone="emerald"
           value={loading || !summary || Number(summary.total_sales) === 0 ? "—"
             : `${((Number(summary.net_profit) / Number(summary.total_sales)) * 100).toFixed(1)}%`} />
       </div>
@@ -124,11 +125,19 @@ export function DashboardClient() {
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="name" fontSize={12} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="name" fontSize={12}
+                  stroke="var(--muted-foreground)" tick={{ fill: "var(--muted-foreground)" }} />
                 <YAxis fontSize={11}
+                  stroke="var(--muted-foreground)" tick={{ fill: "var(--muted-foreground)" }}
                   tickFormatter={(v: number) => `${(Number(v) / 1_000_000).toFixed(0)}jt`} />
-                <Tooltip formatter={tipFormat as never} />
+                <Tooltip formatter={tipFormat as never}
+                  contentStyle={{
+                    background: "var(--popover)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 8,
+                    color: "var(--popover-foreground)",
+                  }} />
                 <Legend />
                 <Line type="monotone" dataKey="Penjualan" stroke="#10b981" strokeWidth={2} dot={false} />
                 <Line type="monotone" dataKey="Pengeluaran" stroke="#ef4444" strokeWidth={2} dot={false} />
@@ -165,7 +174,7 @@ export function DashboardClient() {
                     <div className="text-right">
                       <p className="text-sm font-medium">{formatIDR(Number(inv.total))}</p>
                       {inv.effective_status === "overdue" && (
-                        <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Jatuh tempo</Badge>
+                        <Badge className="bg-red-100 text-red-700 hover:bg-red-100 dark:bg-red-500/15 dark:text-red-400 dark:hover:bg-red-500/15">Jatuh tempo</Badge>
                       )}
                     </div>
                   </li>
@@ -194,7 +203,7 @@ export function DashboardClient() {
                       <p className="text-xs text-muted-foreground">{a.company_name}</p>
                     </div>
                     <div className="text-right">
-                      <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">
+                      <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 dark:bg-amber-500/15 dark:text-amber-400 dark:hover:bg-amber-500/15">
                         {a.days_left} hari
                       </Badge>
                       <p className="mt-0.5 text-xs text-muted-foreground">{formatDate(a.warranty_end)}</p>

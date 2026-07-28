@@ -167,6 +167,7 @@ export function ExpenseManager({
           title="Total Pengeluaran Bulan Ini"
           value={totalMonth}
           icon={WalletIcon}
+          tone="orange"
           compareLabel="Dari bulan lalu"
           compareValue={compareTotal}
           percent={percent}
@@ -176,12 +177,14 @@ export function ExpenseManager({
           label="Jumlah Pengeluaran"
           value={String(countMonth)}
           icon={Receipt}
+          tone="amber"
           hint={countMonth > 0 ? "transaksi bulan ini" : "Belum ada transaksi bulan ini"}
         />
         <StatCard
           label="Rata-rata Pengeluaran"
           value={formatIDR(avgMonth)}
           icon={Boxes}
+          tone="violet"
           hint={countMonth > 0 ? "Total dibagi jumlah transaksi" : "Belum ada transaksi"}
         />
       </div>

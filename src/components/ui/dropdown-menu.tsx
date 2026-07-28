@@ -53,15 +53,20 @@ function DropdownMenuGroup({ ...props }: MenuPrimitive.Group.Props) {
   return <MenuPrimitive.Group data-slot="dropdown-menu-group" {...props} />
 }
 
+// Base UI hanya punya `Menu.GroupLabel` yang WAJIB berada di dalam `Menu.Group`
+// (kalau tidak, saat menu dibuka Base UI melempar error "MenuGroupContext is
+// missing" → popup gagal render → di production tampak seperti halaman 404).
+// Label mandiri (di luar group, mis. header email di app-header) karena itu
+// dirender sebagai <div> biasa, sesuai konvensi shadcn.
 function DropdownMenuLabel({
   className,
   inset,
   ...props
-}: MenuPrimitive.GroupLabel.Props & {
+}: React.ComponentProps<"div"> & {
   inset?: boolean
 }) {
   return (
-    <MenuPrimitive.GroupLabel
+    <div
       data-slot="dropdown-menu-label"
       data-inset={inset}
       className={cn(

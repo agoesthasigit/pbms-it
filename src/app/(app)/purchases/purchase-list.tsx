@@ -133,6 +133,7 @@ export function PurchaseList({
           title={isThisMonth ? "Total Pembelian Bulan Ini" : "Total Pembelian (Periode Dipilih)"}
           value={totalPeriod}
           icon={ShoppingCart}
+          tone="blue"
           compareLabel={compareLabel}
           compareValue={compareTotal}
           percent={percent}
@@ -142,12 +143,14 @@ export function PurchaseList({
           label="Jumlah Nota"
           value={String(notaCount)}
           icon={Receipt}
+          tone="amber"
           hint={`${unitCount} unit barang masuk`}
         />
         <StatCard
           label="Rata-rata per Nota"
           value={formatIDR(avgPerNota)}
           icon={Boxes}
+          tone="violet"
           hint={notaCount > 0 ? "Total dibagi jumlah nota" : "Belum ada nota"}
         />
       </div>

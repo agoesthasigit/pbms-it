@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, ReceiptText, Loader2, Search, RotateCcw, TrendingUp, Users, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, ReceiptText, Loader2, Search, RotateCcw, TrendingUp, Users, CheckCircle2, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/table";
 import { formatIDR } from "@/lib/utils/currency";
 import { formatDate, todayISO } from "@/lib/utils/date";
+import { SOFT_TONES } from "@/lib/utils/soft-tone";
 import { EmptyState } from "@/components/shared/empty-state";
 import { SummaryCard } from "@/components/shared/summary-card";
 import { StatCard } from "@/components/shared/stat-card";
@@ -146,6 +147,7 @@ export function SaleList({
           title={isThisMonth ? "Total Penjualan Bulan Ini" : "Total Penjualan (Periode Dipilih)"}
           value={totalPeriod}
           icon={TrendingUp}
+          tone="emerald"
           compareLabel={compareLabel}
           compareValue={compareTotal}
           percent={percent}
@@ -154,12 +156,14 @@ export function SaleList({
           label="Jumlah Transaksi"
           value={String(trxCount)}
           icon={ReceiptText}
+          tone="blue"
           hint={`${clientCount} client berbeda`}
         />
         <StatCard
           label="Rata-rata per Transaksi"
           value={formatIDR(avgPerTrx)}
           icon={Users}
+          tone="violet"
           hint={trxCount > 0 ? "Total dibagi jumlah transaksi" : "Belum ada transaksi"}
         />
       </div>
@@ -225,13 +229,13 @@ export function SaleList({
                     </TableCell>
                     <TableCell>
                       {s.payment_method === "cash" || s.payment_method === "transfer" ? (
-                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Lunas</Badge>
+                        <Badge className={SOFT_TONES.emerald}>Lunas</Badge>
                       ) : s.payment_method === "monthly_invoice" ? (
                         <Badge variant="outline">Masuk invoice</Badge>
                       ) : s.paid_date ? (
-                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Lunas</Badge>
+                        <Badge className={SOFT_TONES.emerald}>Lunas</Badge>
                       ) : (
-                        <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">Terhutang</Badge>
+                        <Badge className={SOFT_TONES.amber}>Terhutang</Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-right font-medium">
@@ -239,6 +243,17 @@ export function SaleList({
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        {(s.payment_method === "cash" ||
+                          s.payment_method === "transfer" ||
+                          (s.payment_method === "terhutang" && s.paid_date)) && (
+                          <Button variant="ghost" size="icon" nativeButton={false}
+                            className="text-muted-foreground hover:text-primary"
+                            title="Unduh NOTA (PDF)"
+                            render={<a href={`/api/sales/${s.id}/pdf`}
+                              target="_blank" rel="noopener noreferrer" />}>
+                            <FileDown className="h-4 w-4" />
+                          </Button>
+                        )}
                         {s.payment_method === "terhutang" && !s.paid_date && (
                           <Button variant="ghost" size="icon"
                             className="text-muted-foreground hover:text-emerald-600"

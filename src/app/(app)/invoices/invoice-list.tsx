@@ -21,12 +21,13 @@ import {
   type MonthlyInvoice, type InvoiceStatus, INVOICE_STATUS_LABELS,
 } from "@/types/phase4";
 import { deleteInvoice } from "./actions";
+import { SOFT_TONES } from "@/lib/utils/soft-tone";
 
 const STATUS_STYLE: Record<InvoiceStatus, string> = {
-  draft: "bg-red-100 text-red-700 hover:bg-red-100",
-  sent: "bg-sky-100 text-sky-700 hover:bg-sky-100",
-  paid: "bg-emerald-100 text-emerald-700 hover:bg-emerald-100",
-  overdue: "bg-red-100 text-red-700 hover:bg-red-100",
+  draft: SOFT_TONES.red,
+  sent: SOFT_TONES.sky,
+  paid: SOFT_TONES.emerald,
+  overdue: SOFT_TONES.red,
 };
 
 export function InvoiceList({ invoices }: { invoices: MonthlyInvoice[] }) {

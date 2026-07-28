@@ -173,7 +173,7 @@ export function ContractManager({
                     <TableCell>{formatDate(c.start_date)}</TableCell>
                     <TableCell>
                       {c.is_active ? (
-                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-400 dark:hover:bg-emerald-500/15">
                           Aktif
                         </Badge>
                       ) : (

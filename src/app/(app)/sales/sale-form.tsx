@@ -203,8 +203,8 @@ export function SaleForm({
 
           {/* Jatuh tempo untuk penjualan terhutang (piutang non-invoice) */}
           {method === "terhutang" && (
-            <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
-              <p className="text-sm text-amber-800">
+            <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-500/25 dark:bg-amber-500/10">
+              <p className="text-sm text-amber-800 dark:text-amber-300">
                 Penjualan ini menjadi <b>piutang (terhutang)</b> dan <b>belum</b> menambah
                 saldo wallet. Tandai lunas nanti saat client membayar.
               </p>
@@ -218,8 +218,8 @@ export function SaleForm({
 
           {/* Periode & jatuh tempo hanya untuk invoice bulanan */}
           {method === "monthly_invoice" && (
-            <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
-              <p className="text-sm text-amber-800">
+            <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-500/25 dark:bg-amber-500/10">
+              <p className="text-sm text-amber-800 dark:text-amber-300">
                 Penjualan ini menjadi <b>piutang</b> & otomatis masuk invoice bulanan.
                 Penjualan dengan <b>client + periode + jatuh tempo yang sama</b> akan
                 digabung ke satu invoice.

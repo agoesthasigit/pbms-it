@@ -11,6 +11,7 @@ import {
 import { PageHeader } from "@/components/shared/page-header";
 import { formatIDR } from "@/lib/utils/currency";
 import { formatDate } from "@/lib/utils/date";
+import { SOFT_TONES } from "@/lib/utils/soft-tone";
 import type { WalletWithBalance } from "@/types/db";
 import {
   type MonthlyInvoice, type InvoiceStatus, INVOICE_STATUS_LABELS,
@@ -20,10 +21,10 @@ import { InvoiceActions } from "./invoice-actions";
 export const metadata = { title: "Detail Invoice" };
 
 const STATUS_STYLE: Record<InvoiceStatus, string> = {
-  draft: "bg-slate-100 text-slate-700 hover:bg-slate-100",
-  sent: "bg-sky-100 text-sky-700 hover:bg-sky-100",
-  paid: "bg-emerald-100 text-emerald-700 hover:bg-emerald-100",
-  overdue: "bg-red-100 text-red-700 hover:bg-red-100",
+  draft: SOFT_TONES.slate,
+  sent: SOFT_TONES.sky,
+  paid: SOFT_TONES.emerald,
+  overdue: SOFT_TONES.red,
 };
 
 export default async function InvoiceDetailPage({

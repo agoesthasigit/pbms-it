@@ -20,6 +20,7 @@ import { formatIDR } from "@/lib/utils/currency";
 import { formatDate } from "@/lib/utils/date";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StatCard } from "@/components/shared/stat-card";
+import { SOFT_TONES } from "@/lib/utils/soft-tone";
 import { usePagination } from "@/components/shared/use-pagination";
 import { PaginationBar } from "@/components/shared/pagination-bar";
 
@@ -121,10 +122,11 @@ export function TransactionList({
       {/* Ringkasan mengikuti filter */}
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard label="Total Pemasukan" value={formatIDR(totalIn)} icon={TrendingUp}
-          accent="text-emerald-600" hint={`${inRows.length} transaksi`} />
+          tone="emerald" accent="text-emerald-600" hint={`${inRows.length} transaksi`} />
         <StatCard label="Total Pengeluaran" value={formatIDR(totalOut)} icon={TrendingDown}
-          accent="text-destructive" hint={`${outRows.length} transaksi`} />
+          tone="red" accent="text-destructive" hint={`${outRows.length} transaksi`} />
         <StatCard label="Selisih (Net)" value={formatIDR(net)} icon={Scale}
+          tone={net >= 0 ? "emerald" : "red"}
           accent={net >= 0 ? "text-emerald-600" : "text-destructive"}
           hint="Pemasukan − Pengeluaran" />
       </div>
@@ -221,13 +223,13 @@ export function TransactionList({
               <TableBody>
                 {pg.paged.map((r) => (
                   <TableRow key={r.key}
-                    className={r.isPiutang ? "bg-red-50 hover:bg-red-100/60" : ""}>
+                    className={r.isPiutang ? "bg-red-50 hover:bg-red-100/60 dark:bg-red-500/10 dark:hover:bg-red-500/15" : ""}>
                     <TableCell className="whitespace-nowrap">{formatDate(r.date)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5">
                         <Badge variant="secondary">{SOURCE_LABEL[r.source]}</Badge>
                         {r.isPiutang && (
-                          <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Piutang</Badge>
+                          <Badge className={SOFT_TONES.red}>Piutang</Badge>
                         )}
                       </div>
                     </TableCell>

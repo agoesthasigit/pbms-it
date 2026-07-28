@@ -32,6 +32,8 @@ sebelum melanjutkan pekerjaan UI, supaya tahu sudah sampai fase mana.
 | 6 | Balik ke gaya lama + bottom nav | ✅ Selesai | `796f1ae` |
 | 7 | Revisi UX: paginasi aset + warna status | ✅ Selesai | `da9e009` |
 | 8 | Paginasi semua daftar (hook bersama) | ✅ Selesai | lihat di bawah |
+| 9 | Kartu ringkasan pengeluaran + dashboard visual Laporan | ✅ Selesai | `2994468` |
+| 10 | Dark mode (navy+teal) + ikon berwarna + NOTA penjualan | ✅ Selesai | lihat di bawah |
 
 **Aturan:** satu fase = satu commit. Aplikasi harus tetap jalan di antara fase.
 Kalau hasil sebuah fase tidak disukai, cukup `git revert` commit fase itu.
@@ -377,9 +379,57 @@ Murni tampilan — data, query, filter, dan logika tidak disentuh; hanya potonga
 baris yang dirender. **Verifikasi:** `tsc --noEmit` bersih, `npm run build`
 sukses (27 route).
 
+## Fase 10 — Dark mode (navy + teal) + ikon berwarna + NOTA penjualan
+
+Ditambahkan atas permintaan user (2026-07-28). Referensi visual: mockup dark
+navy + aksen teal yang dibuat user. **Font sengaja tidak diubah** (tetap Plus
+Jakarta Sans). Data, query, dan logika bisnis tidak disentuh — kecuali migrasi
+kolom `nota_no` (fitur baru).
+
+**Dark mode (nyaris nol biaya performa — cuma toggle class `.dark`):**
+- `next-themes` diaktifkan: `ThemeProvider` (`components/shared/theme-provider.tsx`)
+  dibungkus di `app/layout.tsx` (`attribute="class"`, `defaultTheme="light"`,
+  `enableSystem={false}` → dua mode: Terang/Gelap). `<html>` sudah punya
+  `suppressHydrationWarning`.
+- Tombol toggle matahari/bulan (`components/shared/theme-toggle.tsx`) di header.
+  Semua atribut yang bergantung tema (ikon, `aria-label`, `title`) dinetralkan
+  sampai `mounted` untuk mencegah **hydration mismatch**.
+- Palet `.dark` di `globals.css` disetel ulang dari abu-abu polos → **navy-slate
+  (hue ~240) + primary/aksen teal (hue ~183)**. Menyelesaikan poin #5 lama.
+- Grafik Recharts (dashboard, laporan, client-360): `stroke`/`tick`/tooltip
+  diganti ke CSS var (`--border`, `--muted-foreground`, `--popover`) agar ikut
+  tema. Gauge sudah sadar-tema sejak awal (pakai class var).
+
+**Ikon berwarna (semua kartu):**
+- Peta warna terpusat `lib/utils/icon-tone.ts` (`ICON_TONES` + `IconTone`).
+  `StatCard` & `SummaryCard` diberi prop `tone`. Latar `-500/10` + ikon `-600`
+  (light) / `dark:-400` → kontras di dua tema.
+- Dashboard mengikuti mockup; Laba Bersih & Margin otomatis hijau/merah sesuai
+  nilai. Diterapkan juga di Penjualan, Pembelian, Pengeluaran, Transaksi,
+  Laporan, Client 360.
+
+**Badge & banner status sadar-tema (menyelesaikan poin #4 lama):**
+- `lib/utils/soft-tone.ts` (`SOFT_TONES`) untuk chip status; dipakai di dict
+  status invoice. Badge/banner inline (`products`, `invoices`, `assets`,
+  `rab-editor`, `sales`, `transactions`, `clients`, `maintenance`) diberi varian
+  `dark:` (latar `-500/10..15`, teks `-300/400`).
+
+**NOTA PDF penjualan (Opsi B — nomor permanen):**
+- Migrasi `supabase/migrations/20260728_sale_nota_no.sql`: kolom `sales.nota_no`
+  + index unik. **Wajib dijalankan di Supabase SQL Editor** sebelum fitur dipakai.
+- Route `api/sales/[id]/pdf/route.ts` + dokumen `sale-pdf.tsx` (meniru gaya
+  `InvoicePdf`). Judul **NOTA**, nomor `NOTA/YYYY/MM/NNN` diisi *lazy* saat PDF
+  pertama dibuat lalu disimpan. Kelayakan: **tunai, transfer, atau terhutang
+  yang sudah lunas** — Invoice Bulanan dikecualikan (sudah ada PDF di menu Invoice).
+- Tombol **Unduh NOTA** di `sale-list.tsx`, tampil hanya untuk baris yang layak.
+
+**Verifikasi:** `tsc --noEmit` bersih. Dark mode + tone diuji langsung di browser
+(bg navy, ikon teal/amber/merah/dst benar, toggle jalan, 0 error console). NOTA
+diuji via type-check (runtime perlu login + migrasi).
+
 ## ⏭️ Lanjutan berikutnya
 
-Fase 0–8 **selesai**. Yang sengaja **belum** dikerjakan / perlu di-track:
+Fase 0–10 **selesai**. Yang sengaja **belum** dikerjakan / perlu di-track:
 
 1. **Invoice: `draft` & `overdue` sama-sama merah.** Sejak Fase 7 `draft` dibuat
    merah sesuai permintaan, tapi `overdue`/"Jatuh Tempo" sudah merah lebih dulu
@@ -392,11 +442,9 @@ Fase 0–8 **selesai**. Yang sengaja **belum** dikerjakan / perlu di-track:
 3. **Date range picker custom.** Dua `<input type="date">` native masih
    menampilkan format US `MM/DD/YYYY` padahal aplikasinya berbahasa Indonesia.
    Bug UX nyata, bobot pekerjaan sedang.
-4. **Banner berwarna hardcoded.** Masih ada `bg-sky-50`, `bg-amber-50`,
-   `bg-emerald-50` di `products/product-manager.tsx`, `invoices/page.tsx`,
-   `assets/asset-manager.tsx`, `rab/rab-editor.tsx`. Badge & aksen sudah rapi,
-   blok banner belum. Risiko rendah.
-5. **Dark mode.** Blok `.dark` masih palet abu-abu bawaan dan tidak dipakai.
+4. ~~**Banner berwarna hardcoded.**~~ ✅ **Selesai di Fase 10** — semua banner
+   `bg-*-50` diberi varian `dark:`.
+5. ~~**Dark mode.**~~ ✅ **Selesai di Fase 10** — palet `.dark` navy+teal + toggle.
 6. **`theme_color` PWA masih teal `#0f766e`.** Konsisten dengan `main` lama,
    tapi jadi satu-satunya jejak teal (strip status bar saat mode standalone).
    Mudah dinetralkan bila mengganggu.

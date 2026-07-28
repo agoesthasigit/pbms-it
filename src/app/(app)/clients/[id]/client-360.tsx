@@ -107,7 +107,7 @@ export function Client360({ client }: { client: Client }) {
     <div className="space-y-6">
       {/* Profil + statistik */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Total Penjualan" icon={TrendingUp}
+        <StatCard label="Total Penjualan" icon={TrendingUp} tone="emerald"
           value={loading ? "…" : formatIDR(Number(stats?.total_sales ?? 0))} />
         <StatCard label="Sudah Dibayar" accent="text-emerald-600"
           value={loading ? "…" : formatIDR(Number(stats?.total_paid ?? 0))} />
@@ -129,7 +129,7 @@ export function Client360({ client }: { client: Client }) {
           <div className="sm:col-span-2"><span className="text-muted-foreground">Alamat:</span> {client.address ?? "-"}</div>
           <div><span className="text-muted-foreground">Status:</span>{" "}
             {client.status === "active"
-              ? <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Aktif</Badge>
+              ? <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-400 dark:hover:bg-emerald-500/15">Aktif</Badge>
               : <Badge variant="outline">Nonaktif</Badge>}
           </div>
           <div><span className="text-muted-foreground">Bergabung:</span> {client.joined_date ? formatDate(client.joined_date) : "-"}</div>
@@ -144,10 +144,13 @@ export function Client360({ client }: { client: Client }) {
           <div className="h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="name" fontSize={12} />
-                <YAxis fontSize={11} tickFormatter={(v: number) => `${(Number(v) / 1_000_000).toFixed(0)}jt`} />
-                <Tooltip formatter={tipFormat as never} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="name" fontSize={12}
+                  stroke="var(--muted-foreground)" tick={{ fill: "var(--muted-foreground)" }} />
+                <YAxis fontSize={11} stroke="var(--muted-foreground)" tick={{ fill: "var(--muted-foreground)" }}
+                  tickFormatter={(v: number) => `${(Number(v) / 1_000_000).toFixed(0)}jt`} />
+                <Tooltip formatter={tipFormat as never} cursor={{ fill: "var(--muted)" }}
+                  contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--popover-foreground)" }} />
                 <Bar dataKey="Omzet" fill="#0f766e" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>

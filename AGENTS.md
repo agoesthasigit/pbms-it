@@ -86,6 +86,18 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
+- **2026-07-28 — Fix menu akun (email pojok kanan) → "404"/menu logout tak muncul.**
+  Dua bug di dropdown akun `src/components/shared/app-header.tsx`:
+  1. `DropdownMenuLabel` (di `src/components/ui/dropdown-menu.tsx`) dirender pakai
+     `Menu.GroupLabel`, yang **wajib** berada di dalam `Menu.Group`. Label email
+     dipakai berdiri sendiri → saat menu dibuka Base UI melempar
+     `MenuGroupContext is missing` → popup gagal render (di production tampak
+     seperti halaman 404). Diubah: `DropdownMenuLabel` sekarang `<div>` biasa
+     (sesuai konvensi shadcn, label boleh mandiri).
+  2. Item aksi memakai `onSelect` (pola Radix). Base UI `Menu.Item` **tidak punya**
+     `onSelect` — yang tersedia `onClick`. `onSelect` lolos TypeScript karena
+     `<div>` punya event bawaan `onSelect` (seleksi teks), jadi handler tak pernah
+     jalan saat diklik. Diubah ke `onClick={() => logout()}`.
 - **2026-07-11 — Fix nested `<button>` hydration error.** Beberapa komponen ditulis
   dengan `asChild` (pola Radix) sehingga trigger merender `<button>`-nya sendiri
   membungkus `<Button>` anak → button tersarang. Diubah ke prop `render`:

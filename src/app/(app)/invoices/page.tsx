@@ -18,7 +18,7 @@ export default async function InvoicesPage() {
         title="Invoice Bulanan"
         description="Invoice terbentuk otomatis dari penjualan piutang. Penjualan dengan client + periode + jatuh tempo sama otomatis tergabung."
       />
-      <div className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+      <div className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800 dark:border-sky-500/25 dark:bg-sky-500/10 dark:text-sky-300">
         Invoice dibuat otomatis saat Anda menyimpan penjualan dengan metode
         <b> Invoice Bulanan</b>. Di sini Anda menandai terkirim/lunas dan mengunduh PDF.
       </div>

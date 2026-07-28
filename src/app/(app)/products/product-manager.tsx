@@ -139,7 +139,7 @@ export function ProductManager({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+      <div className="flex items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800 dark:border-sky-500/25 dark:bg-sky-500/10 dark:text-sky-300">
         <Info className="mt-0.5 h-4 w-4 shrink-0" />
         <span>
           Barang baru masuk otomatis lewat menu <b>Pembelian</b>. Barang yang stoknya
@@ -148,7 +148,7 @@ export function ProductManager({
       </div>
 
       {lowStockCount > 0 && (
-        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-300">
           <AlertTriangle className="h-4 w-4 shrink-0" />
           {lowStockCount} barang mencapai batas stok minimum. Segera lakukan pembelian.
         </div>
@@ -212,7 +212,7 @@ export function ProductManager({
                       <TableCell className="text-center">
                         <Badge
                           variant={low ? "destructive" : "outline"}
-                          className={low ? "" : "border-emerald-200 bg-emerald-50 text-emerald-700"}>
+                          className={low ? "" : "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-400"}>
                           {p.current_stock} {p.unit}
                         </Badge>
                       </TableCell>

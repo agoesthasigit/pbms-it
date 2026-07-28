@@ -59,7 +59,7 @@ export default async function RabDetailPage({
             </Badge>
           )}
           {lunas ? (
-            <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Lunas</Badge>
+            <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-400 dark:hover:bg-emerald-500/15">Lunas</Badge>
           ) : (
             <Badge variant="outline" className="text-amber-700">
               Sisa {formatIDR(Math.max(remaining, 0))}

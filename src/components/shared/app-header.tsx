@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Brand } from "./brand";
 import { SidebarNav } from "./sidebar-nav";
+import { ThemeToggle } from "./theme-toggle";
 import { logout } from "@/app/(auth)/login/actions";
 
 export function AppHeader({ email }: { email: string }) {
@@ -48,6 +49,8 @@ export function AppHeader({ email }: { email: string }) {
 
       <div className="flex-1" />
 
+      <ThemeToggle />
+
       <DropdownMenu>
         <DropdownMenuTrigger
           render={<Button variant="ghost" className="gap-2 px-2" />}
@@ -62,7 +65,7 @@ export function AppHeader({ email }: { email: string }) {
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="text-destructive focus:text-destructive"
-            onSelect={() => logout()}
+            onClick={() => logout()}
           >
             <LogOut className="mr-2 h-4 w-4" />
             Keluar

@@ -197,19 +197,21 @@ export function ReportsClient() {
 
       {/* 6 kartu sesuai urutan permintaan */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <StatCard label="Total Penjualan" icon={TrendingUp} accent="text-emerald-600"
+        <StatCard label="Total Penjualan" icon={TrendingUp} accent="text-emerald-600" tone="emerald"
           value={loading ? "…" : formatIDR(totalSales)} />
-        <StatCard label="Total Pembelian" icon={ShoppingCart}
+        <StatCard label="Total Pembelian" icon={ShoppingCart} tone="blue"
           value={loading ? "…" : formatIDR(totalPurchase)} />
-        <StatCard label="Pengeluaran Operasional" icon={TrendingDown}
+        <StatCard label="Pengeluaran Operasional" icon={TrendingDown} tone="orange"
           value={loading ? "…" : formatIDR(totalOpExpense)} />
-        <StatCard label="Pengeluaran Pribadi" icon={User2}
+        <StatCard label="Pengeluaran Pribadi" icon={User2} tone="teal"
           value={loading ? "…" : formatIDR(totalPersonal)} />
         <StatCard label="Laba Bersih" icon={Wallet}
           accent={netProfit >= 0 ? "text-emerald-600" : "text-destructive"}
+          tone={netProfit >= 0 ? "emerald" : "red"}
           value={loading ? "…" : formatIDR(netProfit)} />
         <StatCard label="Margin Laba" icon={Percent}
           accent={margin >= 0 ? "text-emerald-600" : "text-destructive"}
+          tone={margin >= 0 ? "emerald" : "red"}
           value={loading ? "…" : `${margin.toFixed(1)}%`}
           hint="Laba ÷ Total Penjualan" />
       </div>
@@ -237,10 +239,13 @@ export function ReportsClient() {
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={trendData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="name" fontSize={12} />
-                <YAxis fontSize={11} tickFormatter={(v: number) => `${(Number(v) / 1_000_000).toFixed(0)}jt`} />
-                <Tooltip formatter={tipFormat as never} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="name" fontSize={12}
+                  stroke="var(--muted-foreground)" tick={{ fill: "var(--muted-foreground)" }} />
+                <YAxis fontSize={11} stroke="var(--muted-foreground)" tick={{ fill: "var(--muted-foreground)" }}
+                  tickFormatter={(v: number) => `${(Number(v) / 1_000_000).toFixed(0)}jt`} />
+                <Tooltip formatter={tipFormat as never} cursor={{ fill: "var(--muted)" }}
+                  contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--popover-foreground)" }} />
                 <Legend />
                 <Bar dataKey="Penjualan" fill="#10b981" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="Pengeluaran" fill="#ef4444" radius={[4, 4, 0, 0]} />
@@ -257,10 +262,13 @@ export function ReportsClient() {
           <div className="h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={trendData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="name" fontSize={12} />
-                <YAxis fontSize={11} tickFormatter={(v: number) => `${(Number(v) / 1_000_000).toFixed(0)}jt`} />
-                <Tooltip formatter={tipFormat as never} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="name" fontSize={12}
+                  stroke="var(--muted-foreground)" tick={{ fill: "var(--muted-foreground)" }} />
+                <YAxis fontSize={11} stroke="var(--muted-foreground)" tick={{ fill: "var(--muted-foreground)" }}
+                  tickFormatter={(v: number) => `${(Number(v) / 1_000_000).toFixed(0)}jt`} />
+                <Tooltip formatter={tipFormat as never} cursor={{ fill: "var(--muted)" }}
+                  contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--popover-foreground)" }} />
                 <Bar dataKey="Laba" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>

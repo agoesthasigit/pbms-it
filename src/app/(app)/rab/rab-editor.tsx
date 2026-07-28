@@ -107,7 +107,7 @@ function BudgetTable({
             )}
           </div>
         ))}
-        <div className="flex items-center justify-between rounded-lg bg-sky-50 px-4 py-2.5 text-sky-800">
+        <div className="flex items-center justify-between rounded-lg bg-sky-50 px-4 py-2.5 text-sky-800 dark:bg-sky-500/10 dark:text-sky-300">
           <span className="font-medium">Grand Total RAB (Nilai Proyek)</span>
           <span className="text-lg font-bold">{formatIDR(total)}</span>
         </div>
@@ -207,7 +207,7 @@ function ExpenseTable({
             </div>
           </div>
         ))}
-        <div className="flex items-center justify-between rounded-lg bg-amber-50 px-4 py-2.5 text-amber-800">
+        <div className="flex items-center justify-between rounded-lg bg-amber-50 px-4 py-2.5 text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
           <span className="font-medium">Grand Total Pengeluaran</span>
           <span className="text-lg font-bold">{formatIDR(total)}</span>
         </div>
@@ -305,7 +305,7 @@ function PaymentTable({
           </>
         )}
 
-        <div className="flex items-center justify-between rounded-lg bg-emerald-50 px-4 py-2.5 text-emerald-800">
+        <div className="flex items-center justify-between rounded-lg bg-emerald-50 px-4 py-2.5 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300">
           <span className="font-medium">Total Diterima</span>
           <span className="text-lg font-bold">{formatIDR(total)}</span>
         </div>
@@ -440,8 +440,8 @@ export function RabEditor({
     <div className="space-y-6">
       {/* Banner kunci (hanya untuk proyek Selesai yang belum dibuka) */}
       {locked && (
-        <div className="flex flex-col gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-2 text-sm text-emerald-900">
+        <div className="flex flex-col gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 dark:border-emerald-500/25 dark:bg-emerald-500/10 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-2 text-sm text-emerald-900 dark:text-emerald-300">
             <Lock className="mt-0.5 h-4 w-4 shrink-0" />
             <span>
               Proyek ini berstatus <b>Selesai</b> dan terkunci (mode baca) agar tidak

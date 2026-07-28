@@ -2,6 +2,8 @@ import type { LucideIcon } from "lucide-react";
 import { TrendingDown, TrendingUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatIDR } from "@/lib/utils/currency";
+import { cn } from "@/lib/utils";
+import { ICON_TONES, type IconTone } from "@/lib/utils/icon-tone";
 
 // Kartu ringkasan nominal bergaya: ikon lembut, judul, angka besar,
 // dan baris perbandingan (persen naik/turun + nilai pembanding).
@@ -12,6 +14,7 @@ export function SummaryCard({
   compareLabel = "Dari bulan lalu",
   compareValue,
   percent,
+  tone = "amber",
   // arah baik/buruk: untuk pemasukan, naik = hijau; untuk pengeluaran, naik = merah
   invertColor = false,
 }: {
@@ -21,6 +24,7 @@ export function SummaryCard({
   compareLabel?: string;
   compareValue?: number;
   percent?: number | null;
+  tone?: IconTone;
   invertColor?: boolean;
 }) {
   const hasCompare = percent !== null && percent !== undefined && Number.isFinite(percent);
@@ -36,7 +40,10 @@ export function SummaryCard({
     <Card className="overflow-hidden">
       <CardContent className="p-5">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-50 text-amber-500 ring-1 ring-amber-100">
+          <div className={cn(
+            "flex h-8 w-8 items-center justify-center rounded-full",
+            ICON_TONES[tone]
+          )}>
             <Icon className="h-4 w-4" />
           </div>
           <span className="text-[15px] font-semibold text-foreground">{title}</span>
