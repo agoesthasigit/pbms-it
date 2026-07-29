@@ -86,6 +86,32 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
+- **2026-07-30 — Fitur "Kirim via Gmail" (invoice bulanan & NOTA penjualan).**
+  Tombol kirim PDF langsung ke email client via Gmail SMTP (nodemailer), dengan
+  dialog subject/isi yang bisa diedit + tombol "Lihat PDF" + pratinjau lampiran.
+  - **Pengirim**: akun khusus `athaya.it@gmail.com` (BUKAN email pribadi), nama
+    tampil "Agusta Sigit IT" (nama pemilik lebih dikenal client). Tanda tangan di
+    badan email juga "Agusta Sigit IT". Kredensial di `.env.local`: `GMAIL_USER`,
+    `GMAIL_APP_PASSWORD` (App Password 16 karakter — WAJIB diisi user, butuh
+    2-Step Verification aktif), `GMAIL_FROM_NAME`. Tanpa `GMAIL_APP_PASSWORD`
+    terisi, action menolak dengan pesan jelas.
+  - **Subject invoice**: `INVOICE <BULAN PERIODE>` — ikut bulan *periode* invoice
+    (`period_month`), BUKAN bulan saat dikirim, agar tidak membingungkan client.
+  - **Penjualan**: tombol kirim hanya untuk metode `cash`/`transfer`/`terhutang`
+    yang sudah lunas (sama dgn syarat unduh NOTA); `terhutang` belum lunas &
+    `monthly_invoice` disembunyikan. Subject `NOTA PENJUALAN — <client> — <tgl>`.
+  - **Jejak kirim**: kolom `email_sent_at`/`email_sent_to` di `monthly_invoices`
+    & `sales` (migrasi `20260730_email_sent_status.sql`, view `v_monthly_invoices`
+    dibuat ulang — kolom baru WAJIB di akhir SELECT agar `CREATE OR REPLACE VIEW`
+    diterima). Mengirim invoice draft otomatis set status `sent`.
+  - **Arsitektur**: builder PDF diekstrak ke `src/lib/pdf/build-{invoice,sale}-pdf.ts`
+    (dipakai bersama route unduh & action email → isi/nama file identik). Mailer di
+    `src/lib/email/mailer.ts`. Dialog reusable `src/components/shared/send-email-dialog.tsx`.
+  - **Gotcha SMTP**: JANGAN pakai preset `service:"gmail"` (default port 465/TLS
+    implisit) — di jaringan ini port 465 time-out. Mailer memakai host eksplisit
+    `smtp.gmail.com:587` `secure:false` `requireTLS:true` (STARTTLS) → berhasil.
+    Diuji nyata 2026-07-30: `250 OK`, email + lampiran diterima. Perubahan env
+    (App Password) baru terbaca setelah dev server di-restart.
 - **2026-07-28 — Fix menu akun (email pojok kanan) → "404"/menu logout tak muncul.**
   Dua bug di dropdown akun `src/components/shared/app-header.tsx`:
   1. `DropdownMenuLabel` (di `src/components/ui/dropdown-menu.tsx`) dirender pakai

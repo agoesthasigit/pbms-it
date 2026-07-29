@@ -28,7 +28,9 @@ export type SaleRow = {
   paid_date?: string | null;
   paid_wallet_id?: string | null;
   nota_no?: string | null;
-  client?: { company_name: string } | null;
+  email_sent_at?: string | null;
+  email_sent_to?: string | null;
+  client?: { company_name: string; email?: string | null } | null;
   wallet?: { name: string } | null;
 };
 

@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, ReceiptText, Loader2, Search, RotateCcw, TrendingUp, Users, CheckCircle2, FileDown } from "lucide-react";
+import { Plus, Trash2, ReceiptText, Loader2, Search, RotateCcw, TrendingUp, Users, CheckCircle2, FileDown, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,8 +28,16 @@ import { usePagination } from "@/components/shared/use-pagination";
 import { PaginationBar } from "@/components/shared/pagination-bar";
 import type { ProductWithStock, Client, WalletWithBalance } from "@/types/db";
 import { type SaleRow, PAYMENT_METHOD_LABELS } from "@/types/phase3";
+import { SendEmailDialog } from "@/components/shared/send-email-dialog";
 import { SaleForm } from "./sale-form";
-import { deleteSale, paySale } from "./actions";
+import { deleteSale, paySale, sendSaleEmail } from "./actions";
+
+/** Baris penjualan yang boleh dikirim NOTA-nya (sama dgn syarat unduh NOTA). */
+function canSendNota(s: SaleRow) {
+  return s.payment_method === "cash" ||
+    s.payment_method === "transfer" ||
+    (s.payment_method === "terhutang" && !!s.paid_date);
+}
 
 const fmt = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -65,6 +73,9 @@ export function SaleList({
   const [payRow, setPayRow] = useState<SaleRow | null>(null);
   const [payWallet, setPayWallet] = useState("");
   const [payDate, setPayDate] = useState(todayISO());
+
+  // Dialog kirim NOTA via Gmail
+  const [emailRow, setEmailRow] = useState<SaleRow | null>(null);
   const walletItems = useMemo(
     () => wallets.filter((w) => w.is_active)
       .map((w) => ({ value: w.id, label: `${w.name} · ${formatIDR(Number(w.balance))}` })),
@@ -243,15 +254,20 @@ export function SaleList({
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        {(s.payment_method === "cash" ||
-                          s.payment_method === "transfer" ||
-                          (s.payment_method === "terhutang" && s.paid_date)) && (
+                        {canSendNota(s) && (
                           <Button variant="ghost" size="icon" nativeButton={false}
                             className="text-muted-foreground hover:text-primary"
                             title="Unduh NOTA (PDF)"
                             render={<a href={`/api/sales/${s.id}/pdf`}
                               target="_blank" rel="noopener noreferrer" />}>
                             <FileDown className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {canSendNota(s) && (
+                          <Button variant="ghost" size="icon"
+                            className="text-muted-foreground hover:text-sky-600"
+                            onClick={() => setEmailRow(s)} title="Kirim NOTA via Gmail">
+                            <Mail className="h-4 w-4" />
                           </Button>
                         )}
                         {s.payment_method === "terhutang" && !s.paid_date && (
@@ -328,6 +344,28 @@ export function SaleList({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog kirim NOTA via Gmail */}
+      {emailRow && (
+        <SendEmailDialog
+          open={emailRow !== null}
+          onOpenChange={(v) => !v && setEmailRow(null)}
+          title="Kirim NOTA via Gmail"
+          defaultTo={emailRow.client?.email ?? ""}
+          defaultSubject={`NOTA PENJUALAN — ${emailRow.client?.company_name ?? "Pelanggan"} — ${formatDate(emailRow.sale_date)}`}
+          defaultBody={
+            `Selamat Pagi,\n\n` +
+            `Berikut kami lampirkan nota penjualan tertanggal ${formatDate(emailRow.sale_date)}.\n\n` +
+            `Terima kasih.\n\nHormat kami,\nAgusta Sigit IT`
+          }
+          attachmentName={`${(emailRow.nota_no ?? "NOTA").replace(/\//g, "-")}.pdf`}
+          pdfHref={`/api/sales/${emailRow.id}/pdf`}
+          sentInfo={{ at: emailRow.email_sent_at, to: emailRow.email_sent_to }}
+          onSend={({ to, subject, body }) =>
+            sendSaleEmail({ sale_id: emailRow.id, to, subject, body })
+          }
+        />
+      )}
     </div>
   );
 }

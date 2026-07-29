@@ -3,8 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { PaymentMethod } from "@/types/phase3";
+import { buildSalePdf } from "@/lib/pdf/build-sale-pdf";
+import { sendMail, isMailerConfigured } from "@/lib/email/mailer";
 
 type Result = { success?: boolean; error?: string };
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type SaleItemInput = {
   product_id: string;
@@ -73,6 +77,46 @@ export async function paySale(input: {
   if (error) return { error: error.message || "Gagal melunasi penjualan." };
   revalidatePath("/sales");
   revalidatePath("/wallets");
+  return { success: true };
+}
+
+export async function sendSaleEmail(input: {
+  sale_id: string;
+  to: string;
+  subject: string;
+  body: string;
+}): Promise<Result> {
+  const to = input.to.trim();
+  if (!to) return { error: "Email tujuan kosong. Isi email client terlebih dahulu." };
+  if (!EMAIL_RE.test(to)) return { error: "Format email tujuan tidak valid." };
+  if (!input.subject.trim()) return { error: "Subject email tidak boleh kosong." };
+  if (!isMailerConfigured())
+    return { error: "Email pengirim belum dikonfigurasi. Isi GMAIL_APP_PASSWORD di .env.local lalu restart server." };
+
+  const supabase = await createClient();
+
+  // Bangun NOTA PDF (sekaligus validasi kelayakan metode bayar)
+  const pdf = await buildSalePdf(supabase, input.sale_id);
+  if (!pdf.ok) return { error: pdf.message };
+
+  try {
+    await sendMail({
+      to,
+      subject: input.subject.trim(),
+      text: input.body,
+      attachments: [{ filename: pdf.fileName, content: pdf.buffer, contentType: "application/pdf" }],
+    });
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Gagal mengirim email." };
+  }
+
+  const { error: upErr } = await supabase
+    .from("sales")
+    .update({ email_sent_at: new Date().toISOString(), email_sent_to: to })
+    .eq("id", input.sale_id);
+  if (upErr) return { error: `Email terkirim, tapi gagal mencatat status: ${upErr.message}` };
+
+  revalidatePath("/sales");
   return { success: true };
 }
 

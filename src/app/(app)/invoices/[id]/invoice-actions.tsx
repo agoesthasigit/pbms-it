@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, CheckCircle2, Send, Download, FileText } from "lucide-react";
+import { Loader2, CheckCircle2, Send, Download, FileText, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,9 +15,10 @@ import {
 } from "@/components/ui/select";
 import { formatIDR } from "@/lib/utils/currency";
 import { todayISO } from "@/lib/utils/date";
+import { SendEmailDialog } from "@/components/shared/send-email-dialog";
 import type { WalletWithBalance } from "@/types/db";
 import type { MonthlyInvoice } from "@/types/phase4";
-import { markInvoicePaid, setInvoiceStatus } from "../actions";
+import { markInvoicePaid, setInvoiceStatus, sendInvoiceEmail } from "../actions";
 
 export function InvoiceActions({
   invoice, wallets,
@@ -30,8 +31,23 @@ export function InvoiceActions({
   const [paidOpen, setPaidOpen] = useState(false);
   const [walletId, setWalletId] = useState("");
   const [paidDate, setPaidDate] = useState(todayISO());
+  const [emailOpen, setEmailOpen] = useState(false);
 
   const isPaid = invoice.status === "paid";
+
+  // Default subject/isi email — ikut BULAN PERIODE invoice (bukan bulan kirim)
+  const periodLabel = useMemo(
+    () => new Date(invoice.period_month).toLocaleDateString("id-ID", { month: "long", year: "numeric" }),
+    [invoice.period_month]
+  );
+  const emailDefaults = useMemo(() => ({
+    to: invoice.client_email ?? "",
+    subject: `INVOICE ${periodLabel.toUpperCase()}`,
+    body:
+      `Selamat Pagi,\n\n` +
+      `Berikut kami lampirkan invoice perbaikan serta pembelian pada bulan ${periodLabel.toLowerCase()}.\n\n` +
+      `Terima kasih.\n\nHormat kami,\nAgusta Sigit IT`,
+  }), [invoice.client_email, periodLabel]);
   const walletItems = useMemo(
     () => wallets.filter((w) => w.is_active)
       .map((w) => ({ value: w.id, label: `${w.name} · ${formatIDR(Number(w.balance))}` })),
@@ -65,6 +81,10 @@ export function InvoiceActions({
       <Button variant="outline" nativeButton={false}
         render={<a href={`/api/invoices/${invoice.id}/pdf`} target="_blank" rel="noopener noreferrer" />}>
         <Download className="h-4 w-4" /> Unduh PDF
+      </Button>
+
+      <Button variant="outline" onClick={() => setEmailOpen(true)}>
+        <Mail className="h-4 w-4" /> Kirim via Gmail
       </Button>
 
       {!isPaid && invoice.status !== "sent" && (
@@ -120,6 +140,21 @@ export function InvoiceActions({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <SendEmailDialog
+        open={emailOpen}
+        onOpenChange={setEmailOpen}
+        title="Kirim Invoice via Gmail"
+        defaultTo={emailDefaults.to}
+        defaultSubject={emailDefaults.subject}
+        defaultBody={emailDefaults.body}
+        attachmentName={`${invoice.invoice_no.replace(/\//g, "-")}.pdf`}
+        pdfHref={`/api/invoices/${invoice.id}/pdf`}
+        sentInfo={{ at: invoice.email_sent_at, to: invoice.email_sent_to }}
+        onSend={({ to, subject, body }) =>
+          sendInvoiceEmail({ invoice_id: invoice.id, to, subject, body })
+        }
+      />
     </div>
   );
 }

@@ -12,6 +12,8 @@ export type MonthlyInvoice = {
   paid_wallet_id: string | null;
   notes: string | null;
   created_at: string;
+  email_sent_at?: string | null;
+  email_sent_to?: string | null;
   // dari view v_monthly_invoices:
   company_name?: string;
   contact_name?: string | null;

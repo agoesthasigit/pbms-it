@@ -14,7 +14,7 @@ export default async function SalesPage() {
       supabase.from("sales")
         // wallet:wallets!wallet_id → tegaskan FK yang dipakai, karena sales kini
         // punya 2 relasi ke wallets (wallet_id & paid_wallet_id) → hindari ambiguitas embed
-        .select("*, client:clients(company_name), wallet:wallets!wallet_id(name)")
+        .select("*, client:clients(company_name, email), wallet:wallets!wallet_id(name)")
         .order("sale_date", { ascending: false }),
       supabase.from("v_product_stock").select("*").eq("is_active", true).order("name"),
       supabase.from("clients").select("*").eq("status", "active").order("company_name"),
