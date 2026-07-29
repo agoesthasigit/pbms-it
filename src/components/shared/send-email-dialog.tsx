@@ -102,6 +102,9 @@ export function SendEmailDialog({
           <div className="space-y-1.5">
             <Label>Isi Email</Label>
             <Textarea rows={6} value={body} onChange={(e) => setBody(e.target.value)} />
+            <p className="text-xs text-muted-foreground">
+              Tanda tangan (logo + kontak usaha) otomatis ditambahkan di bawah isi.
+            </p>
           </div>
 
           <div className="flex items-center justify-between rounded-lg border border-dashed px-3 py-2">

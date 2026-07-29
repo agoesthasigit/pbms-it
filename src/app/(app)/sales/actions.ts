@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { PaymentMethod } from "@/types/phase3";
 import { buildSalePdf } from "@/lib/pdf/build-sale-pdf";
 import { sendMail, isMailerConfigured } from "@/lib/email/mailer";
+import { composeEmail } from "@/lib/email/signature";
 
 type Result = { success?: boolean; error?: string };
 
@@ -99,12 +100,19 @@ export async function sendSaleEmail(input: {
   const pdf = await buildSalePdf(supabase, input.sale_id);
   if (!pdf.ok) return { error: pdf.message };
 
+  // Rangkai isi + tanda tangan (logo inline) → HTML & teks
+  const mail = await composeEmail(input.body);
+
   try {
     await sendMail({
       to,
       subject: input.subject.trim(),
-      text: input.body,
-      attachments: [{ filename: pdf.fileName, content: pdf.buffer, contentType: "application/pdf" }],
+      text: mail.text,
+      html: mail.html,
+      attachments: [
+        { filename: pdf.fileName, content: pdf.buffer, contentType: "application/pdf" },
+        ...mail.attachments,
+      ],
     });
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Gagal mengirim email." };

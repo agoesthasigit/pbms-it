@@ -23,6 +23,7 @@ export type SendMailInput = {
   to: string;
   subject: string;
   text: string;
+  html?: string;
   attachments?: MailAttachment[];
 };
 
@@ -72,6 +73,7 @@ export async function sendMail(input: SendMailInput): Promise<{ from: string }> 
     to: input.to,
     subject: input.subject,
     text: input.text,
+    html: input.html,
     attachments: input.attachments,
   });
   return { from: user };

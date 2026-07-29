@@ -356,7 +356,7 @@ export function SaleList({
           defaultBody={
             `Selamat Pagi,\n\n` +
             `Berikut kami lampirkan nota penjualan tertanggal ${formatDate(emailRow.sale_date)}.\n\n` +
-            `Terima kasih.\n\nHormat kami,\nAgusta Sigit IT`
+            `Terima kasih.`
           }
           attachmentName={`${(emailRow.nota_no ?? "NOTA").replace(/\//g, "-")}.pdf`}
           pdfHref={`/api/sales/${emailRow.id}/pdf`}

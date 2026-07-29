@@ -46,7 +46,7 @@ export function InvoiceActions({
     body:
       `Selamat Pagi,\n\n` +
       `Berikut kami lampirkan invoice perbaikan serta pembelian pada bulan ${periodLabel.toLowerCase()}.\n\n` +
-      `Terima kasih.\n\nHormat kami,\nAgusta Sigit IT`,
+      `Terima kasih.`,
   }), [invoice.client_email, periodLabel]);
   const walletItems = useMemo(
     () => wallets.filter((w) => w.is_active)

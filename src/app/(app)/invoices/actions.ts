@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { InvoiceStatus } from "@/types/phase4";
 import { buildInvoicePdf } from "@/lib/pdf/build-invoice-pdf";
 import { sendMail, isMailerConfigured } from "@/lib/email/mailer";
+import { composeEmail } from "@/lib/email/signature";
 
 type Result = { success?: boolean; error?: string; invoiceId?: string };
 
@@ -82,12 +83,19 @@ export async function sendInvoiceEmail(input: {
   const pdf = await buildInvoicePdf(supabase, input.invoice_id);
   if (!pdf.ok) return { error: pdf.message };
 
+  // Rangkai isi + tanda tangan (logo inline) → HTML & teks
+  const mail = await composeEmail(input.body);
+
   try {
     await sendMail({
       to,
       subject: input.subject.trim(),
-      text: input.body,
-      attachments: [{ filename: pdf.fileName, content: pdf.buffer, contentType: "application/pdf" }],
+      text: mail.text,
+      html: mail.html,
+      attachments: [
+        { filename: pdf.fileName, content: pdf.buffer, contentType: "application/pdf" },
+        ...mail.attachments,
+      ],
     });
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Gagal mengirim email." };
