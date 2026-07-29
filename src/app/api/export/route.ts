@@ -83,7 +83,14 @@ const txType: Record<string, string> = {
 const moveType: Record<string, string> = {
   purchase_in: "Masuk (Beli)", sale_out: "Keluar (Jual)", adjustment: "Penyesuaian",
 };
-const payMethod: Record<string, string> = { cash: "Tunai", monthly_invoice: "Invoice Bulanan" };
+const payMethod: Record<string, string> = {
+  cash: "Tunai", transfer: "Transfer", terhutang: "Terhutang", monthly_invoice: "Invoice Bulanan",
+};
+const categoryType: Record<string, string> = {
+  client: "Kategori Client", product: "Kategori Produk",
+  operational_expense: "Peng. Operasional", personal_expense: "Peng. Pribadi",
+  income_source: "Sumber Pemasukan",
+};
 const invStatus: Record<string, string> = {
   draft: "Draft", sent: "Terkirim", paid: "Lunas", overdue: "Jatuh Tempo",
 };
@@ -125,6 +132,7 @@ export async function GET() {
       purchases, purchaseItems, sales, saleItems,
       opEx, persEx, assets, invoices, repairs,
       network, cctv, rabSummary, rabItems,
+      labels, maintContracts, rabPayments,
     ] = await Promise.all([
       fetchAll(supabase, "v_wallet_balances"),
       fetchAll(supabase, "wallet_transactions", "tx_date"),
@@ -143,6 +151,9 @@ export async function GET() {
       fetchAll(supabase, "cctv_systems"),
       fetchAll(supabase, "v_rab_summary"),
       fetchAll(supabase, "rab_items"),
+      fetchAll(supabase, "labels", "name"),
+      fetchAll(supabase, "v_maintenance_contracts", "start_date"),
+      fetchAll(supabase, "rab_payments", "payment_date"),
     ]);
 
     // Peta bantu tanggal/nama untuk sheet "item"
@@ -277,16 +288,25 @@ export async function GET() {
     // ===== 9. Penjualan =====
     addSheet(wb, "Penjualan", [
       { header: "Tanggal", key: "tgl", type: "date" },
+      { header: "No NOTA", key: "nota", width: 18 },
       { header: "Client", key: "client", width: 24 },
       { header: "Metode", key: "metode", width: 16 },
       { header: "Wallet", key: "wallet", width: 18 },
       { header: "Total", key: "total", type: "money", width: 18 },
+      { header: "Status", key: "status", width: 14 },
+      { header: "Jatuh Tempo", key: "due", type: "date" },
+      { header: "Tgl Lunas", key: "lunas", type: "date" },
       { header: "Catatan", key: "catatan", width: 30 },
     ], sales.map((s: any) => ({
-      tgl: d(s.sale_date), client: clientName.get(s.client_id) ?? "-",
+      tgl: d(s.sale_date), nota: s.nota_no ?? "",
+      client: clientName.get(s.client_id) ?? "-",
       metode: payMethod[s.payment_method] ?? s.payment_method,
       wallet: s.wallet_id ? walletName.get(s.wallet_id) ?? "-" : "-",
-      total: num(s.total), catatan: s.notes ?? "",
+      total: num(s.total),
+      status: s.payment_method === "terhutang"
+        ? (s.paid_date ? "Lunas" : "Belum Lunas")
+        : s.payment_method === "monthly_invoice" ? "Via Invoice" : "Lunas",
+      due: d(s.due_date), lunas: d(s.paid_date), catatan: s.notes ?? "",
     })));
 
     // ===== 10. Item Penjualan =====
@@ -295,16 +315,22 @@ export async function GET() {
       { header: "Client", key: "client", width: 22 },
       { header: "Barang", key: "barang", width: 24 },
       { header: "Qty", key: "qty", type: "int" },
-      { header: "Harga", key: "harga", type: "money", width: 16 },
+      { header: "Harga Jual", key: "harga", type: "money", width: 16 },
+      { header: "Modal (HPP)", key: "modal", type: "money", width: 16 },
+      { header: "Laba", key: "laba", type: "money", width: 16 },
       { header: "Garansi (bln)", key: "gar", type: "int" },
       { header: "Serial", key: "serial", width: 18 },
       { header: "Subtotal", key: "sub", type: "money", width: 18 },
     ], saleItems.map((it: any) => {
       const info: any = saleInfo.get(it.sale_id) ?? {};
+      const qty = Number(it.qty) || 0;
+      const price = Number(it.price) || 0;
+      const cost = Number(it.cost_price) || 0;
       return {
         tgl: d(info.date), client: info.client ?? "-",
         barang: productName.get(it.product_id) ?? "-", qty: num(it.qty),
-        harga: num(it.price), gar: num(it.warranty_months),
+        harga: num(it.price), modal: cost, laba: (price - cost) * qty,
+        gar: num(it.warranty_months),
         serial: it.serial_number ?? "", sub: num(it.subtotal),
       };
     }));
@@ -439,6 +465,51 @@ export async function GET() {
     ], rabItems.map((it: any) => ({
       proyek: rabName.get(it.rab_id) ?? "-", jenis: rabItemType[it.item_type] ?? it.item_type,
       nama: it.item_name, qty: num(it.qty), harga: num(it.price), total: num(it.total),
+    })));
+
+    // ===== 20. Kategori (master) =====
+    addSheet(wb, "Kategori", [
+      { header: "Nama", key: "nama", width: 26 },
+      { header: "Tipe", key: "tipe", width: 20 },
+      { header: "Status", key: "status" },
+    ], categories.map((c: any) => ({
+      nama: c.name, tipe: categoryType[c.type] ?? c.type,
+      status: c.is_active ? "Aktif" : "Nonaktif",
+    })));
+
+    // ===== 21. Label (master) =====
+    addSheet(wb, "Label", [
+      { header: "Nama", key: "nama", width: 26 },
+      { header: "Warna", key: "warna" },
+    ], labels.map((l: any) => ({ nama: l.name, warna: l.color ?? "" })));
+
+    // ===== 22. Kontrak Maintenance =====
+    addSheet(wb, "Kontrak Maintenance", [
+      { header: "Client", key: "client", width: 24 },
+      { header: "Layanan", key: "layanan", width: 24 },
+      { header: "Biaya / Bulan", key: "biaya", type: "money", width: 18 },
+      { header: "Mulai", key: "mulai", type: "date" },
+      { header: "Tgl Tagih", key: "tagih", type: "int" },
+      { header: "Status", key: "status" },
+      { header: "Catatan", key: "catatan", width: 28 },
+    ], maintContracts.map((m: any) => ({
+      client: m.company_name ?? clientName.get(m.client_id) ?? "-",
+      layanan: m.service_name, biaya: num(m.monthly_amount),
+      mulai: d(m.start_date), tagih: num(m.due_day),
+      status: m.is_active ? "Aktif" : "Nonaktif", catatan: m.notes ?? "",
+    })));
+
+    // ===== 23. Termin / Pembayaran RAB =====
+    addSheet(wb, "Termin RAB", [
+      { header: "Proyek", key: "proyek", width: 24 },
+      { header: "Tanggal", key: "tgl", type: "date" },
+      { header: "Keterangan", key: "ket", width: 24 },
+      { header: "Jumlah", key: "jumlah", type: "money", width: 18 },
+      { header: "Wallet", key: "wallet", width: 18 },
+    ], rabPayments.map((p: any) => ({
+      proyek: rabName.get(p.rab_id) ?? "-", tgl: d(p.payment_date),
+      ket: p.description ?? "", jumlah: num(p.amount),
+      wallet: walletName.get(p.wallet_id) ?? "-",
     })));
 
     const buffer = await wb.xlsx.writeBuffer();

@@ -36,6 +36,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# backup lokal (JANGAN commit isi database ke repo publik)
+/backups
+# binari pg_dump portabel (lokal saja, tidak ikut deploy)
+/tools
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
