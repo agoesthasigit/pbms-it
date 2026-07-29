@@ -112,6 +112,16 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
     `smtp.gmail.com:587` `secure:false` `requireTLS:true` (STARTTLS) → berhasil.
     Diuji nyata 2026-07-30: `250 OK`, email + lampiran diterima. Perubahan env
     (App Password) baru terbaca setelah dev server di-restart.
+  - **Tanda tangan HTML berlogo** (lanjutan, 2026-07-30): email dikirim sebagai
+    **HTML** (bukan teks polos) dengan blok tanda tangan otomatis di bawah isi —
+    logo `public/email-logo.png` ditanam **inline via CID** (`cid:athaya-logo`,
+    tampil di Gmail tanpa link eksternal) + kontak Athaya Computer (A/P/M/E/W).
+    Modul `src/lib/email/signature.ts` → `composeEmail(body)` mengembalikan
+    `{ html, text, attachments(logo) }`; dipakai kedua action, digabung dengan
+    lampiran PDF. `mailer.sendMail` kini menerima field `html`. Baris penutup
+    "Hormat kami, …" DIHAPUS dari isi default (identitas cukup dari blok tanda
+    tangan). Logo diproses via `sharp` (trim + resize lebar 200px, PNG). Kalau
+    file logo tak ada, tanda tangan tetap terkirim tanpa `<img>` (tidak error).
 - **2026-07-28 — Fix menu akun (email pojok kanan) → "404"/menu logout tak muncul.**
   Dua bug di dropdown akun `src/components/shared/app-header.tsx`:
   1. `DropdownMenuLabel` (di `src/components/ui/dropdown-menu.tsx`) dirender pakai
