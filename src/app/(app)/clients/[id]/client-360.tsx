@@ -5,7 +5,8 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import {
-  Boxes, Wifi, Camera, Calculator, Wrench, ShieldCheck, TrendingUp,
+  Boxes, Wifi, Camera, Calculator, Wrench, ShieldCheck, TrendingUp, TrendingDown,
+  ShoppingCart, Coins, Wallet,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,15 +22,19 @@ const tipFormat = (v: unknown) => formatIDR(Number(v ?? 0));
 import { formatDate } from "@/lib/utils/date";
 import { StatCard } from "@/components/shared/stat-card";
 import { EmptyState } from "@/components/shared/empty-state";
+import { PeriodPicker, presetThisMonth, type Period } from "@/components/shared/period-picker";
 import type { Client } from "@/types/db";
 import {
   type ClientAsset, type WarrantyStatus,
   WARRANTY_STATUS_LABELS, WARRANTY_STATUS_STYLE,
 } from "@/types/phase5";
 
-type Stats = {
-  total_sales: number; total_paid: number; total_receivable: number;
-  asset_count: number; project_count: number; total_project_profit: number;
+// Baris penjualan mentah untuk hitung 6 kartu client-side (ikut filter tanggal).
+type SaleRaw = {
+  sale_date: string;
+  payment_method: "cash" | "transfer" | "monthly_invoice" | "terhutang";
+  paid_date: string | null;
+  sale_items: { qty: number; subtotal: number; cost_price: number }[];
 };
 type MonthlyProfit = { month_start: string; revenue: number };
 type RepairRow = {
@@ -53,8 +58,9 @@ const shortMonth = (iso: string) =>
 export function Client360({ client }: { client: Client }) {
   const supabase = useMemo(() => createClient(), []);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState<Period>(presetThisMonth());
 
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [salesRaw, setSalesRaw] = useState<SaleRaw[]>([]);
   const [monthly, setMonthly] = useState<MonthlyProfit[]>([]);
   const [assets, setAssets] = useState<ClientAsset[]>([]);
   const [networks, setNetworks] = useState<NetworkRow[]>([]);
@@ -67,9 +73,11 @@ export function Client360({ client }: { client: Client }) {
     let active = true;
     (async () => {
       setLoading(true);
-      const [statRes, monRes, assetRes, netRes, cctvRes, rabRes, invRes, repRes] =
+      const [saleRes, monRes, assetRes, netRes, cctvRes, rabRes, invRes, repRes] =
         await Promise.all([
-          supabase.rpc("client_stats", { p_client_id: client.id }),
+          supabase.from("sales")
+            .select("sale_date, payment_method, paid_date, sale_items(qty, subtotal, cost_price)")
+            .eq("client_id", client.id),
           supabase.rpc("client_monthly_profit", { p_client_id: client.id, p_months: 12 }),
           supabase.from("v_client_assets").select("*").eq("client_id", client.id)
             .order("warranty_end"),
@@ -84,7 +92,7 @@ export function Client360({ client }: { client: Client }) {
           supabase.rpc("client_repair_history", { p_client_id: client.id }),
         ]);
       if (!active) return;
-      setStats((statRes.data?.[0] as Stats) ?? null);
+      setSalesRaw((saleRes.data as SaleRaw[]) ?? []);
       setMonthly((monRes.data as MonthlyProfit[]) ?? []);
       setAssets((assetRes.data as ClientAsset[]) ?? []);
       setNetworks((netRes.data as NetworkRow[]) ?? []);
@@ -101,21 +109,64 @@ export function Client360({ client }: { client: Client }) {
     name: shortMonth(m.month_start), Omzet: Number(m.revenue),
   }));
 
+  // 6 kartu ringkasan — dihitung client-side & ikut filter tanggal.
+  // Penjualan yang dihitung: LUNAS (tunai/transfer/terhutang-lunas) + invoice
+  // bulanan; terhutang belum lunas dikecualikan. Modal memakai cost_price yang
+  // terkunci saat penjualan (bukan harga beli terkini). Laba proyek: RAB
+  // berstatus "Selesai" (done) yang tanggal proyeknya masuk rentang.
+  const summary = useMemo(() => {
+    const inRange = (d: string | null) => !!d && d >= period.from && d <= period.to;
+    const counted = salesRaw.filter((s) => {
+      if (!inRange(s.sale_date)) return false;
+      const m = s.payment_method;
+      if (m === "cash" || m === "transfer" || m === "monthly_invoice") return true;
+      return m === "terhutang" && !!s.paid_date;
+    });
+    let penjualan = 0, pembelian = 0;
+    for (const s of counted) {
+      for (const it of s.sale_items ?? []) {
+        penjualan += Number(it.subtotal);
+        pembelian += Number(it.cost_price ?? 0) * Number(it.qty);
+      }
+    }
+    const labaJual = penjualan - pembelian;
+    const labaProyek = rabs
+      .filter((r) => r.status === "done" && inRange(r.project_date))
+      .reduce((a, r) => a + Number(r.net_profit), 0);
+    const totalLaba = labaProyek + labaJual;
+    const margin = penjualan > 0 ? (totalLaba / penjualan) * 100 : null;
+    return { penjualan, pembelian, labaJual, labaProyek, totalLaba, margin };
+  }, [salesRaw, rabs, period]);
+
   const targetLabel: Record<string, string> = { asset: "Asset", network: "Network", cctv: "CCTV" };
 
   return (
     <div className="space-y-6">
-      {/* Profil + statistik */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {/* Filter periode — default bulan ini; 6 kartu di bawah ikut menyesuaikan */}
+      <PeriodPicker period={period} onChange={setPeriod} />
+
+      {/* 6 kartu ringkasan (mengikuti rentang tanggal) */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <StatCard label="Total Pembelian (Modal)" icon={ShoppingCart} tone="blue"
+          value={loading ? "…" : formatIDR(summary.pembelian)} />
         <StatCard label="Total Penjualan" icon={TrendingUp} tone="emerald"
-          value={loading ? "…" : formatIDR(Number(stats?.total_sales ?? 0))} />
-        <StatCard label="Sudah Dibayar" accent="text-emerald-600"
-          value={loading ? "…" : formatIDR(Number(stats?.total_paid ?? 0))} />
-        <StatCard label="Piutang Berjalan"
-          accent={Number(stats?.total_receivable ?? 0) > 0 ? "text-amber-600" : undefined}
-          value={loading ? "…" : formatIDR(Number(stats?.total_receivable ?? 0))} />
-        <StatCard label="Laba Proyek (RAB)"
-          value={loading ? "…" : formatIDR(Number(stats?.total_project_profit ?? 0))} />
+          value={loading ? "…" : formatIDR(summary.penjualan)} />
+        <StatCard label="Laba (Jual − Beli)" icon={Coins}
+          tone={summary.labaJual >= 0 ? "emerald" : "red"}
+          accent={summary.labaJual >= 0 ? "text-emerald-600" : "text-destructive"}
+          value={loading ? "…" : formatIDR(summary.labaJual)} />
+        <StatCard label="Laba Proyek (RAB Selesai)" icon={Calculator} tone="violet"
+          value={loading ? "…" : formatIDR(summary.labaProyek)} />
+        <StatCard label="Total Laba Keseluruhan" icon={Wallet}
+          tone={summary.totalLaba >= 0 ? "emerald" : "red"}
+          accent={summary.totalLaba >= 0 ? "text-emerald-600" : "text-destructive"}
+          value={loading ? "…" : formatIDR(summary.totalLaba)} />
+        <StatCard label="Margin"
+          icon={(summary.margin ?? 0) >= 0 ? TrendingUp : TrendingDown}
+          tone={(summary.margin ?? 0) >= 0 ? "emerald" : "red"}
+          accent={(summary.margin ?? 0) >= 0 ? "text-emerald-600" : "text-destructive"}
+          value={loading ? "…" : summary.margin === null ? "—" : `${summary.margin.toFixed(1)}%`}
+          hint="Total Laba ÷ Total Penjualan" />
       </div>
 
       {/* Info kontak */}
