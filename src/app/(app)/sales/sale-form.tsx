@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Loader2, X } from "lucide-react";
+import { Loader2, X, Wrench, Package } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,11 +22,18 @@ import { type PaymentMethod, PAYMENT_METHOD_LABELS } from "@/types/phase3";
 import { createSale } from "./actions";
 
 type Line = {
+  kind: "product" | "service";
   product_id: string; qty: string; price: string;
   warranty_months: string; serial_number: string;
+  name: string; // nama jasa (bebas) — hanya dipakai saat kind === "service"
 };
 const newLine = (): Line => ({
-  product_id: "", qty: "1", price: "", warranty_months: "12", serial_number: "",
+  kind: "product",
+  product_id: "", qty: "1", price: "", warranty_months: "12", serial_number: "", name: "",
+});
+const newServiceLine = (): Line => ({
+  kind: "service",
+  product_id: "", qty: "1", price: "", warranty_months: "0", serial_number: "", name: "",
 });
 
 // akhir bulan dari string "YYYY-MM" → "YYYY-MM-DD"
@@ -72,7 +79,8 @@ export function SaleForm({
   const methodItems = (Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[])
     .map((m) => ({ value: m, label: PAYMENT_METHOD_LABELS[m] }));
   const productItems = useMemo(
-    () => products.map((p) => ({
+    // produk jasa (is_service, mis. "Jasa") disembunyikan dari dropdown barang
+    () => products.filter((p) => !p.is_service).map((p) => ({
       value: p.id, label: `${p.name} (stok ${p.current_stock})`,
     })),
     [products]
@@ -87,6 +95,7 @@ export function SaleForm({
     setLines((prev) => prev.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
   }
   function addLine() { setLines((prev) => [...prev, newLine()]); }
+  function addServiceLine() { setLines((prev) => [...prev, newServiceLine()]); }
   function removeLine(i: number) {
     setLines((prev) => (prev.length === 1 ? prev : prev.filter((_, idx) => idx !== i)));
   }
@@ -115,9 +124,13 @@ export function SaleForm({
 
   function handleSave() {
     for (const l of lines) {
-      if (l.product_id && toNumber(l.qty) > stockOf(l.product_id)) {
+      if (l.kind === "product" && l.product_id && toNumber(l.qty) > stockOf(l.product_id)) {
         const p = products.find((x) => x.id === l.product_id);
         toast.error(`Stok "${p?.name}" tidak cukup (tersedia ${stockOf(l.product_id)}).`);
+        return;
+      }
+      if (l.kind === "service" && toNumber(l.price) > 0 && l.name.trim() === "") {
+        toast.error("Nama jasa belum diisi.");
         return;
       }
     }
@@ -128,18 +141,25 @@ export function SaleForm({
         sale_date: date,
         payment_method: method,
         notes,
-        items: lines.map((l) => ({
-          product_id: l.product_id, qty: toNumber(l.qty), price: toNumber(l.price),
-          warranty_months: toNumber(l.warranty_months),
-          serial_number: l.serial_number || undefined,
-        })),
+        items: lines.map((l) =>
+          l.kind === "service"
+            ? {
+                is_service: true as const, name: l.name.trim(),
+                qty: toNumber(l.qty), price: toNumber(l.price),
+              }
+            : {
+                product_id: l.product_id, qty: toNumber(l.qty), price: toNumber(l.price),
+                warranty_months: toNumber(l.warranty_months),
+                serial_number: l.serial_number || undefined,
+              }
+        ),
         period_month: method === "monthly_invoice" ? period : null,
         due_date: (method === "monthly_invoice" || method === "terhutang") ? dueDate : null,
       });
       if (res.error) { toast.error(res.error); return; }
       toast.success(
         paysNow
-          ? "Penjualan tersimpan. Stok turun, asset dibuat, wallet bertambah."
+          ? "Penjualan tersimpan & saldo wallet bertambah."
           : method === "monthly_invoice"
             ? "Penjualan piutang tersimpan & otomatis masuk invoice bulanan."
             : "Penjualan terhutang tersimpan. Lunasi lewat tombol Tandai Lunas saat dibayar."
@@ -153,7 +173,7 @@ export function SaleForm({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl">
-        <DialogHeader><DialogTitle>Penjualan Barang Baru</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Penjualan Baru (Barang / Jasa)</DialogTitle></DialogHeader>
 
         <div className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -239,17 +259,62 @@ export function SaleForm({
             </div>
           )}
 
-          {/* Baris item */}
+          {/* Baris item — barang (stok/garansi) & jasa (tanpa modal/stok) */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Daftar Barang</Label>
-              <Button type="button" variant="outline" size="sm" onClick={addLine}>
-                <Plus className="h-3.5 w-3.5" /> Tambah Baris
-              </Button>
+              <Label>Daftar Barang &amp; Jasa</Label>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={addLine}>
+                  <Package className="h-3.5 w-3.5" /> Tambah Barang
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={addServiceLine}>
+                  <Wrench className="h-3.5 w-3.5" /> Tambah Jasa
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
               {lines.map((l, i) => {
                 const sub = toNumber(l.qty) * toNumber(l.price);
+
+                // ---- Baris JASA: nama bebas + qty + harga, tanpa stok/garansi ----
+                if (l.kind === "service") {
+                  return (
+                    <div key={i} className="rounded-lg border border-sky-200 bg-sky-50/60 p-3 space-y-2 dark:border-sky-500/25 dark:bg-sky-500/10">
+                      <div className="flex items-center gap-1.5 text-xs font-medium text-sky-700 dark:text-sky-300">
+                        <Wrench className="h-3.5 w-3.5" /> Jasa / Layanan
+                      </div>
+                      <div className="grid grid-cols-12 gap-2">
+                        <div className="col-span-12 sm:col-span-5">
+                          <Input placeholder="Nama jasa (mis. Install ulang laptop)"
+                            value={l.name}
+                            onChange={(e) => setLine(i, { name: e.target.value })} />
+                        </div>
+                        <div className="col-span-3 sm:col-span-2">
+                          <Input type="number" min={1} placeholder="Qty" value={l.qty}
+                            onChange={(e) => setLine(i, { qty: e.target.value })} />
+                        </div>
+                        <div className="col-span-6 sm:col-span-3">
+                          <Input type="number" min={0} placeholder="Harga jasa" value={l.price}
+                            onChange={(e) => setLine(i, { price: e.target.value })} />
+                        </div>
+                        <div className="col-span-3 sm:col-span-2 flex items-center justify-end">
+                          <Button type="button" variant="ghost" size="icon"
+                            className="text-muted-foreground hover:text-destructive"
+                            onClick={() => removeLine(i)} disabled={lines.length === 1}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex justify-end text-sm">
+                        {sub > 0
+                          ? <span className="text-muted-foreground">Subtotal: <b>{formatIDR(sub)}</b></span>
+                          : null}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // ---- Baris BARANG: produk + stok + garansi + serial ----
                 const over = l.product_id && toNumber(l.qty) > stockOf(l.product_id);
                 return (
                   <div key={i} className="rounded-lg border p-3 space-y-2">

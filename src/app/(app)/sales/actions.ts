@@ -11,13 +11,23 @@ type Result = { success?: boolean; error?: string };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export type SaleItemInput = {
+// Baris barang: butuh product_id, garansi, serial (opsional).
+export type SaleProductInput = {
+  is_service?: false;
   product_id: string;
   qty: number;
   price: number;
   warranty_months: number;
   serial_number?: string;
 };
+// Baris jasa: nama bebas, tanpa stok/modal/garansi.
+export type SaleServiceInput = {
+  is_service: true;
+  name: string;
+  qty: number;
+  price: number;
+};
+export type SaleItemInput = SaleProductInput | SaleServiceInput;
 
 export async function createSale(input: {
   client_id: string;
@@ -35,8 +45,10 @@ export async function createSale(input: {
     return { error: "Penjualan tunai/transfer wajib memilih wallet." };
   if (input.payment_method === "monthly_invoice" && !input.period_month)
     return { error: "Penjualan invoice wajib memilih periode." };
-  const valid = input.items.filter((i) => i.product_id && i.qty > 0);
-  if (valid.length === 0) return { error: "Tambahkan minimal 1 barang." };
+  // barang butuh product_id; jasa butuh nama. Keduanya butuh qty > 0.
+  const valid = input.items.filter((i) =>
+    i.qty > 0 && (i.is_service ? i.name.trim() !== "" : !!i.product_id));
+  if (valid.length === 0) return { error: "Tambahkan minimal 1 barang atau jasa." };
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("create_sale", {

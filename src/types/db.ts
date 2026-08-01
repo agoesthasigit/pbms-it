@@ -91,6 +91,7 @@ export type Product = {
   min_stock: number;
   default_warranty_months: number;
   is_active: boolean;
+  is_service: boolean;
   created_at: string;
 };
 

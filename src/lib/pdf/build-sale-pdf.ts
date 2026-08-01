@@ -25,7 +25,7 @@ export async function buildSalePdf(
 ): Promise<BuildSaleResult> {
   const { data: sale } = await supabase
     .from("sales")
-    .select("id, sale_date, paid_date, payment_method, total, notes, nota_no, client:clients(company_name, contact_name, address, phone, email), sale_items(qty, price, subtotal, product:products(name))")
+    .select("id, sale_date, paid_date, payment_method, total, notes, nota_no, client:clients(company_name, contact_name, address, phone, email), sale_items(qty, price, subtotal, item_name, product:products(name))")
     .eq("id", id)
     .single();
 
@@ -71,9 +71,11 @@ export async function buildSalePdf(
   } | null;
 
   const rows = (sale.sale_items as unknown as {
-    qty: number; price: number; subtotal: number; product: { name: string } | null;
+    qty: number; price: number; subtotal: number;
+    item_name: string | null; product: { name: string } | null;
   }[]).map((it) => ({
-    name: it.product?.name ?? "-",
+    // baris jasa memakai item_name (nama bebas); barang memakai nama produk
+    name: it.item_name ?? it.product?.name ?? "-",
     qty: it.qty, price: Number(it.price), subtotal: Number(it.subtotal),
   }));
 

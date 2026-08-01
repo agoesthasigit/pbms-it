@@ -86,6 +86,32 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
+- **2026-08-02 — Fitur jual JASA (tanpa modal/stok) di form Penjualan.**
+  Kasus nyata: "install ulang laptop Rp100.000, tanpa modal". Sebelumnya tak bisa
+  dicatat — form penjualan hanya menjual produk (validasi stok memblokir stok 0),
+  dan menu Pembelian tak menerima Rp 0 (memang jasa TAK boleh lewat pembelian).
+  - **Form** (`sales/sale-form.tsx`): tiap baris kini `kind: "product" | "service"`.
+    Tombol **"Tambah Jasa"** di samping "Tambah Barang". Baris jasa = **nama bebas
+    + qty + harga**, tanpa dropdown produk / garansi / serial. Validasi stok hanya
+    untuk baris barang. Bisa **campur barang + jasa dalam satu nota**. Dropdown
+    barang memfilter `!is_service` agar produk generik "Jasa" tak muncul.
+  - **DB** (migrasi `20260802_sale_service_line.sql`): kolom `sale_items.item_name`
+    (nama jasa bebas; barang = null). `create_sale` di-`CREATE OR REPLACE` (tanda
+    tangan sama) — item jsonb bisa `{ is_service:true, name, qty, price }`: **lewati
+    validasi stok, stock_movements, & client_assets**; `cost_price=0`; `product_id`
+    diarahkan ke satu produk generik `find_or_create_service_product('Jasa')`
+    (is_service=true) supaya katalog barang tak terkotori. Diterapkan via psql
+    (`PGSSLMODE=require`) → `ALTER TABLE` + `CREATE FUNCTION` sukses.
+  - **NOTA** (`lib/pdf/build-sale-pdf.ts`): select tambah `item_name`; nama baris =
+    `item_name ?? product.name ?? "-"`. Kolom NOTA (nama/qty/harga/subtotal) memang
+    tanpa garansi/serial, jadi jasa langsung pas.
+  - **Action** (`sales/actions.ts`): `SaleItemInput` jadi union barang|jasa; filter
+    `valid` diperbaiki agar baris jasa (`is_service && name && qty>0`) tak dibuang
+    (sebelumnya syaratnya `product_id` → jasa selalu terbuang).
+  - **Type** (`types/db.ts`): `Product` diberi `is_service: boolean`.
+  - Semua metode bayar (cash/transfer/terhutang/monthly_invoice) berlaku untuk jasa.
+    Additive & mundur-kompatibel: penjualan barang lama tak berubah, `item_name` null.
+
 - **2026-07-30 — Fitur "Kirim via Gmail" (invoice bulanan & NOTA penjualan).**
   Tombol kirim PDF langsung ke email client via Gmail SMTP (nodemailer), dengan
   dialog subject/isi yang bisa diedit + tombol "Lihat PDF" + pratinjau lampiran.
