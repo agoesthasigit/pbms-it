@@ -79,10 +79,14 @@ export function SaleForm({
   const methodItems = (Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[])
     .map((m) => ({ value: m, label: PAYMENT_METHOD_LABELS[m] }));
   const productItems = useMemo(
-    // produk jasa (is_service, mis. "Jasa") disembunyikan dari dropdown barang
-    () => products.filter((p) => !p.is_service).map((p) => ({
-      value: p.id, label: `${p.name} (stok ${p.current_stock})`,
-    })),
+    // produk jasa (is_service, mis. "Jasa") disembunyikan dari dropdown barang;
+    // barang stok habis (≤0) juga disembunyikan agar dropdown tak kepanjangan —
+    // yang muncul hanya barang yang masih bisa dijual. Jasa tetap lewat "Tambah Jasa".
+    () => products
+      .filter((p) => !p.is_service && Number(p.current_stock) > 0)
+      .map((p) => ({
+        value: p.id, label: `${p.name} (stok ${p.current_stock})`,
+      })),
     [products]
   );
 
