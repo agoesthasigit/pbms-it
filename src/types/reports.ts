@@ -102,6 +102,17 @@ export type MarginRow = {
   kind: "sale" | "project";
 };
 
+/** Satu baris rekonsiliasi invoice vs pembayaran diterima. */
+export type ReconRow = {
+  invoice_no: string;
+  client: string;
+  bruto: number;   // nilai invoice ditagihkan
+  dpp: number;     // dasar kena pajak (nilai jasa) = pph_base
+  pph: number;     // PPh dipotong client = pph_amount
+  netto: number;   // uang diterima = bruto - pph
+  ok: boolean;     // true bila bruto = pph + netto (selalu, sbg pengaman)
+};
+
 export type MarginReport = {
   period: Period;
   rows: MarginRow[];
@@ -109,4 +120,11 @@ export type MarginReport = {
   total_revenue: number;
   total_margin: number;
   total_margin_pct: number;
+
+  // Rekonsiliasi invoice bulanan yang sudah lunas pada periode
+  recon: ReconRow[];
+  recon_bruto: number;
+  recon_dpp: number;
+  recon_pph: number;
+  recon_netto: number;
 };

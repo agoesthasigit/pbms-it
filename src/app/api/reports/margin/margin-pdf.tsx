@@ -18,6 +18,12 @@ const m = StyleSheet.create({
   box: { flex: 1, borderWidth: 1.2, borderRadius: 4, padding: 9 },
   boxLabel: { fontSize: 7, color: C.muted },
   boxVal: { fontSize: 13, fontFamily: "Helvetica-Bold", marginTop: 4 },
+
+  // kolom tabel rekonsiliasi
+  rInv: { width: 88, paddingRight: 4 },
+  rClient: { flex: 1, paddingRight: 4 },
+  rNum: { width: 74, textAlign: "right" },
+  rCek: { width: 34, textAlign: "center" },
 });
 
 export function MarginPdf({ data }: { data: MarginReport }) {
@@ -114,6 +120,62 @@ export function MarginPdf({ data }: { data: MarginReport }) {
           Baris jasa modalnya nol sehingga marginnya 100%. Proyek hanya muncul
           bila statusnya sudah Selesai.
         </Text>
+
+        {/* ===== REKONSILIASI INVOICE vs PEMBAYARAN ===== */}
+        <Text style={rs.sectionTitle}>Rekonsiliasi Invoice vs Pembayaran Diterima</Text>
+        {data.recon.length === 0 ? (
+          <Text style={rs.muted}>
+            Belum ada invoice bulanan yang lunas pada periode ini.
+          </Text>
+        ) : (
+          <>
+            <View style={rs.th}>
+              <Text style={m.rInv}>Invoice</Text>
+              <Text style={m.rClient}>Client</Text>
+              <Text style={m.rNum}>Bruto</Text>
+              <Text style={m.rNum}>Dasar Pajak</Text>
+              <Text style={m.rNum}>PPh 2,5%</Text>
+              <Text style={m.rNum}>Netto</Text>
+              <Text style={m.rCek}>Cek</Text>
+            </View>
+            {data.recon.map((r) => (
+              <View style={rs.tr} key={r.invoice_no} wrap={false}>
+                <Text style={m.rInv}>{r.invoice_no}</Text>
+                <Text style={m.rClient}>{r.client}</Text>
+                <Text style={m.rNum}>{idr(r.bruto)}</Text>
+                <Text style={m.rNum}>{idr(r.dpp)}</Text>
+                <Text style={[m.rNum, { color: C.red }]}>
+                  {r.pph > 0 ? `- ${idr(r.pph)}` : idr(0)}
+                </Text>
+                <Text style={[m.rNum, { color: C.green, fontFamily: "Helvetica-Bold" }]}>
+                  {idr(r.netto)}
+                </Text>
+                <Text style={[m.rCek, { color: r.ok ? C.green : C.red }]}>
+                  {r.ok ? "OK" : "CEK"}
+                </Text>
+              </View>
+            ))}
+            <View style={[rs.tr, {
+              borderTopWidth: 1.5, borderTopColor: C.text, borderBottomWidth: 0,
+            }]}>
+              <Text style={[m.rInv, { fontFamily: "Helvetica-Bold" }]}>TOTAL</Text>
+              <Text style={m.rClient} />
+              <Text style={[m.rNum, { fontFamily: "Helvetica-Bold" }]}>{idr(data.recon_bruto)}</Text>
+              <Text style={[m.rNum, { fontFamily: "Helvetica-Bold" }]}>{idr(data.recon_dpp)}</Text>
+              <Text style={[m.rNum, { fontFamily: "Helvetica-Bold", color: C.red }]}>
+                {data.recon_pph > 0 ? `- ${idr(data.recon_pph)}` : idr(0)}
+              </Text>
+              <Text style={[m.rNum, { fontFamily: "Helvetica-Bold", color: C.green }]}>
+                {idr(data.recon_netto)}
+              </Text>
+              <Text style={m.rCek} />
+            </View>
+            <Text style={rs.note}>
+              PPh 23 (2,5%) hanya atas nilai jasa; penjualan barang tidak kena.
+              Netto = uang yang benar-benar masuk ke wallet.
+            </Text>
+          </>
+        )}
 
         <ReportFooter />
       </Page>

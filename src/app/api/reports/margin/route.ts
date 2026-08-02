@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { buildMarginReport } from "@/lib/reports/margin";
 import { MarginPdf } from "./margin-pdf";
 import {
-  resolvePeriod, moneyFmt, styleTitle, styleTableHeader, styleTotal, xlsxResponse,
+  resolvePeriod, moneyFmt, styleTitle, styleSection, styleTableHeader, styleTotal, xlsxResponse,
 } from "@/lib/reports/export-helpers";
 
 export const runtime = "nodejs";
@@ -92,6 +92,47 @@ export async function GET(req: Request) {
       "Proyek hanya muncul bila statusnya sudah Selesai.",
     ]);
     note.font = { italic: true, size: 9, color: { argb: "FF6B7280" } };
+
+    // ---------------- REKONSILIASI INVOICE vs PEMBAYARAN ----------------
+    ws.addRow([]);
+    styleSection(ws, "REKONSILIASI INVOICE vs PEMBAYARAN DITERIMA");
+    const rHeader = ws.addRow([
+      "Invoice", "Client", "Bruto", "Dasar Pajak (Jasa)", "PPh 2,5%", "Diterima (Netto)", "Cek",
+    ]);
+    styleTableHeader(rHeader);
+
+    const rFirst = ws.rowCount + 1;
+    for (const r of data.recon) {
+      const row = ws.addRow([
+        r.invoice_no, r.client, r.bruto, r.dpp, null, null, null,
+      ]);
+      // PPh, netto, dan cek memakai RUMUS agar sheet tetap hidup.
+      row.getCell(5).value = { formula: `ROUND(D${row.number}*0.025,0)` };
+      row.getCell(6).value = { formula: `C${row.number}-E${row.number}` };
+      row.getCell(7).value = {
+        formula: `IF(ABS(C${row.number}-E${row.number}-F${row.number})<1,"OK","CEK")`,
+      };
+    }
+    const rLast = ws.rowCount;
+    const hasRecon = rLast >= rFirst;
+    const rTotal = ws.addRow([
+      "TOTAL", "",
+      hasRecon ? { formula: `SUM(C${rFirst}:C${rLast})` } : 0,
+      hasRecon ? { formula: `SUM(D${rFirst}:D${rLast})` } : 0,
+      hasRecon ? { formula: `SUM(E${rFirst}:E${rLast})` } : 0,
+      hasRecon ? { formula: `SUM(F${rFirst}:F${rLast})` } : 0,
+      "",
+    ]);
+    styleTotal(rTotal);
+    for (const col of [3, 4, 5, 6]) ws.getColumn(col).numFmt = moneyFmt;
+
+    ws.addRow([]);
+    const rNote = ws.addRow([
+      "Catatan: PPh 23 (2,5%) hanya atas nilai jasa; penjualan barang tidak kena. " +
+      "Netto = uang yang benar-benar masuk ke wallet. Dasar pajak = nilai jasa yang " +
+      "tercatat saat pelunasan invoice.",
+    ]);
+    rNote.font = { italic: true, size: 9, color: { argb: "FF6B7280" } };
 
     return xlsxResponse(await wb.xlsx.writeBuffer(), `Analisa-Margin-${from}_${to}.xlsx`);
   } catch (err) {
