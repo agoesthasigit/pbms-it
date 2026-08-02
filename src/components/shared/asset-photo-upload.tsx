@@ -135,7 +135,7 @@ export function AssetPhotoUpload({
 
       <p className="flex items-center gap-1 text-xs text-muted-foreground">
         <Camera className="h-3 w-3" />
-        Foto otomatis dikompres ke JPG maks 1024×768 (±100KB) agar hemat penyimpanan.
+        Foto otomatis dikompres ke JPG maks 800×600 (±50KB) agar hemat penyimpanan.
       </p>
     </div>
   );

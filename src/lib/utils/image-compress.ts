@@ -8,13 +8,15 @@
 //   2. @react-pdf/renderer hanya bisa merender JPG/PNG — WebP tidak muncul
 //      di PDF laporan aset.
 //
-// TARGET: maksimal 1024x768, ukuran <= 100KB (dijamin bertingkat:
+// TARGET: maksimal 800x600, ukuran <= 50KB (dijamin bertingkat:
 //         turunkan kualitas dulu, kalau masih besar turunkan resolusi).
+//         Foto aset hanya untuk identifikasi wujud barang — teks kecil
+//         (mis. serial number) tak wajib terbaca tajam, jadi target kecil.
 // ============================================================
 
-const TARGET_W = 1024;
-const TARGET_H = 768;
-const MAX_BYTES = 100 * 1024; // 100 KB
+const TARGET_W = 800;
+const TARGET_H = 600;
+const MAX_BYTES = 50 * 1024; // 50 KB
 
 export const OUTPUT_MIME = "image/jpeg";
 export const OUTPUT_EXT = "jpg";
