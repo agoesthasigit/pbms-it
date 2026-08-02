@@ -86,6 +86,71 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
+- **2026-08-02 — Fix nomor invoice KEMBAR setelah ada invoice dihapus.**
+  `generate_monthly_invoice` menentukan nomor urut dengan `count(*) + 1` atas
+  invoice di bulan yang sama. Begitu satu invoice **dihapus**, count ikut turun
+  sehingga nomor yang sudah dipakai diberikan lagi → kembar. Kejadian nyata:
+  Juli 2026 invoice 003 & 004 sempat dihapus lalu dibuat ulang; Canggu mengambil
+  004, lalu Rob Peetoom School (dibuat 2 Agustus) mendapat **005 yang sudah
+  dipakai Rob Peetoom Ubud**.
+  Migrasi `20260802_invoice_no_unique.sql`:
+  1. Merapikan nomor kembar yang terlanjur ada — yang **paling lama menang**,
+     sisanya diberi nomor setelah nomor tertinggi bulan itu (School → 006).
+     Keterangan di `wallet_transactions` ikut diperbarui via `replace()` supaya
+     akhiran PPh tidak hilang.
+  2. Penomoran memakai **MAX + 1** (bukan count), lalu dinaikkan dalam loop
+     sampai nomornya benar-benar bebas. Nomor bekas invoice yang dihapus
+     **sengaja TIDAK dipakai ulang** — nomor invoice tidak boleh didaur ulang,
+     jadi lubang nomor (mis. 003) memang wajar dan dibiarkan.
+  3. Indeks unik `monthly_invoices_user_invoice_no_uniq (user_id, invoice_no)`
+     sebagai pengaman terakhir — sudah diuji menolak duplikat.
+  Aman dilakukan karena kedua invoice 005 **belum pernah dikirim email**
+  (`email_sent_at` null) — selalu cek kolom itu dulu sebelum menomori ulang.
+
+- **2026-08-02 — Laporan Keuangan: Laba Rugi, Analisa Margin, PPh 23, export Excel+PDF.**
+  Berangkat dari workbook Excel rekonsiliasi milik user (`Opening_Balance_Wallet_ERP.xlsx`)
+  yang ingin dijadikan menu aplikasi. Temuan utama: `finance_summary` (laba lama)
+  berbasis KAS dan salah secara akuntansi — pembelian barang yang **belum terjual**
+  dihitung biaya, dan **uang muka proyek** dihitung pendapatan. Untuk Juli 2026 laba
+  lama menunjukkan **9.069.259**, sedangkan laporan baru **5.898.380** — cocok dengan
+  Excel user (5.898.025, beda 355 dari beda kategori pengeluaran).
+  - **Modul bersama** `src/lib/reports/{profit-loss,margin,transactions}.ts` dipakai
+    bertiga oleh halaman, route Excel, dan route PDF → angka layar = angka file.
+    Tipe di `src/types/reports.ts`, helper Excel di `lib/reports/export-helpers.ts`,
+    gaya PDF di `lib/pdf/report-kit.tsx`.
+  - **Laba Rugi** (tab baru di `/reports`): A. Pendapatan Usaha · B. HPP (memakai
+    `sale_items.cost_price` = modal barang yang BENAR-BENAR terjual, bukan total
+    pembelian) · Laba Kotor + Margin · C. Biaya Operasional (+ Pengeluaran Pribadi
+    + **Pajak PPh 23**) · **LABA BERSIH** · D. **Proyek Berjalan** (status ≠ `done`,
+    labanya TIDAK diakui — ditampilkan ukuran normal, bukan catatan kecil, atas
+    permintaan user) · E. Persediaan (aset). Proyek `done` diakui sebagai pendapatan
+    + biayanya masuk HPP. **Jadi status RAB yang menentukan** — ubah status ke
+    "Berjalan" bila belum selesai.
+  - **Analisa Margin**: per item dari `sale_items` + proyek **status `done` saja**.
+    Baris jasa modal 0 → margin 100% (sama seperti Excel).
+  - **PPh 23 (migrasi `20260802_invoice_pph23.sql`)**: kolom `pph_base/pph_rate/
+    pph_amount` di `monthly_invoices`; `mark_invoice_paid` dapat 2 parameter baru
+    **di akhir dengan default** (pemanggilan lama 3-argumen tetap jalan) dan kini
+    memasukkan **NETTO** ke wallet → saldo tetap cocok mutasi bank. Fungsi
+    `invoice_service_base(uuid)` menghitung dasar kena pajak otomatis = Σ baris
+    **jasa** (`products.is_service`) — memanfaatkan flag dari fitur jual JASA;
+    hasilnya cocok persis dengan Excel user (Ubud 2.350.000, School 0, dst).
+    **PDF invoice TIDAK berubah** (tetap ditagih bruto). User memilih **Opsi B**:
+    PPh dicatat sebagai BIAYA bertanda "Pajak PPh 23", bukan aset kredit pajak.
+    View `v_monthly_invoices` dibuat ulang — kolom baru WAJIB di akhir SELECT.
+  - **Riwayat Transaksi**: kini juga menampilkan **pelunasan invoice** (netto) dan
+    **termin + biaya proyek RAB untuk proyek `done` saja**. ⚠️ **Gotcha dobel-hitung**:
+    penjualan metode `monthly_invoice` sudah tampil sebagai baris penjualan, jadi
+    baris pelunasan invoice akan menghitung uang yang sama dua kali. Diatasi dengan
+    field `TxRow.countInTotal` — baris penjualan invoice tetap TAMPIL (rincian
+    terlihat) tapi **tidak dijumlahkan**; yang dijumlahkan baris pelunasannya.
+    Kolom **saldo berjalan sengaja TIDAK dibuat** (dibatalkan user: sulit
+    penempatannya, dan hanya valid bila difilter satu wallet).
+  - **Export**: satu tombol `ReportDownload` (dropdown Excel/PDF) per laporan —
+    bukan 2 tombol terpisah, karena 3 laporan × 2 format = 6 tombol terlalu penuh.
+    Route `/api/reports/{profit-loss,margin,transactions}?from=&to=&format=`.
+    Excel memakai **rumus** (SUM/IFERROR), bukan angka mati, agar sheet tetap hidup.
+
 - **2026-08-02 — Fitur jual JASA (tanpa modal/stok) di form Penjualan.**
   Kasus nyata: "install ulang laptop Rp100.000, tanpa modal". Sebelumnya tak bisa
   dicatat — form penjualan hanya menjual produk (validasi stok memblokir stok 0),
