@@ -36,6 +36,10 @@ export async function markInvoicePaid(input: {
   invoice_id: string;
   wallet_id: string;
   paid_date: string;
+  /** Dasar kena pajak = nilai JASA saja. 0 = tidak ada potongan PPh. */
+  pph_base?: number;
+  /** Tarif PPh 23 dalam persen (default 2,5). */
+  pph_rate?: number;
 }): Promise<Result> {
   if (!input.wallet_id) return { error: "Pilih wallet penerima." };
   const supabase = await createClient();
@@ -43,10 +47,13 @@ export async function markInvoicePaid(input: {
     p_invoice_id: input.invoice_id,
     p_wallet_id: input.wallet_id,
     p_paid_date: input.paid_date,
+    p_pph_base: input.pph_base ?? 0,
+    p_pph_rate: input.pph_rate ?? 2.5,
   });
   if (error) return { error: error.message || "Gagal menandai lunas." };
   revalidatePath("/invoices");
   revalidatePath("/wallets");
+  revalidatePath("/reports");
   return { success: true };
 }
 

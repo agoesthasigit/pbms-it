@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -15,16 +16,19 @@ import {
 } from "@/components/ui/select";
 import { formatIDR } from "@/lib/utils/currency";
 import { todayISO } from "@/lib/utils/date";
+import { toNumber } from "@/lib/utils/number";
 import { SendEmailDialog } from "@/components/shared/send-email-dialog";
 import type { WalletWithBalance } from "@/types/db";
 import type { MonthlyInvoice } from "@/types/phase4";
 import { markInvoicePaid, setInvoiceStatus, sendInvoiceEmail } from "../actions";
 
 export function InvoiceActions({
-  invoice, wallets,
+  invoice, wallets, serviceBase,
 }: {
   invoice: MonthlyInvoice;
   wallets: WalletWithBalance[];
+  /** Nilai JASA di invoice ini — jadi usulan dasar kena pajak PPh 23. */
+  serviceBase: number;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -32,6 +36,18 @@ export function InvoiceActions({
   const [walletId, setWalletId] = useState("");
   const [paidDate, setPaidDate] = useState(todayISO());
   const [emailOpen, setEmailOpen] = useState(false);
+
+  // PPh 23: aktif otomatis bila invoice mengandung jasa (barang tidak kena).
+  const [pphOn, setPphOn] = useState(serviceBase > 0);
+  const [pphBase, setPphBase] = useState(String(serviceBase || ""));
+  const [pphRate, setPphRate] = useState("2.5");
+
+  const bruto = Number(invoice.total);
+  const base = pphOn ? toNumber(pphBase) : 0;
+  const rate = pphOn ? toNumber(pphRate) : 0;
+  const pph = Math.round((base * rate) / 100);
+  const netto = bruto - pph;
+  const baseTooBig = base > bruto;
 
   const isPaid = invoice.status === "paid";
 
@@ -67,9 +83,14 @@ export function InvoiceActions({
     startTransition(async () => {
       const res = await markInvoicePaid({
         invoice_id: invoice.id, wallet_id: walletId, paid_date: paidDate,
+        pph_base: base, pph_rate: rate || 2.5,
       });
       if (res.error) { toast.error(res.error); return; }
-      toast.success("Invoice lunas. Pemasukan masuk ke wallet.");
+      toast.success(
+        pph > 0
+          ? `Invoice lunas. ${formatIDR(netto)} masuk wallet (PPh 23 ${formatIDR(pph)} dipotong client).`
+          : "Invoice lunas. Pemasukan masuk ke wallet."
+      );
       setPaidOpen(false);
       router.refresh();
     });
@@ -110,9 +131,62 @@ export function InvoiceActions({
           </DialogHeader>
           <div className="space-y-4">
             <div className="rounded-lg bg-muted px-4 py-3">
-              <p className="text-sm text-muted-foreground">Total ditagih</p>
-              <p className="text-xl font-bold">{formatIDR(Number(invoice.total))}</p>
+              <p className="text-sm text-muted-foreground">Total ditagih (bruto)</p>
+              <p className="text-xl font-bold">{formatIDR(bruto)}</p>
             </div>
+
+            {/* PPh 23 — invoice tetap ditagih penuh, client memotong pajaknya */}
+            <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-500/25 dark:bg-amber-500/10">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Client memotong PPh 23</p>
+                  <p className="text-xs text-muted-foreground">
+                    Hanya atas nilai jasa — penjualan barang tidak kena.
+                  </p>
+                </div>
+                <Switch checked={pphOn} onCheckedChange={setPphOn} />
+              </div>
+
+              {pphOn && (
+                <>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="col-span-2 space-y-1.5">
+                      <Label className="text-xs">Dasar kena pajak (jasa)</Label>
+                      <Input type="number" min={0} value={pphBase}
+                        className={baseTooBig ? "border-destructive" : ""}
+                        onChange={(e) => setPphBase(e.target.value)} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Tarif (%)</Label>
+                      <Input type="number" min={0} step="0.1" value={pphRate}
+                        onChange={(e) => setPphRate(e.target.value)} />
+                    </div>
+                  </div>
+                  {serviceBase > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Nilai jasa di invoice ini: <b>{formatIDR(serviceBase)}</b> (terisi otomatis).
+                    </p>
+                  )}
+                  {baseTooBig && (
+                    <p className="text-xs text-destructive">
+                      Dasar kena pajak melebihi total invoice.
+                    </p>
+                  )}
+                </>
+              )}
+
+              <div className="space-y-1 border-t border-amber-200 pt-2 text-sm dark:border-amber-500/25">
+                <div className="flex justify-between text-muted-foreground">
+                  <span>PPh 23 dipotong</span>
+                  <span>− {formatIDR(pph)}</span>
+                </div>
+                <div className="flex justify-between font-semibold">
+                  <span>Uang masuk wallet</span>
+                  <span className="text-emerald-600 dark:text-emerald-400">{formatIDR(netto)}</span>
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label>Wallet Penerima *</Label>
               <Select items={walletItems} value={walletId || null}
@@ -133,7 +207,7 @@ export function InvoiceActions({
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPaidOpen(false)}>Batal</Button>
-            <Button onClick={handlePaid} disabled={pending || !walletId}>
+            <Button onClick={handlePaid} disabled={pending || !walletId || baseTooBig}>
               {pending && <Loader2 className="h-4 w-4 animate-spin" />}
               Konfirmasi Lunas
             </Button>

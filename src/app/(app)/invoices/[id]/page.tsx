@@ -46,6 +46,10 @@ export default async function InvoiceDetailPage({
     .eq("monthly_invoice_id", id)
     .order("sale_date");
 
+  // Nilai JASA di invoice ini → usulan dasar kena pajak PPh 23 saat pelunasan
+  const { data: serviceBase } = await supabase
+    .rpc("invoice_service_base", { p_invoice_id: id });
+
   const { data: balances } = await supabase.from("v_wallet_balances").select("*");
   const { data: rawWallets } = await supabase.from("wallets").select("*").order("created_at");
   const wallets: WalletWithBalance[] = (rawWallets ?? []).map((w) => ({
@@ -76,7 +80,8 @@ export default async function InvoiceDetailPage({
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Badge className={STATUS_STYLE[st]}>{INVOICE_STATUS_LABELS[st]}</Badge>
-        <InvoiceActions invoice={inv} wallets={wallets} />
+        <InvoiceActions invoice={inv} wallets={wallets}
+          serviceBase={Number(serviceBase ?? 0)} />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -103,6 +108,39 @@ export default async function InvoiceDetailPage({
           </CardContent>
         </Card>
       </div>
+
+      {/* PPh 23: invoice ditagih penuh, client memotong pajak atas jasa */}
+      {Number(inv.pph_amount ?? 0) > 0 && (
+        <Card className="border-amber-200 bg-amber-50/60 dark:border-amber-500/25 dark:bg-amber-500/10">
+          <CardHeader>
+            <CardTitle className="text-base">Potongan PPh 23 (Pajak Jasa)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1.5 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Ditagihkan ke client (bruto)</span>
+              <span className="font-medium">{formatIDR(Number(inv.total))}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">
+                Dasar kena pajak (jasa) × {Number(inv.pph_rate ?? 2.5)}%
+              </span>
+              <span className="font-medium">{formatIDR(Number(inv.pph_base ?? 0))}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">PPh 23 dipotong client</span>
+              <span className="font-medium text-destructive">
+                − {formatIDR(Number(inv.pph_amount ?? 0))}
+              </span>
+            </div>
+            <div className="flex justify-between border-t border-amber-200 pt-1.5 font-semibold dark:border-amber-500/25">
+              <span>Uang diterima (netto)</span>
+              <span className="text-emerald-600 dark:text-emerald-400">
+                {formatIDR(Number(inv.total) - Number(inv.pph_amount ?? 0))}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader><CardTitle className="text-base">Rincian Penjualan</CardTitle></CardHeader>

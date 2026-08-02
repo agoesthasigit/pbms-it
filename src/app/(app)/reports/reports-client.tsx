@@ -21,11 +21,18 @@ import { formatIDR } from "@/lib/utils/currency";
 const tipFormat = (v: unknown) => formatIDR(Number(v ?? 0));
 import { StatCard } from "@/components/shared/stat-card";
 import {
+  Tabs, TabsContent, TabsList, TabsTrigger,
+} from "@/components/ui/tabs";
+import {
   PeriodPicker, presetThisMonth, type Period,
 } from "@/components/shared/period-picker";
 import type {
   FinanceSummary, MonthlyTrend, IncomeBreakdown, OpExpenseBreakdown,
 } from "@/types/phase8";
+import type { ProfitLoss, MarginReport } from "@/types/reports";
+import { ProfitLossView } from "./profit-loss-view";
+import { MarginView } from "./margin-view";
+import { getProfitLoss, getMarginReport } from "./actions";
 
 const shortMonth = (iso: string) =>
   new Date(iso).toLocaleDateString("id-ID", { month: "short", year: "2-digit" });
@@ -87,6 +94,24 @@ export function ReportsClient() {
   const [prevSpending, setPrevSpending] = useState(0);
   const [catBreakdown, setCatBreakdown] = useState<{ name: string; value: number }[]>([]);
   const [lastRecords, setLastRecords] = useState<RecordRow[]>([]);
+  const [pl, setPl] = useState<ProfitLoss | null>(null);
+  const [marginReport, setMarginReport] = useState<MarginReport | null>(null);
+
+  // Laba Rugi & Analisa Margin dihitung di server (server action) supaya
+  // rumusnya sama persis dengan yang dipakai route export Excel/PDF.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const [plRes, mRes] = await Promise.all([
+        getProfitLoss(period.from, period.to),
+        getMarginReport(period.from, period.to),
+      ]);
+      if (!active) return;
+      setPl(plRes);
+      setMarginReport(mRes);
+    })();
+    return () => { active = false; };
+  }, [period]);
 
   useEffect(() => {
     let active = true;
@@ -194,6 +219,15 @@ export function ReportsClient() {
   return (
     <div className="space-y-6">
       <PeriodPicker period={period} onChange={setPeriod} />
+
+      <Tabs defaultValue="ringkasan">
+        <TabsList>
+          <TabsTrigger value="ringkasan">Ringkasan</TabsTrigger>
+          <TabsTrigger value="labarugi">Laba Rugi</TabsTrigger>
+          <TabsTrigger value="margin">Analisa Margin</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="ringkasan" className="space-y-6 pt-2">
 
       {/* 6 kartu sesuai urutan permintaan */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -442,6 +476,17 @@ export function ReportsClient() {
           </CardContent>
         </Card>
       </div>
+
+        </TabsContent>
+
+        <TabsContent value="labarugi" className="pt-2">
+          <ProfitLossView data={pl} loading={pl === null} />
+        </TabsContent>
+
+        <TabsContent value="margin" className="pt-2">
+          <MarginView data={marginReport} loading={marginReport === null} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

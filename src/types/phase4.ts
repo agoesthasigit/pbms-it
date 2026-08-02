@@ -14,6 +14,10 @@ export type MonthlyInvoice = {
   created_at: string;
   email_sent_at?: string | null;
   email_sent_to?: string | null;
+  // PPh 23 atas jasa — diisi saat pelunasan (invoice tetap ditagih bruto)
+  pph_base?: number;    // dasar kena pajak = nilai jasa saja
+  pph_rate?: number;    // tarif persen, default 2,5
+  pph_amount?: number;  // yang dipotong client
   // dari view v_monthly_invoices:
   company_name?: string;
   contact_name?: string | null;

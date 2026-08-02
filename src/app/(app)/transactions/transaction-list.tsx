@@ -23,29 +23,16 @@ import { StatCard } from "@/components/shared/stat-card";
 import { SOFT_TONES } from "@/lib/utils/soft-tone";
 import { usePagination } from "@/components/shared/use-pagination";
 import { PaginationBar } from "@/components/shared/pagination-bar";
+import { ReportDownload } from "@/components/shared/report-download";
+import { type TxRow, TX_SOURCE_LABEL } from "@/types/reports";
 
-export type TxRow = {
-  key: string;
-  source: "sale" | "purchase" | "op" | "personal";
-  direction: "in" | "out";
-  date: string;
-  party: string;
-  walletId: string | null;
-  walletName: string;
-  categoryId: string | null;
-  labelId: string | null;
-  labelName?: string | null;
-  labelColor?: string | null;
-  description: string;
-  amount: number;
-  isPiutang: boolean;
-};
+// Tipe & label baris dipindah ke types/reports.ts agar dipakai bersama
+// dengan route export (isi layar & file unduhan harus identik).
+export type { TxRow };
 
 type Opt = { value: string; label: string };
 
-const SOURCE_LABEL: Record<TxRow["source"], string> = {
-  sale: "Penjualan", purchase: "Pembelian", op: "Operasional", personal: "Pribadi",
-};
+const SOURCE_LABEL = TX_SOURCE_LABEL;
 
 const fmt = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -101,8 +88,11 @@ export function TransactionList({
     });
   }, [rows, from, to, dir, walletId, categoryId, labelId, q]);
 
-  const inRows = filtered.filter((r) => r.direction === "in");
-  const outRows = filtered.filter((r) => r.direction === "out");
+  // Baris ber-countInTotal=false (penjualan via invoice) tetap tampil di daftar
+  // tapi tidak dijumlahkan — uangnya dihitung lewat baris pelunasan invoice.
+  const counted = filtered.filter((r) => r.countInTotal !== false);
+  const inRows = counted.filter((r) => r.direction === "in");
+  const outRows = counted.filter((r) => r.direction === "out");
   const totalIn = inRows.reduce((s, r) => s + r.amount, 0);
   const totalOut = outRows.reduce((s, r) => s + r.amount, 0);
   const net = totalIn - totalOut;
@@ -119,6 +109,15 @@ export function TransactionList({
 
   return (
     <div className="space-y-4">
+      {/* Unduhan mengikuti rentang tanggal yang sedang dipilih */}
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          Menampilkan {filtered.length} transaksi ({from} s/d {to})
+        </p>
+        <ReportDownload href="/api/reports/transactions" from={from} to={to}
+          label="Unduh Riwayat" />
+      </div>
+
       {/* Ringkasan mengikuti filter */}
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard label="Total Pemasukan" value={formatIDR(totalIn)} icon={TrendingUp}
