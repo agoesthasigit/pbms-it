@@ -46,7 +46,7 @@ export function ProductManager({
   const [form, setForm] = useState({
     name: "", sku: "", category_id: "", unit: "pcs",
     default_selling_price: "", min_stock: "0", default_warranty_months: "12",
-    is_active: true,
+    is_active: true, track_as_asset: true,
   });
 
   const [adjOpen, setAdjOpen] = useState(false);
@@ -89,7 +89,7 @@ export function ProductManager({
       unit: p.unit, default_selling_price: String(p.default_selling_price),
       min_stock: String(p.min_stock),
       default_warranty_months: String(p.default_warranty_months),
-      is_active: p.is_active,
+      is_active: p.is_active, track_as_asset: p.track_as_asset,
     });
     setEditOpen(true);
   }
@@ -109,6 +109,7 @@ export function ProductManager({
         min_stock: Number(form.min_stock) || 0,
         default_warranty_months: Number(form.default_warranty_months) || 0,
         is_active: form.is_active,
+        track_as_asset: form.track_as_asset,
       });
       if (res.error) { toast.error(res.error); return; }
       toast.success("Barang diperbarui.");
@@ -202,6 +203,7 @@ export function ProductManager({
                         <p className="font-medium">{p.name}</p>
                         <p className="text-xs text-muted-foreground">
                           {p.sku ?? "Tanpa SKU"}
+                          {!p.track_as_asset && " · Habis pakai"}
                           {empty && " · Stok habis"}
                           {!p.is_active && " · Nonaktif"}
                         </p>
@@ -307,6 +309,18 @@ export function ProductManager({
               <Label>Harga Jual Default (Rp)</Label>
               <Input type="number" min={0} value={form.default_selling_price}
                 onChange={(e) => setForm({ ...form, default_selling_price: e.target.value })} />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="pr-3">
+                <p className="text-sm font-medium">Jadikan aset client saat terjual</p>
+                <p className="text-xs text-muted-foreground">
+                  Aktif untuk barang tahan lama (printer, CPU) yang perlu dilacak
+                  garansi. Matikan untuk barang habis pakai (kertas, stempel) —
+                  modal & untung tetap dihitung, tapi tidak jadi aset client.
+                </p>
+              </div>
+              <Switch checked={form.track_as_asset}
+                onCheckedChange={(v) => setForm({ ...form, track_as_asset: v })} />
             </div>
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div>

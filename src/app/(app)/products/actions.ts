@@ -14,6 +14,7 @@ export type ProductInput = {
   min_stock: number;
   default_warranty_months: number;
   is_active?: boolean;
+  track_as_asset?: boolean;
 };
 
 function clean(input: ProductInput) {
@@ -26,6 +27,7 @@ function clean(input: ProductInput) {
     min_stock: input.min_stock || 0,
     default_warranty_months: input.default_warranty_months ?? 12,
     is_active: input.is_active ?? true,
+    track_as_asset: input.track_as_asset ?? true,
   };
 }
 

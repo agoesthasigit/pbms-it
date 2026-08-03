@@ -92,6 +92,7 @@ export type Product = {
   default_warranty_months: number;
   is_active: boolean;
   is_service: boolean;
+  track_as_asset: boolean;
   created_at: string;
 };
 

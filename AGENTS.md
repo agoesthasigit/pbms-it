@@ -86,6 +86,35 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
+- **2026-08-03 — Barang HABIS PAKAI (non-aset): flag `products.track_as_asset`.**
+  Aturan lama "setiap barang terjual otomatis jadi aset client" salah untuk
+  barang habis pakai (kertas QR, stempel, amplop, brosur) yang terlanjur masuk
+  daftar Aset Client. User memutuskan barang ini tetap diperlakukan **seperti
+  printer** (dibeli via Pembelian → modal, stok tercatat diam-diam, untung &
+  HPP dihitung) — SATU-SATUNYA beda: **tidak dibuatkan aset client** (otomatis
+  tanpa garansi). Bukan disamakan dengan jasa (jasa modal 0); barang ini punya
+  modal nyata dari vendor.
+  - Migrasi `20260803_product_track_as_asset.sql`: kolom
+    `products.track_as_asset boolean not null default true` (default = perilaku
+    lama, semua produk existing tetap aset). `create_sale` di-`CREATE OR REPLACE`
+    (tanda tangan sama) — cabang barang kini mengambil `track_as_asset` bersama
+    `last_purchase_price`, dan `insert into client_assets` dibungkus
+    `if coalesce(v_track_asset, true)`. `stock_movements` & `cost_price` TETAP
+    jalan untuk barang non-aset (stok/modal tak berubah).
+  - View `v_product_stock` dibuat ulang — halaman produk `select *` dari view
+    ini, jadi kolom baru WAJIB di **AKHIR** SELECT (setelah `current_stock`) agar
+    `CREATE OR REPLACE VIEW` diterima; tanpa itu `p.track_as_asset` undefined →
+    tag "Habis pakai" salah muncul di semua barang.
+  - UI: toggle **"Jadikan aset client saat terjual"** di dialog edit produk
+    (`products/product-manager.tsx`), default aktif. Daftar produk menampilkan
+    penanda **"· Habis pakai"** di subjudul nama untuk `!track_as_asset`. Tipe
+    `Product.track_as_asset` (`types/db.ts`) + `ProductInput.track_as_asset`
+    (`products/actions.ts`, default `?? true` di `clean()`).
+  - Aset yang terlanjur salah (Stempel, Amplop TIP, Brosur Lipat, Kertas QR
+    Code) **dihapus manual oleh user**, bukan lewat migrasi.
+  - Additive & mundur-kompatibel; form penjualan TIDAK berubah (barang non-aset
+    tetap muncul di dropdown & terjual seperti biasa, hanya tak jadi aset).
+
 - **2026-08-02 — Fix nomor invoice KEMBAR setelah ada invoice dihapus.**
   `generate_monthly_invoice` menentukan nomor urut dengan `count(*) + 1` atas
   invoice di bulan yang sama. Begitu satu invoice **dihapus**, count ikut turun
