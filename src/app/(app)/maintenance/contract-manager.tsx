@@ -20,6 +20,8 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
+import { usePagination } from "@/components/shared/use-pagination";
+import { PaginationBar } from "@/components/shared/pagination-bar";
 import { formatIDR } from "@/lib/utils/currency";
 import { formatDate, todayISO } from "@/lib/utils/date";
 import { toNumber } from "@/lib/utils/number";
@@ -69,6 +71,8 @@ export function ContractManager({
   const totalPerMonth = contracts
     .filter((c) => c.is_active)
     .reduce((s, c) => s + Number(c.monthly_amount), 0);
+
+  const pg = usePagination(contracts, 10);
 
   function openAdd() {
     setEditing(null);
@@ -147,6 +151,7 @@ export function ContractManager({
             <EmptyState icon={FileText} title="Belum ada kontrak maintenance"
               description="Buat kontrak untuk client yang membayar biaya maintenance rutin tiap bulan." />
           ) : (
+            <>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -160,7 +165,7 @@ export function ContractManager({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {contracts.map((c) => (
+                {pg.paged.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell className="font-medium">{c.company_name ?? "-"}</TableCell>
                     <TableCell className="max-w-xs">
@@ -194,6 +199,10 @@ export function ContractManager({
                 ))}
               </TableBody>
             </Table>
+            <PaginationBar page={pg.page} totalPages={pg.totalPages}
+              from={pg.from} to={pg.to} total={pg.total}
+              onPageChange={pg.setPage} unit="kontrak" />
+            </>
           )}
         </CardContent>
       </Card>
