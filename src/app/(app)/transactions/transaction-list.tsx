@@ -36,11 +36,12 @@ const SOURCE_LABEL = TX_SOURCE_LABEL;
 
 const fmt = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-function lastMonthRange() {
+// Rentang default = bulan berjalan penuh: tanggal 1 s/d akhir bulan.
+function thisMonthRange() {
   const now = new Date();
   return {
-    from: fmt(new Date(now.getFullYear(), now.getMonth() - 1, now.getDate())),
-    to: fmt(now),
+    from: fmt(new Date(now.getFullYear(), now.getMonth(), 1)),
+    to: fmt(new Date(now.getFullYear(), now.getMonth() + 1, 0)),
   };
 }
 
@@ -52,7 +53,7 @@ export function TransactionList({
   categories: Opt[];
   labels: Opt[];
 }) {
-  const def = lastMonthRange();
+  const def = thisMonthRange();
   const [from, setFrom] = useState(def.from);
   const [to, setTo] = useState(def.to);
   const [dir, setDir] = useState("all");
@@ -187,8 +188,8 @@ export function TransactionList({
           </div>
           <div className="flex items-end">
             <Button variant="outline" onClick={resetAll} className="w-full"
-              title="Kembali ke 1 bulan terakhir & hapus filter">
-              <RotateCcw className="h-4 w-4" /> Reset (1 Bulan)
+              title="Kembali ke bulan berjalan (tgl 1 s/d akhir bulan) & hapus filter">
+              <RotateCcw className="h-4 w-4" /> Reset (Bulan Ini)
             </Button>
           </div>
         </div>
