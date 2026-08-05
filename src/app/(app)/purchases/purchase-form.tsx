@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Loader2, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Loader2, X, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -112,8 +112,8 @@ export function PurchaseForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[92vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
+        <DialogHeader className="border-b px-5 py-4">
           <DialogTitle>Pembelian Barang Baru</DialogTitle>
         </DialogHeader>
 
@@ -121,9 +121,10 @@ export function PurchaseForm({
           {existingNames.map((n) => <option key={n} value={n} />)}
         </datalist>
 
-        <div className="space-y-4">
+        <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
+          {/* Info pembelian */}
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Distributor</Label>
               <Select items={distributorItems} value={distributorId || null}
                 onValueChange={(v) => setDistributorId(v ?? "")}>
@@ -135,7 +136,7 @@ export function PurchaseForm({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Wallet Pembayar *</Label>
               <Select items={walletItems} value={walletId || null}
                 onValueChange={(v) => setWalletId(v ?? "")}>
@@ -147,85 +148,100 @@ export function PurchaseForm({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Tanggal</Label>
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
-            <div className="space-y-2">
-              <Label>No. Nota (opsional)</Label>
+            <div className="space-y-1.5">
+              <Label>No. Nota <span className="text-muted-foreground">(opsional)</span></Label>
               <Input value={invoiceNo} onChange={(e) => setInvoiceNo(e.target.value)} />
             </div>
           </div>
 
-          {/* Baris item — NAMA DIKETIK BEBAS */}
+          {/* Daftar barang — tabel padat, NAMA DIKETIK BEBAS */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Daftar Barang yang Dibeli</Label>
-              <Button type="button" variant="outline" size="sm" onClick={addLine}>
-                <Plus className="h-3.5 w-3.5" /> Tambah Baris
-              </Button>
+              <span className="text-xs text-muted-foreground">
+                Ketik nama — stok lama otomatis digabung
+              </span>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Ketik nama barang bebas. Jika namanya sudah ada di stok, stok akan
-              digabung otomatis. Jika baru, barang otomatis ditambahkan ke stok.
-            </p>
-            <div className="space-y-2">
-              {lines.map((l, i) => {
-                const sub = toNumber(l.qty) * toNumber(l.price);
-                const matched = matchedProduct(l.name);
-                return (
-                  <div key={i} className="rounded-lg border p-3 space-y-2">
-                    <div className="grid grid-cols-12 gap-2">
-                      <div className="col-span-12 sm:col-span-5">
-                        <Input list="product-name-suggestions"
-                          placeholder="Nama barang (mis. Router TP-Link C6)"
-                          value={l.name}
-                          onChange={(e) => setLine(i, { name: e.target.value })} />
-                        {matched && (
-                          <p className="mt-1 text-xs text-emerald-600">
-                            Sudah ada di stok ({matched.current_stock} {matched.unit}) — akan digabung
-                          </p>
-                        )}
-                        {!matched && l.name.trim() && (
-                          <p className="mt-1 text-xs text-sky-600">
-                            Barang baru — akan ditambahkan ke stok
-                          </p>
-                        )}
-                      </div>
-                      <div className="col-span-3 sm:col-span-2">
-                        <Input type="number" min={1} placeholder="Qty" value={l.qty}
-                          onChange={(e) => setLine(i, { qty: e.target.value })} />
-                      </div>
-                      <div className="col-span-6 sm:col-span-3">
-                        <Input type="number" min={0} placeholder="Harga beli" value={l.price}
-                          onChange={(e) => setLine(i, { price: e.target.value })} />
-                      </div>
-                      <div className="col-span-3 sm:col-span-2 flex items-center justify-end">
-                        <Button type="button" variant="ghost" size="icon"
-                          className="text-muted-foreground hover:text-destructive"
-                          onClick={() => removeLine(i)} disabled={lines.length === 1}>
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
 
-                    {/* Opsi lanjutan (harga jual & garansi) — berguna untuk barang baru */}
-                    <div>
-                      <button type="button"
-                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                        onClick={() => setLine(i, { showAdv: !l.showAdv })}>
-                        {l.showAdv ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                        Atur harga jual & garansi {matched ? "(opsional)" : "(untuk barang baru)"}
-                      </button>
+            <div className="overflow-hidden rounded-lg border">
+              {/* Header kolom (sm ke atas) */}
+              <div className="hidden grid-cols-12 gap-2 bg-muted/60 px-3 py-2 text-xs text-muted-foreground sm:grid">
+                <span className="col-span-5">Nama barang</span>
+                <span className="col-span-2 text-center">Qty</span>
+                <span className="col-span-2 text-right">Harga beli</span>
+                <span className="col-span-2 text-right">Subtotal</span>
+                <span className="col-span-1" />
+              </div>
+
+              <div className="divide-y">
+                {lines.map((l, i) => {
+                  const sub = toNumber(l.qty) * toNumber(l.price);
+                  const matched = matchedProduct(l.name);
+                  return (
+                    <div key={i} className="px-3 py-2.5">
+                      <div className="grid grid-cols-12 items-center gap-2">
+                        <div className="col-span-12 sm:col-span-5">
+                          <div className="flex items-center gap-1.5">
+                            <Input list="product-name-suggestions"
+                              className="min-w-0 flex-1"
+                              placeholder="Nama barang (mis. Router TP-Link C6)"
+                              value={l.name}
+                              onChange={(e) => setLine(i, { name: e.target.value })} />
+                            {matched && (
+                              <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
+                                stok {matched.current_stock}
+                              </span>
+                            )}
+                            {!matched && l.name.trim() && (
+                              <span className="shrink-0 rounded-full bg-sky-500/10 px-2 py-0.5 text-[10px] font-medium text-sky-600">
+                                baru
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="col-span-3 sm:col-span-2">
+                          <Input type="number" min={1} placeholder="Qty"
+                            className="text-center" value={l.qty}
+                            onChange={(e) => setLine(i, { qty: e.target.value })} />
+                        </div>
+                        <div className="col-span-4 sm:col-span-2">
+                          <Input type="number" min={0} placeholder="Harga"
+                            className="text-right" value={l.price}
+                            onChange={(e) => setLine(i, { price: e.target.value })} />
+                        </div>
+                        <div className="col-span-3 truncate text-right text-xs font-medium sm:col-span-2">
+                          {sub > 0 ? formatIDR(sub) : "—"}
+                        </div>
+                        <div className="col-span-2 flex items-center justify-end gap-0.5 sm:col-span-1">
+                          <Button type="button" variant="ghost" size="icon-sm"
+                            className={l.showAdv ? "text-primary" : "text-muted-foreground hover:text-foreground"}
+                            aria-label="Atur harga jual & garansi"
+                            onClick={() => setLine(i, { showAdv: !l.showAdv })}>
+                            <SlidersHorizontal className="h-4 w-4" />
+                          </Button>
+                          <Button type="button" variant="ghost" size="icon-sm"
+                            className="text-muted-foreground hover:text-destructive"
+                            aria-label="Hapus baris"
+                            onClick={() => removeLine(i)} disabled={lines.length === 1}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Opsi lanjutan (harga jual & garansi) */}
                       {l.showAdv && (
-                        <div className="mt-2 grid grid-cols-2 gap-2">
-                          <div>
+                        <div className="mt-2.5 grid grid-cols-2 gap-3 rounded-lg bg-muted/50 p-3">
+                          <div className="space-y-1">
                             <Label className="text-xs">Harga Jual Default (Rp)</Label>
                             <Input type="number" min={0} placeholder="Harga jual"
                               value={l.selling_price}
                               onChange={(e) => setLine(i, { selling_price: e.target.value })} />
                           </div>
-                          <div>
+                          <div className="space-y-1">
                             <Label className="text-xs">Garansi (bulan)</Label>
                             <Input type="number" min={0} placeholder="12"
                               value={l.warranty_months}
@@ -234,35 +250,35 @@ export function PurchaseForm({
                         </div>
                       )}
                     </div>
-
-                    {sub > 0 && (
-                      <p className="text-right text-xs text-muted-foreground">
-                        Subtotal: <b>{formatIDR(sub)}</b>
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
+
+            <Button type="button" variant="outline" size="sm" onClick={addLine}>
+              <Plus className="h-3.5 w-3.5" /> Tambah Barang
+            </Button>
           </div>
 
-          <div className="space-y-2">
-            <Label>Catatan (opsional)</Label>
+          <div className="space-y-1.5">
+            <Label>Catatan <span className="text-muted-foreground">(opsional)</span></Label>
             <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
-          </div>
-
-          <div className="flex items-center justify-between rounded-lg bg-muted px-4 py-3">
-            <span className="font-medium">Total Pembelian</span>
-            <span className="text-lg font-bold">{formatIDR(total)}</span>
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Batal</Button>
-          <Button onClick={handleSave} disabled={pending || !walletId || total <= 0}>
-            {pending && <Loader2 className="h-4 w-4 animate-spin" />}
-            Simpan Pembelian
-          </Button>
+        {/* Footer menempel: total + aksi */}
+        <DialogFooter className="mx-0 mb-0 flex-row items-center justify-between gap-3 border-t bg-muted px-5 py-3.5 sm:justify-between">
+          <div>
+            <div className="text-xs text-muted-foreground">Total Pembelian</div>
+            <div className="text-lg font-bold">{formatIDR(total)}</div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Batal</Button>
+            <Button onClick={handleSave} disabled={pending || !walletId || total <= 0}>
+              {pending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Simpan Pembelian
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

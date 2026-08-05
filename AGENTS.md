@@ -86,6 +86,42 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
+- **2026-08-06 — Rapikan UI form Pembelian & Penjualan (daftar barang jadi tabel).**
+  User menilai form "Tambah Pembelian" & "Tambah Penjualan" terlalu ribet: tiap
+  baris item dibungkus kartu berbingkai tebal, tinggi, plus accordion/baris kedua
+  penuh untuk opsi lanjutan → banyak scroll & noise. Perubahan **murni tata letak
+  JSX/CSS** — `handleSave`, `createPurchase`/`createSale`, dan seluruh state TIDAK
+  disentuh; tak ada field yang dihapus. Alur data & DB identik.
+  - **Daftar item jadi tabel padat berkolom** (header `Nama · Qty · Harga ·
+    Subtotal` sekali di atas, baris tipis dipisah `divide-y` di dalam satu
+    `border rounded-lg` — bukan lagi kartu per item). Subtotal jadi kolom, bukan
+    teks per kartu. Qty `text-center`, harga & subtotal `text-right`.
+  - **Opsi lanjutan disembunyikan di balik ikon `SlidersHorizontal`** per baris
+    (state `Line.showAdv`, ikon menyala `text-primary` saat aktif). Pembelian:
+    strip = Harga Jual Default + Garansi. Penjualan: strip = Garansi + Serial
+    number (dulu baris kedua penuh). Semua baris tetap bisa buka strip → tak ada
+    fitur hilang.
+  - **Status stok jadi badge kecil** di sebelah nama: pembelian `stok N` hijau /
+    `baru` biru; penjualan `stok N` hijau (merah bila qty > stok) di samping
+    `<Select>` barang. Gotcha penjualan: label `productItems` DIUBAH jadi **nama
+    saja** (dulu `"nama (stok N)"`) + `SelectTrigger` diberi `w-full min-w-0
+    flex-1` supaya nama panjang **truncate** memenuhi kolom, tidak menabrak stok/
+    panah. Stok tetap tampil di **dropdown** via `<span>· stok N</span>` di dalam
+    `SelectItem` (trigger tetap nama saja karena prop `items` yang menentukan teks
+    trigger, bukan isi `SelectItem`).
+  - **Footer menempel** (`DialogContent` jadi `flex flex-col p-0`, area tengah
+    `flex-1 overflow-y-auto`, `DialogFooter` di-`border-t bg-muted`): Total di kiri
+    + Batal/Simpan di kanan, selalu terlihat tanpa scroll. Header juga `border-b`.
+  - **Penjualan** tetap membedakan baris jasa (tint biru `bg-sky-50/60` + ikon
+    `Wrench`, tanpa strip garansi/serial) dari baris barang; peringatan
+    "Stok tidak cukup" jadi baris merah kecil di bawah baris + border-merah pada
+    input qty. Panel kondisional **Terhutang** & **Invoice bulanan** dipertahankan,
+    dirapikan (ikon `Clock`/`FileText` + field lebih rapat). Tombol "Tambah Barang"
+    & "Tambah Jasa" tetap, pindah ke header daftar.
+  - File: `src/app/(app)/purchases/purchase-form.tsx`,
+    `src/app/(app)/sales/sale-form.tsx`. Diverifikasi `tsc --noEmit` bersih;
+    verifikasi visual di app tidak bisa (halaman di balik login).
+
 - **2026-08-03 — Barang HABIS PAKAI (non-aset): flag `products.track_as_asset`.**
   Aturan lama "setiap barang terjual otomatis jadi aset client" salah untuk
   barang habis pakai (kertas QR, stempel, amplop, brosur) yang terlanjur masuk

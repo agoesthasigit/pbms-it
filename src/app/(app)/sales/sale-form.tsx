@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, X, Wrench, Package } from "lucide-react";
+import { Loader2, X, Wrench, Package, SlidersHorizontal, Clock, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,14 +26,17 @@ type Line = {
   product_id: string; qty: string; price: string;
   warranty_months: string; serial_number: string;
   name: string; // nama jasa (bebas) — hanya dipakai saat kind === "service"
+  showAdv: boolean; // strip lanjutan (garansi + serial) terbuka?
 };
 const newLine = (): Line => ({
   kind: "product",
   product_id: "", qty: "1", price: "", warranty_months: "12", serial_number: "", name: "",
+  showAdv: false,
 });
 const newServiceLine = (): Line => ({
   kind: "service",
   product_id: "", qty: "1", price: "", warranty_months: "0", serial_number: "", name: "",
+  showAdv: false,
 });
 
 // akhir bulan dari string "YYYY-MM" → "YYYY-MM-DD"
@@ -82,11 +85,11 @@ export function SaleForm({
     // produk jasa (is_service, mis. "Jasa") disembunyikan dari dropdown barang;
     // barang stok habis (≤0) juga disembunyikan agar dropdown tak kepanjangan —
     // yang muncul hanya barang yang masih bisa dijual. Jasa tetap lewat "Tambah Jasa".
+    // Label = NAMA saja (stok ditampilkan terpisah: badge di trigger + teks di dropdown)
+    // supaya nama panjang tidak menabrak stok/panah di trigger.
     () => products
       .filter((p) => !p.is_service && Number(p.current_stock) > 0)
-      .map((p) => ({
-        value: p.id, label: `${p.name} (stok ${p.current_stock})`,
-      })),
+      .map((p) => ({ value: p.id, label: p.name })),
     [products]
   );
 
@@ -176,12 +179,15 @@ export function SaleForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl">
-        <DialogHeader><DialogTitle>Penjualan Baru (Barang / Jasa)</DialogTitle></DialogHeader>
+      <DialogContent className="flex max-h-[92vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
+        <DialogHeader className="border-b px-5 py-4">
+          <DialogTitle>Penjualan Baru (Barang / Jasa)</DialogTitle>
+        </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
+          {/* Info penjualan */}
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Client *</Label>
               <Select items={clientItems} value={clientId || null}
                 onValueChange={(v) => setClientId(v ?? "")}>
@@ -193,11 +199,11 @@ export function SaleForm({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Tanggal Jual</Label>
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Metode Bayar *</Label>
               <Select items={methodItems} value={method}
                 onValueChange={(v) => setMethod((v ?? "cash") as PaymentMethod)}>
@@ -210,7 +216,7 @@ export function SaleForm({
               </Select>
             </div>
             {paysNow && (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>Wallet Penerima *</Label>
                 <Select items={walletItems} value={walletId || null}
                   onValueChange={(v) => setWalletId(v ?? "")}>
@@ -227,43 +233,52 @@ export function SaleForm({
 
           {/* Jatuh tempo untuk penjualan terhutang (piutang non-invoice) */}
           {method === "terhutang" && (
-            <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-500/25 dark:bg-amber-500/10">
-              <p className="text-sm text-amber-800 dark:text-amber-300">
-                Penjualan ini menjadi <b>piutang (terhutang)</b> dan <b>belum</b> menambah
-                saldo wallet. Tandai lunas nanti saat client membayar.
-              </p>
-              <div className="space-y-2 sm:max-w-xs">
-                <Label>Jatuh Tempo (opsional)</Label>
-                <Input type="date" value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)} />
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-500/25 dark:bg-amber-500/10">
+              <div className="flex gap-2">
+                <Clock className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <div className="flex-1 space-y-2.5">
+                  <p className="text-sm text-amber-800 dark:text-amber-300">
+                    Jadi <b>piutang (terhutang)</b>, belum menambah saldo wallet.
+                    Tandai lunas saat client membayar.
+                  </p>
+                  <div className="space-y-1.5 sm:max-w-56">
+                    <Label className="text-xs text-amber-800 dark:text-amber-300">Jatuh Tempo (opsional)</Label>
+                    <Input type="date" value={dueDate}
+                      onChange={(e) => setDueDate(e.target.value)} />
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
           {/* Periode & jatuh tempo hanya untuk invoice bulanan */}
           {method === "monthly_invoice" && (
-            <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-500/25 dark:bg-amber-500/10">
-              <p className="text-sm text-amber-800 dark:text-amber-300">
-                Penjualan ini menjadi <b>piutang</b> & otomatis masuk invoice bulanan.
-                Penjualan dengan <b>client + periode + jatuh tempo yang sama</b> akan
-                digabung ke satu invoice.
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Periode (bulan tagihan) *</Label>
-                  <Input type="month" value={period}
-                    onChange={(e) => onChangePeriod(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Jatuh Tempo *</Label>
-                  <Input type="date" value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)} />
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-500/25 dark:bg-amber-500/10">
+              <div className="flex gap-2">
+                <FileText className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <div className="flex-1 space-y-2.5">
+                  <p className="text-sm text-amber-800 dark:text-amber-300">
+                    Jadi <b>piutang</b> & otomatis masuk invoice bulanan. Penjualan dengan
+                    <b> client + periode + jatuh tempo yang sama</b> digabung ke satu invoice.
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-amber-800 dark:text-amber-300">Periode (bulan tagihan) *</Label>
+                      <Input type="month" value={period}
+                        onChange={(e) => onChangePeriod(e.target.value)} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-amber-800 dark:text-amber-300">Jatuh Tempo *</Label>
+                      <Input type="date" value={dueDate}
+                        onChange={(e) => setDueDate(e.target.value)} />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Baris item — barang (stok/garansi) & jasa (tanpa modal/stok) */}
+          {/* Baris item — tabel padat: barang (stok/garansi) & jasa (tanpa modal/stok) */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Daftar Barang &amp; Jasa</Label>
@@ -276,122 +291,174 @@ export function SaleForm({
                 </Button>
               </div>
             </div>
-            <div className="space-y-2">
-              {lines.map((l, i) => {
-                const sub = toNumber(l.qty) * toNumber(l.price);
 
-                // ---- Baris JASA: nama bebas + qty + harga, tanpa stok/garansi ----
-                if (l.kind === "service") {
-                  return (
-                    <div key={i} className="rounded-lg border border-sky-200 bg-sky-50/60 p-3 space-y-2 dark:border-sky-500/25 dark:bg-sky-500/10">
-                      <div className="flex items-center gap-1.5 text-xs font-medium text-sky-700 dark:text-sky-300">
-                        <Wrench className="h-3.5 w-3.5" /> Jasa / Layanan
+            <div className="overflow-hidden rounded-lg border">
+              {/* Header kolom (sm ke atas) */}
+              <div className="hidden grid-cols-12 gap-2 bg-muted/60 px-3 py-2 text-xs text-muted-foreground sm:grid">
+                <span className="col-span-5">Barang / jasa</span>
+                <span className="col-span-2 text-center">Qty</span>
+                <span className="col-span-2 text-right">Harga</span>
+                <span className="col-span-2 text-right">Subtotal</span>
+                <span className="col-span-1" />
+              </div>
+
+              <div className="divide-y">
+                {lines.map((l, i) => {
+                  const sub = toNumber(l.qty) * toNumber(l.price);
+
+                  // ---- Baris JASA: nama bebas + qty + harga, tanpa stok/garansi ----
+                  if (l.kind === "service") {
+                    return (
+                      <div key={i} className="bg-sky-50/60 px-3 py-2.5 dark:bg-sky-500/10">
+                        <div className="grid grid-cols-12 items-center gap-2">
+                          <div className="col-span-12 sm:col-span-5">
+                            <div className="flex items-center gap-1.5">
+                              <Wrench className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-400" />
+                              <Input className="min-w-0 flex-1"
+                                placeholder="Nama jasa (mis. Install ulang laptop)"
+                                value={l.name}
+                                onChange={(e) => setLine(i, { name: e.target.value })} />
+                            </div>
+                          </div>
+                          <div className="col-span-3 sm:col-span-2">
+                            <Input type="number" min={1} placeholder="Qty"
+                              className="text-center" value={l.qty}
+                              onChange={(e) => setLine(i, { qty: e.target.value })} />
+                          </div>
+                          <div className="col-span-4 sm:col-span-2">
+                            <Input type="number" min={0} placeholder="Harga"
+                              className="text-right" value={l.price}
+                              onChange={(e) => setLine(i, { price: e.target.value })} />
+                          </div>
+                          <div className="col-span-3 truncate text-right text-xs font-medium sm:col-span-2">
+                            {sub > 0 ? formatIDR(sub) : "—"}
+                          </div>
+                          <div className="col-span-2 flex items-center justify-end sm:col-span-1">
+                            <Button type="button" variant="ghost" size="icon-sm"
+                              className="text-muted-foreground hover:text-destructive"
+                              aria-label="Hapus baris"
+                              onClick={() => removeLine(i)} disabled={lines.length === 1}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
                       </div>
-                      <div className="grid grid-cols-12 gap-2">
+                    );
+                  }
+
+                  // ---- Baris BARANG: produk + stok + garansi + serial ----
+                  const over = l.product_id && toNumber(l.qty) > stockOf(l.product_id);
+                  return (
+                    <div key={i} className="px-3 py-2.5">
+                      <div className="grid grid-cols-12 items-center gap-2">
                         <div className="col-span-12 sm:col-span-5">
-                          <Input placeholder="Nama jasa (mis. Install ulang laptop)"
-                            value={l.name}
-                            onChange={(e) => setLine(i, { name: e.target.value })} />
+                          <div className="flex items-center gap-1.5">
+                            <Select items={productItems} value={l.product_id || null}
+                              onValueChange={(v) => onPickProduct(i, v ?? "")}>
+                              <SelectTrigger className="w-full min-w-0 flex-1"
+                                title={products.find((p) => p.id === l.product_id)?.name || undefined}>
+                                <SelectValue placeholder="Pilih barang" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {productItems.map((it) => (
+                                  <SelectItem key={it.value} value={it.value}>
+                                    {it.label}
+                                    <span className="text-xs text-muted-foreground">· stok {stockOf(it.value)}</span>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {l.product_id && (
+                              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${over ? "bg-destructive/10 text-destructive" : "bg-emerald-500/10 text-emerald-600"}`}>
+                                stok {stockOf(l.product_id)}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="col-span-3 sm:col-span-2">
-                          <Input type="number" min={1} placeholder="Qty" value={l.qty}
+                          <Input type="number" min={1} placeholder="Qty"
+                            className={`text-center ${over ? "border-destructive" : ""}`}
+                            value={l.qty}
                             onChange={(e) => setLine(i, { qty: e.target.value })} />
                         </div>
-                        <div className="col-span-6 sm:col-span-3">
-                          <Input type="number" min={0} placeholder="Harga jasa" value={l.price}
+                        <div className="col-span-4 sm:col-span-2">
+                          <Input type="number" min={0} placeholder="Harga"
+                            className="text-right" value={l.price}
                             onChange={(e) => setLine(i, { price: e.target.value })} />
                         </div>
-                        <div className="col-span-3 sm:col-span-2 flex items-center justify-end">
-                          <Button type="button" variant="ghost" size="icon"
+                        <div className="col-span-3 truncate text-right text-xs font-medium sm:col-span-2">
+                          {sub > 0 ? formatIDR(sub) : "—"}
+                        </div>
+                        <div className="col-span-2 flex items-center justify-end gap-0.5 sm:col-span-1">
+                          <Button type="button" variant="ghost" size="icon-sm"
+                            className={l.showAdv ? "text-primary" : "text-muted-foreground hover:text-foreground"}
+                            aria-label="Atur garansi & serial"
+                            onClick={() => setLine(i, { showAdv: !l.showAdv })}>
+                            <SlidersHorizontal className="h-4 w-4" />
+                          </Button>
+                          <Button type="button" variant="ghost" size="icon-sm"
                             className="text-muted-foreground hover:text-destructive"
+                            aria-label="Hapus baris"
                             onClick={() => removeLine(i)} disabled={lines.length === 1}>
                             <X className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
-                      <div className="flex justify-end text-sm">
-                        {sub > 0
-                          ? <span className="text-muted-foreground">Subtotal: <b>{formatIDR(sub)}</b></span>
-                          : null}
-                      </div>
+
+                      {over && (
+                        <p className="mt-1 text-xs text-destructive">
+                          Stok tidak cukup (tersedia {stockOf(l.product_id)}).
+                        </p>
+                      )}
+
+                      {/* Opsi lanjutan (garansi & serial) */}
+                      {l.showAdv && (
+                        <div className="mt-2.5 grid grid-cols-2 gap-3 rounded-lg bg-muted/50 p-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Garansi (bulan)</Label>
+                            <Input type="number" min={0} placeholder="12"
+                              value={l.warranty_months}
+                              onChange={(e) => setLine(i, { warranty_months: e.target.value })} />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Serial number (opsional)</Label>
+                            <Input placeholder="Serial number"
+                              value={l.serial_number}
+                              onChange={(e) => setLine(i, { serial_number: e.target.value })} />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
-                }
-
-                // ---- Baris BARANG: produk + stok + garansi + serial ----
-                const over = l.product_id && toNumber(l.qty) > stockOf(l.product_id);
-                return (
-                  <div key={i} className="rounded-lg border p-3 space-y-2">
-                    <div className="grid grid-cols-12 gap-2">
-                      <div className="col-span-12 sm:col-span-5">
-                        <Select items={productItems} value={l.product_id || null}
-                          onValueChange={(v) => onPickProduct(i, v ?? "")}>
-                          <SelectTrigger><SelectValue placeholder="Pilih barang" /></SelectTrigger>
-                          <SelectContent>
-                            {productItems.map((it) => (
-                              <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="col-span-3 sm:col-span-2">
-                        <Input type="number" min={1} placeholder="Qty" value={l.qty}
-                          className={over ? "border-destructive" : ""}
-                          onChange={(e) => setLine(i, { qty: e.target.value })} />
-                      </div>
-                      <div className="col-span-6 sm:col-span-3">
-                        <Input type="number" min={0} placeholder="Harga jual" value={l.price}
-                          onChange={(e) => setLine(i, { price: e.target.value })} />
-                      </div>
-                      <div className="col-span-3 sm:col-span-2 flex items-center justify-end">
-                        <Button type="button" variant="ghost" size="icon"
-                          className="text-muted-foreground hover:text-destructive"
-                          onClick={() => removeLine(i)} disabled={lines.length === 1}>
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-12 gap-2">
-                      <div className="col-span-6 sm:col-span-3">
-                        <Input type="number" min={0} placeholder="Garansi (bln)"
-                          value={l.warranty_months}
-                          onChange={(e) => setLine(i, { warranty_months: e.target.value })} />
-                      </div>
-                      <div className="col-span-6 sm:col-span-5">
-                        <Input placeholder="Serial number (opsional)"
-                          value={l.serial_number}
-                          onChange={(e) => setLine(i, { serial_number: e.target.value })} />
-                      </div>
-                      <div className="col-span-12 sm:col-span-4 flex items-center justify-end text-sm">
-                        {over ? <span className="text-destructive">Stok tidak cukup</span>
-                          : sub > 0 ? <span className="text-muted-foreground">Subtotal: <b>{formatIDR(sub)}</b></span>
-                          : null}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+                })}
+              </div>
             </div>
+
+            <p className="flex items-center gap-1 text-xs text-muted-foreground">
+              <SlidersHorizontal className="h-3 w-3" /> Ikon ini membuka garansi &amp; serial (barang) — baris jasa tak perlu keduanya.
+            </p>
           </div>
 
-          <div className="space-y-2">
-            <Label>Catatan (opsional)</Label>
+          <div className="space-y-1.5">
+            <Label>Catatan <span className="text-muted-foreground">(opsional)</span></Label>
             <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
-          </div>
-
-          <div className="flex items-center justify-between rounded-lg bg-muted px-4 py-3">
-            <span className="font-medium">Total Penjualan</span>
-            <span className="text-lg font-bold">{formatIDR(total)}</span>
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Batal</Button>
-          <Button onClick={handleSave}
-            disabled={pending || !clientId || total <= 0 || (paysNow && !walletId)}>
-            {pending && <Loader2 className="h-4 w-4 animate-spin" />}
-            Simpan Penjualan
-          </Button>
+        {/* Footer menempel: total + aksi */}
+        <DialogFooter className="mx-0 mb-0 flex-row items-center justify-between gap-3 border-t bg-muted px-5 py-3.5 sm:justify-between">
+          <div>
+            <div className="text-xs text-muted-foreground">Total Penjualan</div>
+            <div className="text-lg font-bold">{formatIDR(total)}</div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Batal</Button>
+            <Button onClick={handleSave}
+              disabled={pending || !clientId || total <= 0 || (paysNow && !walletId)}>
+              {pending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Simpan Penjualan
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
