@@ -86,6 +86,38 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
+- **2026-08-06 — Kontrak Maintenance: jatuh tempo akhir bulan + gabung invoice bulanan.**
+  Dua keluhan user. (1) Jatuh tempo bawaan kontrak mentok tgl 28 — dropdown
+  `DUE_ITEMS` di `maintenance/contract-manager.tsx` sengaja 1..28 karena rumus
+  jatuh tempo lama `((periode + 1 bln) + (due_day-1))` bisa **meleset ke bulan
+  berikutnya** kalau 31 dipilih untuk bulan pendek (Feb). (2) Kontrak bulanan
+  **kadang tak tergabung** dengan invoice bulanan berisi barang → ternyata masalah
+  **urutan**: `issue_maintenance_charges` menggabung ke draft periode yang sama,
+  tapi `generate_monthly_invoice` **selalu bikin invoice baru** (tak pernah cek
+  draft), jadi kalau maintenance terbit dulu lalu barang di-invoice → jadi 2
+  invoice terpisah.
+  - Migrasi `20260806_maintenance_due_endofmonth_and_invoice_merge.sql`:
+    - Constraint `maintenance_contracts_due_day_check` dilonggarkan **0..31**.
+      `due_day = 0` = sentinel **"Akhir bulan"**.
+    - `issue_maintenance_charges` (`CREATE OR REPLACE`, tanda tangan sama):
+      jatuh tempo kini **di-clamp** `LEAST(due_day, hari terakhir bulan target)`;
+      `due_day=0` → langsung hari terakhir. Penomoran invoice baru diselaraskan
+      ke **MAX+1 + loop** (dulu `count+1`, rawan kembar → ditolak index unik).
+    - `generate_monthly_invoice` (`CREATE OR REPLACE`, tanda tangan sama):
+      kini **mencari invoice DRAFT** client+periode dulu → kalau ada, **gabung**
+      (tautkan sales + hitung ulang total dari SEMUA sales tertaut). Invoice yang
+      sudah **sent/paid TIDAK dicari** → tetap dibuatkan invoice terpisah (aman,
+      tak mengubah invoice terkirim). Hasilnya perilaku **simetris** — urutan
+      terbit maintenance vs barang tak lagi memengaruhi penggabungan.
+  - UI (`maintenance/contract-manager.tsx`): `DUE_ITEMS` jadi "Akhir bulan" (value
+    `"0"`) + `Tanggal 1..31`; helper `dueDayLabel` menampilkan "Akhir bulan" di
+    tabel. **Gotcha**: `handleSave` dulu `toNumber(dueDay) || DEFAULT_DUE_DAY` —
+    `0` itu falsy → "Akhir bulan" diam-diam jadi tgl 10; diperbaiki jadi
+    `dueDay === "" ? DEFAULT : toNumber(dueDay)`.
+  - Diverifikasi `tsc --noEmit` bersih + rumus tanggal diuji via psql
+    (31→28 Feb, 31→30 Apr, 31→31 Agu, 0→akhir bulan). Verifikasi visual di app
+    tak bisa (halaman di balik login).
+
 - **2026-08-06 — Rapikan UI form Pembelian & Penjualan (daftar barang jadi tabel).**
   User menilai form "Tambah Pembelian" & "Tambah Penjualan" terlalu ribet: tiap
   baris item dibungkus kartu berbingkai tebal, tinggi, plus accordion/baris kedua

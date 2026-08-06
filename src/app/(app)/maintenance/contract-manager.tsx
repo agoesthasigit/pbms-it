@@ -36,11 +36,17 @@ const STATUS_ITEMS: Item[] = [
   { value: "stopped", label: "Berhenti" },
 ];
 
-// tanggal jatuh tempo 1..28
-const DUE_ITEMS: Item[] = Array.from({ length: 28 }, (_, i) => ({
-  value: String(i + 1),
-  label: `Tanggal ${i + 1}`,
-}));
+// tanggal jatuh tempo 1..31 + sentinel "Akhir bulan" (value "0")
+const DUE_ITEMS: Item[] = [
+  { value: "0", label: "Akhir bulan" },
+  ...Array.from({ length: 31 }, (_, i) => ({
+    value: String(i + 1),
+    label: `Tanggal ${i + 1}`,
+  })),
+];
+
+// tampilan tanggal jatuh tempo di tabel
+const dueDayLabel = (d: number) => (d === 0 ? "Akhir bulan" : `Tgl ${d}`);
 
 export function ContractManager({
   contracts, clients,
@@ -102,7 +108,8 @@ export function ContractManager({
         service_name: serviceName,
         monthly_amount: toNumber(amount),
         start_date: startDate,
-        due_day: toNumber(dueDay) || DEFAULT_DUE_DAY,
+        // "0" = Akhir bulan (jangan pakai `|| DEFAULT` — 0 itu falsy)
+        due_day: dueDay === "" ? DEFAULT_DUE_DAY : toNumber(dueDay),
         is_active: status === "active",
         notes,
       });
@@ -174,7 +181,7 @@ export function ContractManager({
                     <TableCell className="text-right font-medium">
                       {formatIDR(Number(c.monthly_amount))}
                     </TableCell>
-                    <TableCell>Tgl {c.due_day}</TableCell>
+                    <TableCell>{dueDayLabel(c.due_day)}</TableCell>
                     <TableCell>{formatDate(c.start_date)}</TableCell>
                     <TableCell>
                       {c.is_active ? (
@@ -261,7 +268,9 @@ export function ContractManager({
                 </Select>
                 <p className="text-xs text-muted-foreground">
                   Dipakai bila invoice periode itu belum ada. Tanggal ini di bulan
-                  berikutnya.
+                  berikutnya. Tgl 29/30/31 otomatis mundur ke hari terakhir bila
+                  bulannya lebih pendek; &quot;Akhir bulan&quot; selalu jatuh di
+                  tanggal terakhir.
                 </p>
               </div>
               <div className="space-y-2">
