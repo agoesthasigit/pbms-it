@@ -87,3 +87,36 @@ export async function deleteLabel(id: string): Promise<Result> {
   revalidatePath("/settings");
   return { success: true };
 }
+
+// ---------- EMAIL (Gmail) ----------
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Simpan pengaturan email Gmail ke DB (password terenkripsi via pgcrypto).
+ * Password hanya diperbarui bila `password` diisi — kosongkan untuk
+ * mempertahankan password lama saat hanya mengubah user/nama pengirim.
+ */
+export async function saveEmailSettings(input: {
+  gmail_user: string;
+  from_name: string;
+  app_password: string;
+}): Promise<Result> {
+  const user = input.gmail_user.trim();
+  if (!user) return { error: "Email pengirim (Gmail) wajib diisi." };
+  if (!EMAIL_RE.test(user)) return { error: "Format email pengirim tidak valid." };
+
+  const key = process.env.CREDENTIALS_SECRET_KEY;
+  if (!key)
+    return { error: "CREDENTIALS_SECRET_KEY belum diset di environment. Hubungi admin." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("save_email_settings", {
+    p_user: user,
+    p_from_name: input.from_name.trim(),
+    p_password: input.app_password.replace(/\s+/g, ""), // App Password tanpa spasi
+    p_key: key,
+  });
+  if (error) return { error: error.message || "Gagal menyimpan pengaturan email." };
+  revalidatePath("/settings");
+  return { success: true };
+}

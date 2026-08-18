@@ -34,7 +34,7 @@ export async function buildInvoicePdf(
 
   const { data: sales } = await supabase
     .from("sales")
-    .select("id, sale_date, maintenance_contract_id, sale_items(qty, price, subtotal, product:products(name))")
+    .select("id, sale_date, maintenance_contract_id, sale_items(qty, price, subtotal, item_name, product:products(name))")
     .eq("monthly_invoice_id", id)
     .order("sale_date");
 
@@ -49,10 +49,10 @@ export async function buildInvoicePdf(
   const rows: { name: string; qty: number; price: number; subtotal: number; date: string }[] = [];
   for (const s of ordered) {
     for (const it of (s.sale_items as unknown as {
-      qty: number; price: number; subtotal: number; product: { name: string } | null;
+      qty: number; price: number; subtotal: number; item_name: string | null; product: { name: string } | null;
     }[])) {
       rows.push({
-        name: it.product?.name ?? "-",
+        name: it.item_name ?? it.product?.name ?? "-",
         qty: it.qty, price: Number(it.price), subtotal: Number(it.subtotal),
         date: s.sale_date,
       });

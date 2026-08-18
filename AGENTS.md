@@ -86,6 +86,47 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
+- **2026-08-18 — Pemulihan file ter-zero + 3 revisi (invoice/penjualan/email).**
+  Konteks: user "bersih-bersih data C" meng-**nol-byte-kan** 187 file tracked
+  (`src/`, `public/`, `scripts/`, `supabase/migrations/`) — dipulihkan via
+  `git checkout -- .` (semua utuh di commit terakhir; `.env.local` & `backups/`
+  aman). **`node_modules` DAN cache npm juga ikut corrupt** — reinstall biasa tak
+  cukup (npm kira paket sudah ada / cache rusak menghasilkan file tak lengkap).
+  Pemulihan tuntas hanya dengan **`npm cache clean --force` + hapus node_modules +
+  install ulang**. `tools/pgsql/psql.exe` juga ter-zero → migrasi kini diterapkan
+  via **`pg` (npm) + `SUPABASE_DB_URL`** lewat skrip node sementara (bukan psql).
+  - **Revisi 1 — hapus invoice bulanan tak kembalikan stok + barang bentrok
+    produk jasa.** Migrasi `20260818_purchase_service_match_and_invoice_delete_reverse.sql`:
+    (A) `delete_monthly_invoice` dulu hanya **melepas tautan** penjualan
+    (`monthly_invoice_id=null`) → stok tak balik; kini **menghapus penjualan
+    tergabung + membalik stok/aset/wallet** (meniru `delete_sale`), lalu hapus
+    pelunasan & invoice. (B) Halaman Stok Barang baca `v_product_stock`
+    (`WHERE is_service=false`) → produk jasa tak pernah tampil; `create_purchase`
+    dulu cocokkan nama TANPA cek `is_service`, jadi beli barang bernama sama dgn
+    produk jasa (mis. nama layanan maintenance) "nyangkut" ke produk jasa →
+    tak tampil di stok. Kini match pembelian hanya ke `is_service=false`. Data
+    dicek: **tak ada yang bentrok** (sudah dibersihkan user), jadi fix logika saja.
+  - **Revisi 2 — nama JASA custom tampil "Jasa" di invoice bulanan.** `create_sale`
+    sudah benar simpan `sale_items.item_name`, tapi penampil invoice hanya ambil
+    `product.name` (= produk generik "Jasa"). Diperbaiki di **PDF invoice**
+    (`lib/pdf/build-invoice-pdf.ts`) & **tampilan layar** (`invoices/[id]/page.tsx`):
+    select tambah `item_name`, render `item_name ?? product.name ?? "-"` (sama
+    seperti NOTA `build-sale-pdf.ts` yang sudah benar).
+  - **Revisi 3 — kredensial Gmail pindah dari `.env.local` ke DATABASE + UI**
+    (Opsi C; user pakai app "full online" via Vercel). Migrasi
+    `20260818_email_settings.sql`: tabel `email_settings` (RLS per user) + fungsi
+    `save_email_settings`/`get_email_settings`/`reveal_email_password`. Password
+    **terenkripsi** pakai pola kredensial eksisting (pgcrypto `pgp_sym_encrypt`,
+    kunci `CREDENTIALS_SECRET_KEY`) — sama seperti Network/CCTV/WiFi. `mailer.ts`
+    `getConfig()` kini **async**: baca DB dulu → fallback env `GMAIL_*` (mundur-
+    kompatibel), `isMailerConfigured()` jadi async (2 pemanggil di
+    `invoices/actions.ts` & `sales/actions.ts` di-`await`). UI: tab **Email** baru
+    di `/settings` (`settings/email-settings-manager.tsx` + action
+    `saveEmailSettings`); App Password write-only (kosongkan = tak diubah).
+    ⚠️ Agar jalan di Vercel: **`CREDENTIALS_SECRET_KEY` wajib ada di env Vercel**
+    (kunci dekripsi); `GMAIL_*` jadi opsional. Diverifikasi `tsc` bersih + objek DB
+    & roundtrip pgcrypto OK; verifikasi visual tak bisa (halaman di balik login).
+
 - **2026-08-06 — Kontrak Maintenance: jatuh tempo akhir bulan + gabung invoice bulanan.**
   Dua keluhan user. (1) Jatuh tempo bawaan kontrak mentok tgl 28 — dropdown
   `DUE_ITEMS` di `maintenance/contract-manager.tsx` sengaja 1..28 karena rumus

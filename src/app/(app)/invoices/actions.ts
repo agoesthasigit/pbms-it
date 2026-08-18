@@ -81,8 +81,8 @@ export async function sendInvoiceEmail(input: {
   if (!to) return { error: "Email tujuan kosong. Isi email client terlebih dahulu." };
   if (!EMAIL_RE.test(to)) return { error: "Format email tujuan tidak valid." };
   if (!input.subject.trim()) return { error: "Subject email tidak boleh kosong." };
-  if (!isMailerConfigured())
-    return { error: "Email pengirim belum dikonfigurasi. Isi GMAIL_APP_PASSWORD di .env.local lalu restart server." };
+  if (!(await isMailerConfigured()))
+    return { error: "Email pengirim belum dikonfigurasi. Isi di menu Pengaturan → Email." };
 
   const supabase = await createClient();
 

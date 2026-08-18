@@ -42,7 +42,7 @@ export default async function InvoiceDetailPage({
   // penjualan yang tergabung + itemnya
   const { data: sales } = await supabase
     .from("sales")
-    .select("id, sale_date, total, notes, maintenance_contract_id, sale_items(qty, price, subtotal, product:products(name))")
+    .select("id, sale_date, total, notes, maintenance_contract_id, sale_items(qty, price, subtotal, item_name, product:products(name))")
     .eq("monthly_invoice_id", id)
     .order("sale_date");
 
@@ -159,11 +159,12 @@ export default async function InvoiceDetailPage({
               {ordered.flatMap((s) =>
                 (s.sale_items as unknown as {
                   qty: number; price: number; subtotal: number;
+                  item_name: string | null;
                   product: { name: string } | null;
                 }[]).map((it, idx) => (
                   <TableRow key={`${s.id}-${idx}`}>
                     <TableCell>{idx === 0 ? formatDate(s.sale_date) : ""}</TableCell>
-                    <TableCell>{it.product?.name ?? "-"}</TableCell>
+                    <TableCell>{it.item_name ?? it.product?.name ?? "-"}</TableCell>
                     <TableCell className="text-center">{it.qty}</TableCell>
                     <TableCell className="text-right">{formatIDR(Number(it.price))}</TableCell>
                     <TableCell className="text-right">{formatIDR(Number(it.subtotal))}</TableCell>

@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { CategoryManager } from "./category-manager";
 import { LabelManager } from "./label-manager";
 import { ExportAllButton } from "./export-button";
+import { EmailSettingsManager, type EmailSettings } from "./email-settings-manager";
 import type { Category, Label } from "@/types/db";
 
 export const metadata = { title: "Pengaturan" };
@@ -18,10 +19,14 @@ export const metadata = { title: "Pengaturan" };
 export default async function SettingsPage() {
   const supabase = await createClient();
 
-  const [{ data: categories }, { data: labels }] = await Promise.all([
+  const [{ data: categories }, { data: labels }, { data: emailRows }] = await Promise.all([
     supabase.from("categories").select("*").order("created_at"),
     supabase.from("labels").select("*").order("created_at"),
+    supabase.rpc("get_email_settings"),
   ]);
+  const emailSettings = (Array.isArray(emailRows) ? emailRows[0] : emailRows) as
+    | EmailSettings
+    | undefined;
 
   return (
     <div className="space-y-6">
@@ -34,6 +39,7 @@ export default async function SettingsPage() {
         <TabsList>
           <TabsTrigger value="categories">Kategori</TabsTrigger>
           <TabsTrigger value="labels">Label</TabsTrigger>
+          <TabsTrigger value="email">Email</TabsTrigger>
           <TabsTrigger value="backup">Backup &amp; Data</TabsTrigger>
         </TabsList>
         <TabsContent value="categories">
@@ -41,6 +47,9 @@ export default async function SettingsPage() {
         </TabsContent>
         <TabsContent value="labels">
           <LabelManager data={(labels ?? []) as Label[]} />
+        </TabsContent>
+        <TabsContent value="email">
+          <EmailSettingsManager initial={emailSettings ?? null} />
         </TabsContent>
         <TabsContent value="backup">
           <Card>
