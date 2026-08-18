@@ -27,8 +27,8 @@ Diisi **bertahap**; tiap tahap punya checkpoint agar bisa dilanjutkan kapan saja
 |---|-------|--------|-----------------|
 | 1 | Integritas Data | ✅ SELESAI (2026-08-18) | Bersih — tak ada anomali; 1 rekomendasi preventif |
 | 2 | Keamanan (RLS, secret, auth) | ✅ SELESAI (2026-08-18) | 🔴 2.1 & 🟠 2.2 **SUDAH DIPERBAIKI & diverifikasi**; 🟡 2.3/2.4 catatan; sisi kode bersih |
-| 3 | Alur Bisnis & Efisiensi Input | ⬜ BELUM | — |
-| 4 | UX/UI & Desain | ⬜ BELUM | — |
+| 3 | Alur Bisnis & Efisiensi Input | ✅ SELESAI (2026-08-18) | Otomatisasi sudah kuat; friction utama: beli→jual→invoice lintas 3 menu → usul "Transaksi Cepat" + 4 perbaikan kecil |
+| 4 | UX/UI & Desain | ✅ SELESAI (2026-08-18) | Matang (responsif+PWA+dark mode+empty/toast konsisten); 🟠 `confirm()` native 18 file + 🟡 input rupiah tanpa pemisah ribuan & 3 kecil |
 
 > Catatan metode: audit dikerjakan langsung (bukan multi-agent), keluaran berupa
 > laporan dokumen ini. Scan DB memakai koneksi **baca-saja** ke Supabase produksi
@@ -185,29 +185,152 @@ diakses hanya oleh route server memakai service-role key.
 
 ---
 
-## Tahap 3 — Alur Bisnis & Efisiensi Input ⬜ BELUM
+## Tahap 3 — Alur Bisnis & Efisiensi Input ✅
 
-**Rencana cakupan:**
-- Hitung jumlah langkah/klik per skenario nyata (mis. beli→jual→invoice→lunas).
-- Identifikasi **input berulang** (nama & harga barang diketik 2× di Pembelian lalu
-  Penjualan untuk kasus beli-untuk-jual).
-- Usulan jalan pintas: form **"Transaksi Cepat"** (beli+jual+aset dalam 1 langkah)
-  tanpa mengorbankan akurasi HPP/laporan.
-- Konsistensi status (RAB `done` mengakui laba; invoice draft→sent→paid).
+**Cakupan.** Telaah form nyata ([purchase-form](../src/app/(app)/purchases/purchase-form.tsx),
+[sale-form](../src/app/(app)/sales/sale-form.tsx), [invoice-list](../src/app/(app)/invoices/invoice-list.tsx))
++ struktur menu, menghitung langkah per skenario, mencari input berulang.
 
-**Temuan:** _(belum diaudit)_
+### 🟢 Otomatisasi yang sudah baik (jangan dibongkar)
+- **Produk auto-dibuat & digabung** saat Pembelian (ketik nama, tak perlu bikin
+  master produk dulu).
+- **Harga jual & garansi auto-terisi** di Penjualan dari default produk.
+- **Invoice bulanan auto-terbentuk & auto-gabung** (client+periode+jatuh tempo sama).
+- **Tandai Lunas** otomatis kirim email + catat netto (setelah PPh) ke wallet.
+- **Stok, aset client, mutasi wallet** semuanya otomatis dari 1 aksi.
+
+> Penting: langkah beli → jual → invoice **memang** memetakan 3 peristiwa akuntansi
+> (modal/HPP · pendapatan+stok keluar · kas masuk). Tujuan audit = pangkas **input
+> berulang & lompatan menu**, bukan menggabung paksa yang merusak akurasi laporan.
+
+### Hitung langkah — skenario "beli printer 1jt, jual 2jt (invoice bulanan)"
+| Tahap | Menu | Interaksi kira-kira |
+|-------|------|---------------------|
+| Pembelian | Pembelian | ~8–11 (buka form, distributor, wallet, nama, qty, harga, [buka adv+harga jual], simpan) |
+| Penjualan | Penjualan | ~9 (buka form, client, metode, pilih barang, harga auto, simpan) |
+| Pelunasan* | Invoice Bulanan | ~3 (buka, Eye→detail, Tandai Lunas → email otomatis) |
+
+\* Pelunasan terjadi **nanti** saat client bayar — bukan bagian dari input di saat deal.
+Jadi beban input **saat transaksi = 2 menu, ~18–20 interaksi**.
+
+### 🟠 3.1 — Kasus "beli-untuk-langsung-jual" lintas 2–3 menu
+Untuk reseller yang inti bisnisnya **beli lalu jual ke client tertentu** (persis
+contoh printer), operasi paling sering ini justru jalurnya paling panjang: pindah
+menu Pembelian → Penjualan (→ Invoice). Nama barang diketik di Pembelian lalu dipilih
+lagi di Penjualan; harga jual bisa diisi di Pembelian **atau** Penjualan.
+
+**Usulan — form "Transaksi Cepat / Beli & Jual Sekaligus"** (opsional, tidak
+menghapus menu lama):
+- Satu dialog: distributor + wallet-bayar + tanggal · **item: nama, qty, harga beli,
+  harga jual** · client + metode jual (+ periode/jatuh tempo/wallet-terima).
+- Submit → jalankan `create_purchase` lalu `create_sale` dalam **satu transaksi**
+  (idealnya RPC baru `create_quick_deal` agar tak setengah jadi bila gagal). Stok
+  bersih 0, modal & margin tetap tercatat benar.
+- Hasil: 1 menu, ~10–12 interaksi (turun ±40%). Menu Pembelian/Penjualan biasa tetap
+  ada untuk beli-stok-simpan & jual-dari-stok.
+
+### 🟡 3.2 — Harga jual saat Pembelian tersembunyi
+"Harga Jual Default" ada di balik ikon `SlidersHorizontal` (opsi lanjutan), sehingga
+banyak yang tak menemukannya → harga jual baru diisi saat Penjualan (input tertunda).
+Usulan: munculkan kolom "Harga jual" langsung di baris (atau minimal beri hint), agar
+sekali ketik saat beli, otomatis terpakai saat jual.
+
+### 🟡 3.3 — Client baru memaksa keluar dari form Penjualan
+Penjualan mengharuskan client sudah ada di Master Data. Bila client baru, user harus
+ke menu Client dulu lalu kembali. Usulan: tombol **"+ Client baru"** inline di form
+Penjualan (mini-dialog), sama untuk Distributor di Pembelian.
+
+### 🟡 3.4 — Metode bayar default selalu "cash"
+Untuk client langganan invoice bulanan (mis. grup Rob Peetoom), default `cash` bikin
+tiap input harus ganti metode. Usulan: ingat metode terakhir, atau **default metode
+per-client** (mis. client bertanda "langganan invoice").
+
+### 🟡 3.5 — Pelunasan invoice harus masuk halaman detail
+Dari daftar Invoice, tandai-lunas hanya di halaman detail (Eye → detail → Tandai
+Lunas). Itu wajar (perlu review sebelum email terkirim). Opsional: aksi **"Tandai
+Lunas" langsung di baris** daftar untuk invoice yang sudah pasti, dengan konfirmasi.
+
+**Kesimpulan.** 🟢 Fondasi otomatisasi kuat; tak ada yang "salah". Peningkatan terbesar
+= **form Transaksi Cepat (3.1)** untuk pola beli-untuk-jual, disusul perbaikan kecil
+3.2–3.5 yang menghemat perpindahan menu & klik.
 
 ---
 
-## Tahap 4 — UX/UI & Desain ⬜ BELUM
+## Tahap 4 — UX/UI & Desain ✅
 
-**Rencana cakupan:**
-- Navigasi antar-menu & kedalaman alur.
-- Kepadatan form (sebagian sudah dirapikan Agu 2026), konsistensi komponen Base UI.
-- Keterbacaan di layar kecil (mobile), mode gelap.
-- Umpan balik aksi (toast, status kirim email), keadaan kosong (empty state).
+**Cakupan.** Telaah kode: layout & navigasi ([layout](../src/app/(app)/layout.tsx),
+[sidebar-nav](../src/components/shared/sidebar-nav.tsx),
+[app-header](../src/components/shared/app-header.tsx),
+[bottom-nav](../src/components/shared/bottom-nav.tsx)), tema
+([globals.css](../src/app/globals.css)), PWA ([manifest](../src/app/manifest.ts)),
+pola empty/loading/toast, aksesibilitas, input.
 
-**Temuan:** _(belum diaudit)_
+### 🟢 Yang sudah matang
+- **Responsif menyeluruh**: sidebar di desktop; di mobile hamburger + `Sheet` untuk
+  menu lengkap **dan** bottom-nav 4 menu tersering. **Safe-area** ditangani (notch,
+  home-indicator) — jarang ada di app internal.
+- **PWA installable**: manifest lengkap (`standalone`, `portrait`, ikon `any` +
+  `maskable`, `theme_color` teal), `@serwist` terpasang.
+- **Tema terang + gelap** berbasis token CSS (oklch), aksen teal, `ThemeToggle`.
+- **Komponen bersama konsisten**: `EmptyState`, `StatCard`/`SummaryCard`,
+  `PaginationBar`, spinner `Loader2`, toast `sonner`, `global-search`.
+- **A11y dasar**: `sr-only` label, `aria-label` pada banyak tombol ikon, judul Sheet.
+
+### 🟠 4.1 — Konfirmasi hapus memakai `confirm()` native (18 file)
+Aksi destruktif (hapus penjualan/pembelian/invoice/produk/client/dst) memakai
+`window.confirm()` bawaan browser — **tidak selaras** dengan sistem `Dialog` yang
+sudah rapi: tak ikut tema (gelap/terang), tampilan kaku, memblok thread, dan di
+sebagian browser mobile perilakunya tak konsisten. Untuk app full-online harian ini
+titik paling terasa. **Usulan:** satu komponen **`ConfirmDialog`** (Base UI
+`AlertDialog`) reusable, ganti ke-18 pemakaian `confirm()`.
+
+### 🟡 4.2 — Input rupiah tanpa pemisah ribuan
+Kolom nominal memakai `type="number"` mentah (≈28 tempat) → mengetik `6050000` tanpa
+titik ribuan rawan salah (kelebihan/kurang nol) untuk angka jutaan. **Usulan:**
+komponen **input mata-uang** yang menampilkan `6.050.000` saat diketik (nilai asli
+tetap number), dipakai bersama di form Pembelian/Penjualan/Pengeluaran/RAB.
+
+### 🟡 4.3 — Bottom-nav mobile hanya 4 menu
+Dashboard & Invoice Bulanan tak ada di bottom-nav (harus lewat hamburger). Wajar
+(slot terbatas), tapi pertimbangkan slot ke-5 "Menu"/"Lainnya" atau sesuaikan dengan
+menu tersering dipakai.
+
+### 🟡 4.4 — Sebagian tombol ikon di tabel tanpa `aria-label`/`title`
+Mayoritas tombol ikon sudah beri label, tapi beberapa (mis. tombol hapus di beberapa
+daftar) hanya ikon tanpa `aria-label`/`title` → pembaca layar tak tahu fungsinya.
+Perbaikan cepat, konsistenkan semua.
+
+### 🟡 4.5 — Campur warna palet Tailwind dengan token tema
+Banyak tempat memakai `text-emerald-600`/`bg-amber-50` langsung; sebagian sudah beri
+varian `dark:`, sebagian belum → potensi kontras kurang di mode gelap. **Usulan:**
+token semantik (`success`/`warning`/`info`) agar konsisten terang & gelap.
+
+**Kesimpulan.** 🟢 UX/UI tergolong **matang** untuk app bisnis internal (responsif,
+PWA, dark mode, komponen konsisten). Perbaikan bersifat pemolesan: **4.1 ConfirmDialog**
+paling berdampak, disusul **4.2 input rupiah** (mengurangi salah ketik uang).
+
+---
+
+## Ringkasan Prioritas Tindakan (lintas tahap)
+
+Diurut dari paling mendesak. Audit = laporan; penerapan menunggu keputusan pemilik.
+
+| Prioritas | Item | Tahap | Status |
+|-----------|------|-------|--------|
+| 🔴 1 | View bypass RLS terekspos publik (2.1) | 2 | ✅ **sudah diperbaiki** |
+| 🟠 2 | Helper kripto terekspos (2.2) | 2 | ✅ **sudah diperbaiki** |
+| 🟠 3 | Rotasi anon key Supabase (tindak lanjut 2.1) | 2 | ⬜ dashboard (pemilik) |
+| 🟠 4 | Form "Transaksi Cepat" beli+jual (3.1) | 3 | ⬜ dipikirkan pemilik |
+| 🟠 5 | Ganti `confirm()` → `ConfirmDialog` (4.1) | 4 | ⬜ |
+| 🟡 6 | Fitur "Pemeriksaan Data" / cron integritas (R1.1) | 1 | ⬜ |
+| 🟡 7 | Input rupiah berpemisah ribuan (4.2) | 4 | ⬜ |
+| 🟡 8 | Perbaikan kecil alur (3.2–3.5) | 3 | ⬜ dipikirkan pemilik |
+| 🟡 9 | Batasi grant tulis view ke SELECT (2.3) | 2 | ⬜ |
+| 🟡 10 | A11y tombol ikon, token warna semantik (4.4–4.5) | 4 | ⬜ |
+
+**Penilaian keseluruhan.** Sistem **sehat & siap full-online** setelah lubang
+keamanan kritis (2.1/2.2) ditutup. Integritas data bersih, otomatisasi bisnis kuat,
+UX matang. Sisa item adalah peningkatan efisiensi & pemolesan — bukan penghambat.
 
 ---
 
