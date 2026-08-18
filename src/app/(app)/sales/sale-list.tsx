@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { Fragment, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, ReceiptText, Loader2, Search, RotateCcw, TrendingUp, Users, CheckCircle2, FileDown, Mail } from "lucide-react";
+import { Plus, Trash2, ReceiptText, Loader2, Search, RotateCcw, TrendingUp, Users, CheckCircle2, FileDown, Mail, ChevronRight, ChevronDown, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,7 @@ import { StatCard } from "@/components/shared/stat-card";
 import { usePagination } from "@/components/shared/use-pagination";
 import { PaginationBar } from "@/components/shared/pagination-bar";
 import type { ProductWithStock, Client, WalletWithBalance } from "@/types/db";
-import { type SaleRow, PAYMENT_METHOD_LABELS } from "@/types/phase3";
+import { type SaleRow, type SaleItemRow, PAYMENT_METHOD_LABELS } from "@/types/phase3";
 import { SendEmailDialog } from "@/components/shared/send-email-dialog";
 import { SaleForm } from "./sale-form";
 import { deleteSale, paySale, sendSaleEmail } from "./actions";
@@ -37,6 +37,15 @@ function canSendNota(s: SaleRow) {
   return s.payment_method === "cash" ||
     s.payment_method === "transfer" ||
     (s.payment_method === "terhutang" && !!s.paid_date);
+}
+
+/** Nama tampil item: nama jasa custom didahulukan, lalu nama produk (sama dgn NOTA). */
+function itemLabel(it: SaleItemRow) {
+  return it.item_name ?? it.product?.name ?? "-";
+}
+/** Item jasa = tidak punya produk katalog atau bernama custom "Jasa". */
+function isServiceItem(it: SaleItemRow) {
+  return it.item_name != null || it.product?.name === "Jasa";
 }
 
 const fmt = (d: Date) =>
@@ -64,6 +73,16 @@ export function SaleList({
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
+  // Baris penjualan yang sedang dibuka (rincian item)
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  function toggleExpand(id: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
   const [q, setQ] = useState("");
   const def = monthRange();
   const [from, setFrom] = useState(def.from);
@@ -90,7 +109,8 @@ export function SaleList({
       if (key) {
         const inClient = (s.client?.company_name ?? "").toLowerCase().includes(key);
         const inMethod = PAYMENT_METHOD_LABELS[s.payment_method].toLowerCase().includes(key);
-        if (!inClient && !inMethod) return false;
+        const inItem = (s.items ?? []).some((it) => itemLabel(it).toLowerCase().includes(key));
+        if (!inClient && !inMethod && !inItem) return false;
       }
       return true;
     });
@@ -186,7 +206,7 @@ export function SaleList({
             <Label className="text-xs">Cari</Label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input className="pl-9" placeholder="Client / metode..."
+              <Input className="pl-9" placeholder="Client / barang / metode..."
                 value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
           </div>
@@ -219,6 +239,7 @@ export function SaleList({
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-8" />
                   <TableHead>Tanggal</TableHead>
                   <TableHead>Client</TableHead>
                   <TableHead>Metode</TableHead>
@@ -228,8 +249,15 @@ export function SaleList({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pg.paged.map((s) => (
-                  <TableRow key={s.id}>
+                {pg.paged.map((s) => {
+                  const isOpen = expanded.has(s.id);
+                  const items = s.items ?? [];
+                  return (
+                  <Fragment key={s.id}>
+                  <TableRow className="cursor-pointer" onClick={() => toggleExpand(s.id)}>
+                    <TableCell className="pr-0 text-muted-foreground">
+                      {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    </TableCell>
                     <TableCell>{formatDate(s.sale_date)}</TableCell>
                     <TableCell className="font-medium">{s.client?.company_name ?? "-"}</TableCell>
                     <TableCell>
@@ -253,7 +281,7 @@ export function SaleList({
                       {formatIDR(Number(s.total))}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                         {canSendNota(s) && (
                           <Button variant="ghost" size="icon" nativeButton={false}
                             className="text-muted-foreground hover:text-primary"
@@ -285,7 +313,42 @@ export function SaleList({
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  {isOpen && (
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                      <TableCell colSpan={7} className="p-0">
+                        <div className="px-4 py-3">
+                          {items.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">Tidak ada rincian item.</p>
+                          ) : (
+                            <div className="divide-y rounded-lg border text-sm">
+                              <div className="grid grid-cols-[1fr_3rem_8rem_9rem] gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                                <span>Nama</span>
+                                <span className="text-center">Qty</span>
+                                <span className="text-right">Harga satuan</span>
+                                <span className="text-right">Subtotal</span>
+                              </div>
+                              {items.map((it, i) => (
+                                <div key={i} className="grid grid-cols-[1fr_3rem_8rem_9rem] gap-2 px-3 py-1.5">
+                                  <span className="flex min-w-0 items-center gap-1.5">
+                                    {isServiceItem(it) && <Wrench className="h-3.5 w-3.5 shrink-0 text-sky-600" />}
+                                    <span className="truncate">{itemLabel(it)}</span>
+                                  </span>
+                                  <span className="text-center tabular-nums">{it.qty}</span>
+                                  <span className="text-right tabular-nums">{formatIDR(Number(it.price))}</span>
+                                  <span className="text-right font-medium tabular-nums">
+                                    {formatIDR(Number(it.qty) * Number(it.price))}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  </Fragment>
+                  );
+                })}
               </TableBody>
             </Table>
             <PaginationBar page={pg.page} totalPages={pg.totalPages}

@@ -1,15 +1,16 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { formatIDR } from "@/lib/utils/currency";
 import { ReportDownload } from "@/components/shared/report-download";
 import { StatCard } from "@/components/shared/stat-card";
-import { Percent, TrendingUp, ShoppingCart } from "lucide-react";
+import { Percent, TrendingUp, ShoppingCart, Search } from "lucide-react";
 import type { MarginReport } from "@/types/reports";
 
 export function MarginView({
@@ -18,6 +19,30 @@ export function MarginView({
   data: MarginReport | null;
   loading: boolean;
 }) {
+  // Pencarian nama barang/item (Opsi Y: TOTAL & kartu ikut hasil filter).
+  const [q, setQ] = useState("");
+
+  // Baris yang ditampilkan + total & kartu dihitung ulang dari hasil filter.
+  const view = useMemo(() => {
+    const rows = data?.rows ?? [];
+    const key = q.trim().toLowerCase();
+    const filtered = key
+      ? rows.filter((r) =>
+          r.item.toLowerCase().includes(key) || r.group.toLowerCase().includes(key))
+      : rows;
+    const cost = filtered.reduce((s, r) => s + r.cost, 0);
+    const revenue = filtered.reduce((s, r) => s + r.revenue, 0);
+    const margin = filtered.reduce((s, r) => s + r.margin, 0);
+    return {
+      rows: filtered,
+      cost,
+      revenue,
+      margin,
+      marginPct: revenue > 0 ? margin / revenue : 0,
+      active: key.length > 0,
+    };
+  }, [data, q]);
+
   if (loading || !data) {
     return (
       <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">
@@ -27,35 +52,51 @@ export function MarginView({
   }
 
   // Kelompokkan per client/proyek supaya mudah dibaca (mirip sheet Excel).
-  const groups = [...new Set(data.rows.map((r) => r.group))];
+  const groups = [...new Set(view.rows.map((r) => r.group))];
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
           Periode {data.period.from} s/d {data.period.to}
         </p>
-        <ReportDownload href="/api/reports/margin"
-          from={data.period.from} to={data.period.to} label="Unduh Analisa Margin" />
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input className="w-full pl-9 sm:w-64" placeholder="Cari nama barang / client..."
+              value={q} onChange={(e) => setQ(e.target.value)} />
+          </div>
+          <ReportDownload href="/api/reports/margin"
+            from={data.period.from} to={data.period.to} label="Unduh Analisa Margin" />
+        </div>
       </div>
+
+      {view.active && (
+        <p className="text-xs text-muted-foreground">
+          Menampilkan hasil pencarian <span className="font-medium text-foreground">&ldquo;{q}&rdquo;</span> —
+          total &amp; kartu di bawah dihitung dari {view.rows.length} baris yang cocok.
+        </p>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard label="Total Harga Jual" icon={TrendingUp} tone="emerald"
-          accent="text-emerald-600" value={formatIDR(data.total_revenue)} />
+          accent="text-emerald-600" value={formatIDR(view.revenue)} />
         <StatCard label="Total Modal" icon={ShoppingCart} tone="blue"
-          value={formatIDR(data.total_cost)} />
+          value={formatIDR(view.cost)} />
         <StatCard label="Total Margin" icon={Percent}
-          tone={data.total_margin >= 0 ? "emerald" : "red"}
-          accent={data.total_margin >= 0 ? "text-emerald-600" : "text-destructive"}
-          value={formatIDR(data.total_margin)}
-          hint={`${(data.total_margin_pct * 100).toFixed(1)}% dari harga jual`} />
+          tone={view.margin >= 0 ? "emerald" : "red"}
+          accent={view.margin >= 0 ? "text-emerald-600" : "text-destructive"}
+          value={formatIDR(view.margin)}
+          hint={`${(view.marginPct * 100).toFixed(1)}% dari harga jual`} />
       </div>
 
       <Card>
         <CardContent className="p-0">
-          {data.rows.length === 0 ? (
+          {view.rows.length === 0 ? (
             <p className="py-10 text-center text-sm text-muted-foreground">
-              Tidak ada penjualan atau proyek selesai pada periode ini.
+              {view.active
+                ? "Tidak ada item yang cocok dengan pencarian."
+                : "Tidak ada penjualan atau proyek selesai pada periode ini."}
             </p>
           ) : (
             <Table>
@@ -71,7 +112,7 @@ export function MarginView({
               </TableHeader>
               <TableBody>
                 {groups.map((g) => {
-                  const rows = data.rows.filter((r) => r.group === g);
+                  const rows = view.rows.filter((r) => r.group === g);
                   return (
                     <Fragment key={g}>
                       <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -104,13 +145,13 @@ export function MarginView({
                   );
                 })}
                 <TableRow className="border-t-2 font-bold">
-                  <TableCell>TOTAL</TableCell>
+                  <TableCell>{view.active ? "TOTAL (hasil pencarian)" : "TOTAL"}</TableCell>
                   <TableCell />
-                  <TableCell className="text-right tabular-nums">{formatIDR(data.total_cost)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatIDR(data.total_revenue)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatIDR(data.total_margin)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatIDR(view.cost)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatIDR(view.revenue)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatIDR(view.margin)}</TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {(data.total_margin_pct * 100).toFixed(1)}%
+                    {(view.marginPct * 100).toFixed(1)}%
                   </TableCell>
                 </TableRow>
               </TableBody>

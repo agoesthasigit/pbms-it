@@ -32,6 +32,17 @@ export type SaleRow = {
   email_sent_to?: string | null;
   client?: { company_name: string; email?: string | null } | null;
   wallet?: { name: string } | null;
+  /** Rincian item penjualan (barang & jasa) untuk tampilan baris yang bisa dibuka. */
+  items?: SaleItemRow[] | null;
+};
+
+/** Satu baris item pada sebuah penjualan (barang atau jasa). */
+export type SaleItemRow = {
+  qty: number;
+  price: number;
+  /** Nama jasa custom (barang = null). Tampil didahulukan atas nama produk. */
+  item_name: string | null;
+  product?: { name: string } | null;
 };
 
 export type ExpenseRow = {
