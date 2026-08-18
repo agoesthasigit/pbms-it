@@ -317,16 +317,16 @@ Diurut dari paling mendesak. Audit = laporan; penerapan menunggu keputusan pemil
 
 | Prioritas | Item | Tahap | Status |
 |-----------|------|-------|--------|
-| 🔴 1 | View bypass RLS terekspos publik (2.1) | 2 | ✅ **sudah diperbaiki** |
-| 🟠 2 | Helper kripto terekspos (2.2) | 2 | ✅ **sudah diperbaiki** |
+| 🔴 1 | View bypass RLS terekspos publik (2.1) | 2 | ✅ **diperbaiki** |
+| 🟠 2 | Helper kripto terekspos (2.2) | 2 | ✅ **diperbaiki** |
 | 🟠 3 | Rotasi anon key Supabase (tindak lanjut 2.1) | 2 | ⬜ dashboard (pemilik) |
-| 🟠 4 | Form "Transaksi Cepat" beli+jual (3.1) | 3 | ⬜ dipikirkan pemilik |
-| 🟠 5 | Ganti `confirm()` → `ConfirmDialog` (4.1) | 4 | ⬜ |
+| 🟠 4 | Form "Transaksi Cepat" beli+jual (3.1) | 3 | ✅ **diimplementasikan** (RPC create_quick_deal + form) |
+| 🟠 5 | Ganti `confirm()` → `ConfirmDialog` (4.1) | 4 | ✅ **diimplementasikan** (18 file) |
 | 🟡 6 | Fitur "Pemeriksaan Data" / cron integritas (R1.1) | 1 | ⬜ |
-| 🟡 7 | Input rupiah berpemisah ribuan (4.2) | 4 | ⬜ |
-| 🟡 8 | Perbaikan kecil alur (3.2–3.5) | 3 | ⬜ dipikirkan pemilik |
+| 🟡 7 | Input rupiah berpemisah ribuan (4.2) | 4 | ✅ **diimplementasikan** (CurrencyInput) |
+| 🟡 8 | Perbaikan alur: 3.2 harga jual & 3.3 +Baru inline | 3 | ✅ **diimplementasikan** (3.4/3.5 belum) |
 | 🟡 9 | Batasi grant tulis view ke SELECT (2.3) | 2 | ⬜ |
-| 🟡 10 | A11y tombol ikon, token warna semantik (4.4–4.5) | 4 | ⬜ |
+| 🟡 10 | A11y tombol ikon (4.4) + token semantik (4.5) | 4 | ✅ **diimplementasikan** |
 
 **Penilaian keseluruhan.** Sistem **sehat & siap full-online** setelah lubang
 keamanan kritis (2.1/2.2) ditutup. Integritas data bersih, otomatisasi bisnis kuat,
