@@ -25,13 +25,17 @@ export async function buildTransactionRows(
   ] = await Promise.all([
     supabase.from("sales")
       // wallet:wallets!wallet_id → tegaskan FK (sales punya 2 relasi ke wallets)
+      // sale_items → keterangan diisi nama barang/jasa yang dijual
       .select("id, sale_date, total, payment_method, paid_date, wallet_id, notes, " +
         "client:clients(company_name), wallet:wallets!wallet_id(name), " +
-        "invoice:monthly_invoices(status)")
+        "invoice:monthly_invoices(status), " +
+        "sale_items(qty, item_name, product:products(name))")
       .order("sale_date", { ascending: false }),
     supabase.from("purchases")
+      // purchase_items → keterangan diisi nama barang yang dibeli
       .select("id, purchase_date, total, wallet_id, invoice_no, notes, " +
-        "distributor:distributors(name), wallet:wallets(name)")
+        "distributor:distributors(name), wallet:wallets(name), " +
+        "purchase_items(qty, product:products(name))")
       .order("purchase_date", { ascending: false }),
     supabase.from("operational_expenses")
       .select("id, expense_date, amount, wallet_id, category_id, label_id, description, " +
@@ -59,12 +63,25 @@ export async function buildTransactionRows(
 
   const rows: TxRow[] = [];
 
+  // Ringkas daftar item jadi satu baris keterangan: "Nama ×qty, Nama, ...".
+  // Barang pakai nama produk; jasa pakai item_name. ×qty hanya bila qty > 1.
+  const summarizeItems = (items: any[]): string =>
+    (items ?? [])
+      .map((it) => {
+        const name = it.item_name ?? it.product?.name ?? "-";
+        const qty = Number(it.qty ?? 0);
+        return qty > 1 ? `${name} ×${qty}` : name;
+      })
+      .filter(Boolean)
+      .join(", ");
+
   // ---- Penjualan ----
   for (const s of (sales ?? []) as any[]) {
     const method = s.payment_method as string;
     let piutang = false;
     if (method === "monthly_invoice") piutang = (s.invoice?.status ?? "") !== "paid";
     else if (method === "terhutang") piutang = !s.paid_date;
+    const itemsDesc = summarizeItems(s.sale_items);
     rows.push({
       key: `sale-${s.id}`,
       source: "sale",
@@ -75,7 +92,8 @@ export async function buildTransactionRows(
       walletName: s.wallet?.name ?? (piutang ? "(belum diterima)" : "-"),
       categoryId: null,
       labelId: null,
-      description: s.notes ?? "",
+      // Keterangan = nama barang/jasa; bila kosong, mundur ke catatan.
+      description: itemsDesc || (s.notes ?? ""),
       amount: Number(s.total),
       isPiutang: piutang,
       // Penjualan via invoice bulanan tidak dijumlahkan di sini — uangnya
@@ -86,6 +104,7 @@ export async function buildTransactionRows(
 
   // ---- Pembelian ----
   for (const p of (purchases ?? []) as any[]) {
+    const itemsDesc = summarizeItems(p.purchase_items);
     rows.push({
       key: `purchase-${p.id}`,
       source: "purchase",
@@ -96,7 +115,8 @@ export async function buildTransactionRows(
       walletName: p.wallet?.name ?? "-",
       categoryId: null,
       labelId: null,
-      description: p.invoice_no ? `Nota ${p.invoice_no}` : (p.notes ?? ""),
+      // Keterangan = nama barang dibeli; bila kosong, mundur ke Nota/catatan.
+      description: itemsDesc || (p.invoice_no ? `Nota ${p.invoice_no}` : (p.notes ?? "")),
       amount: Number(p.total),
       isPiutang: false,
     });
