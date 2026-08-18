@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/shared/confirm-dialog";
+import { CurrencyInput } from "@/components/shared/currency-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -348,8 +349,8 @@ export function ExpensesManager({
               </div>
               <div className="space-y-2">
                 <Label>Nominal (Rp) *</Label>
-                <Input type="number" min={0} value={amount}
-                  onChange={(e) => setAmount(e.target.value)} />
+                <CurrencyInput value={amount}
+                  onValueChange={setAmount} />
               </div>
             </div>
             <div className="space-y-2">

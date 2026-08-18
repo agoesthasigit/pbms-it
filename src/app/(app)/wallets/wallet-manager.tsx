@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/shared/confirm-dialog";
+import { CurrencyInput } from "@/components/shared/currency-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -195,8 +196,8 @@ export function WalletManager({ wallets }: { wallets: WalletWithBalance[] }) {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label>Nominal (Rp)</Label>
-                    <Input type="number" min={0} value={tf.amount}
-                      onChange={(e) => setTf({ ...tf, amount: e.target.value })} />
+                    <CurrencyInput value={tf.amount}
+                      onValueChange={(v) => setTf({ ...tf, amount: v })} />
                   </div>
                   <div className="space-y-2">
                     <Label>Tanggal</Label>
@@ -309,8 +310,8 @@ export function WalletManager({ wallets }: { wallets: WalletWithBalance[] }) {
               </div>
               <div className="space-y-2">
                 <Label>Saldo Awal (Rp)</Label>
-                <Input type="number" min={0} value={form.initial_balance}
-                  onChange={(e) => setForm({ ...form, initial_balance: e.target.value })} />
+                <CurrencyInput value={form.initial_balance}
+                  onValueChange={(v) => setForm({ ...form, initial_balance: v })} />
               </div>
             </div>
             <div className="space-y-2">

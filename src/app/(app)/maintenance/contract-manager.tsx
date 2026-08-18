@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Pencil, Trash2, Loader2, FileText, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/shared/confirm-dialog";
+import { CurrencyInput } from "@/components/shared/currency-input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -252,8 +253,8 @@ export function ContractManager({
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Biaya per Bulan (Rp) *</Label>
-                <Input type="number" min={0} value={amount} placeholder="1000000"
-                  onChange={(e) => setAmount(e.target.value)} />
+                <CurrencyInput value={amount} placeholder="1000000"
+                  onValueChange={setAmount} />
               </div>
               <div className="space-y-2">
                 <Label>Tanggal Mulai</Label>

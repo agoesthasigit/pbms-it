@@ -15,6 +15,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { formatIDR } from "@/lib/utils/currency";
+import { CurrencyInput } from "@/components/shared/currency-input";
 import { todayISO } from "@/lib/utils/date";
 import { toNumber } from "@/lib/utils/number";
 import type { ProductWithStock, Distributor, WalletWithBalance } from "@/types/db";
@@ -209,9 +210,9 @@ export function PurchaseForm({
                             onChange={(e) => setLine(i, { qty: e.target.value })} />
                         </div>
                         <div className="col-span-4 sm:col-span-2">
-                          <Input type="number" min={0} placeholder="Harga"
+                          <CurrencyInput placeholder="Harga"
                             className="text-right" value={l.price}
-                            onChange={(e) => setLine(i, { price: e.target.value })} />
+                            onValueChange={(v) => setLine(i, { price: v })} />
                         </div>
                         <div className="col-span-3 truncate text-right text-xs font-medium sm:col-span-2">
                           {sub > 0 ? formatIDR(sub) : "—"}
@@ -237,9 +238,9 @@ export function PurchaseForm({
                         <div className="mt-2.5 grid grid-cols-2 gap-3 rounded-lg bg-muted/50 p-3">
                           <div className="space-y-1">
                             <Label className="text-xs">Harga Jual Default (Rp)</Label>
-                            <Input type="number" min={0} placeholder="Harga jual"
+                            <CurrencyInput placeholder="Harga jual"
                               value={l.selling_price}
-                              onChange={(e) => setLine(i, { selling_price: e.target.value })} />
+                              onValueChange={(v) => setLine(i, { selling_price: v })} />
                           </div>
                           <div className="space-y-1">
                             <Label className="text-xs">Garansi (bulan)</Label>

@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, X, Loader2, Save, Wallet as WalletIcon, Lock, LockOpen } from "lucide-react";
 import { toast } from "sonner";
+import { CurrencyInput } from "@/components/shared/currency-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -89,9 +90,9 @@ function BudgetTable({
                 onChange={(e) => update(i, { qty: e.target.value })} />
             </div>
             <div className="col-span-4 sm:col-span-2">
-              <Input type="number" min={0} placeholder="Harga" value={r.price}
+              <CurrencyInput placeholder="Harga" value={r.price}
                 className="text-right" disabled={readOnly}
-                onChange={(e) => update(i, { price: e.target.value })} />
+                onValueChange={(v) => update(i, { price: v })} />
             </div>
             <div className={`${readOnly ? "col-span-4 sm:col-span-3" : "col-span-3 sm:col-span-2"} text-right text-sm font-medium`}>
               {formatIDR(toNumber(r.qty) * toNumber(r.price))}
@@ -162,9 +163,9 @@ function ExpenseTable({
                   onChange={(e) => update(i, { qty: e.target.value })} />
               </div>
               <div className="col-span-4 sm:col-span-2">
-                <Input type="number" min={0} placeholder="Harga" value={r.price}
+                <CurrencyInput placeholder="Harga" value={r.price}
                   className="text-right" disabled={readOnly}
-                  onChange={(e) => update(i, { price: e.target.value })} />
+                  onValueChange={(v) => update(i, { price: v })} />
               </div>
               <div className={`${readOnly ? "col-span-4 sm:col-span-3" : "col-span-3 sm:col-span-2"} text-right text-sm font-medium`}>
                 {formatIDR(toNumber(r.qty) * toNumber(r.price))}
@@ -287,9 +288,9 @@ function PaymentTable({
                   </Select>
                 </div>
                 <div className={readOnly ? "col-span-4 sm:col-span-3" : "col-span-3 sm:col-span-2"}>
-                  <Input type="number" min={0} placeholder="Nominal" value={r.amount}
+                  <CurrencyInput placeholder="Nominal" value={r.amount}
                     className="text-right" disabled={readOnly}
-                    onChange={(e) => update(i, { amount: e.target.value })} />
+                    onValueChange={(v) => update(i, { amount: v })} />
                 </div>
                 {!readOnly && (
                   <div className="col-span-1 flex justify-end">

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/shared/confirm-dialog";
+import { CurrencyInput } from "@/components/shared/currency-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -309,8 +310,8 @@ export function ProductManager({
             </div>
             <div className="space-y-2">
               <Label>Harga Jual Default (Rp)</Label>
-              <Input type="number" min={0} value={form.default_selling_price}
-                onChange={(e) => setForm({ ...form, default_selling_price: e.target.value })} />
+              <CurrencyInput value={form.default_selling_price}
+                onValueChange={(v) => setForm({ ...form, default_selling_price: v })} />
             </div>
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div className="pr-3">

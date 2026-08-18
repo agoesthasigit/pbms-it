@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Receipt, CalendarDays, CheckCircle2, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/shared/confirm-dialog";
+import { CurrencyInput } from "@/components/shared/currency-input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -159,10 +160,10 @@ export function IssueManager({
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">Rp</span>
-                    <Input type="number" min={0} className="w-36 text-right"
+                    <CurrencyInput className="w-36 text-right"
                       value={amounts[r.contract_id] ?? ""}
-                      onChange={(e) =>
-                        setAmounts((a) => ({ ...a, [r.contract_id]: e.target.value }))
+                      onValueChange={(v) =>
+                        setAmounts((a) => ({ ...a, [r.contract_id]: v }))
                       } />
                   </div>
                 </div>

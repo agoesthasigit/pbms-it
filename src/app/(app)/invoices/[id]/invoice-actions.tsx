@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, CheckCircle2, Send, Download, FileText, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { CurrencyInput } from "@/components/shared/currency-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -152,9 +153,9 @@ export function InvoiceActions({
                   <div className="grid grid-cols-3 gap-2">
                     <div className="col-span-2 space-y-1.5">
                       <Label className="text-xs">Dasar kena pajak (jasa)</Label>
-                      <Input type="number" min={0} value={pphBase}
+                      <CurrencyInput value={pphBase}
                         className={baseTooBig ? "border-destructive" : ""}
-                        onChange={(e) => setPphBase(e.target.value)} />
+                        onValueChange={setPphBase} />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs">Tarif (%)</Label>
