@@ -251,7 +251,7 @@ export function QuickDealForm({
                     <div className="mt-1 flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">
                         Margin: <span className={toNumber(l.sellPrice) - toNumber(l.buyPrice) >= 0
-                          ? "font-medium text-emerald-600" : "font-medium text-destructive"}>
+                          ? "font-medium text-success" : "font-medium text-destructive"}>
                           {formatIDR((toNumber(l.sellPrice) - toNumber(l.buyPrice)) * toNumber(l.qty))}
                         </span>
                       </span>
@@ -386,7 +386,7 @@ export function QuickDealForm({
             </div>
             <div>
               <div className="text-muted-foreground">Margin</div>
-              <div className={`font-bold ${margin >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+              <div className={`font-bold ${margin >= 0 ? "text-success" : "text-destructive"}`}>
                 {formatIDR(margin)}
               </div>
             </div>

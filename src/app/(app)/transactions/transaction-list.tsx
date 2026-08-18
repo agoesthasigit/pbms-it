@@ -257,7 +257,7 @@ export function TransactionList({
                     <TableCell className="max-w-52 truncate text-muted-foreground">
                       {r.description || "-"}
                     </TableCell>
-                    <TableCell className={`text-right font-medium ${r.direction === "in" ? "text-emerald-600" : "text-destructive"}`}>
+                    <TableCell className={`text-right font-medium ${r.direction === "in" ? "text-success" : "text-destructive"}`}>
                       {r.direction === "in" ? "+" : "−"}{formatIDR(r.amount)}
                     </TableCell>
                   </TableRow>
