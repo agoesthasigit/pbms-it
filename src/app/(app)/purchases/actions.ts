@@ -50,6 +50,68 @@ export async function createPurchase(input: {
   return { success: true };
 }
 
+export type QuickDealItemInput = {
+  name: string;
+  qty: number;
+  buy_price: number;
+  sell_price: number;
+  warranty_months?: number;
+};
+
+/** Transaksi Cepat: beli + jual sekaligus (atomik via RPC create_quick_deal). */
+export async function createQuickDeal(input: {
+  distributor_id: string | null;
+  buy_wallet_id: string;
+  deal_date: string;
+  invoice_no?: string;
+  client_id: string;
+  sale_method: "cash" | "transfer" | "monthly_invoice" | "terhutang";
+  sale_wallet_id: string | null;
+  notes?: string;
+  items: QuickDealItemInput[];
+  period_month?: string | null;
+  due_date?: string | null;
+}): Promise<Result> {
+  if (!input.buy_wallet_id) return { error: "Pilih wallet pembayar (pembelian)." };
+  if (!input.client_id) return { error: "Pilih client (penjualan)." };
+  const valid = input.items.filter((i) => i.name.trim() && i.qty > 0);
+  if (valid.length === 0) return { error: "Tambahkan minimal 1 barang." };
+  if ((input.sale_method === "cash" || input.sale_method === "transfer") && !input.sale_wallet_id)
+    return { error: "Pilih wallet penerima penjualan." };
+  if (input.sale_method === "monthly_invoice" && !input.period_month)
+    return { error: "Pilih periode invoice bulanan." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("create_quick_deal", {
+    p_distributor_id: input.distributor_id,
+    p_buy_wallet_id: input.buy_wallet_id,
+    p_deal_date: input.deal_date,
+    p_invoice_no: input.invoice_no ?? "",
+    p_client_id: input.client_id,
+    p_sale_method: input.sale_method,
+    p_sale_wallet_id: input.sale_wallet_id,
+    p_notes: input.notes ?? "",
+    p_items: valid.map((i) => ({
+      name: i.name.trim(),
+      qty: i.qty,
+      buy_price: i.buy_price,
+      sell_price: i.sell_price,
+      warranty_months: i.warranty_months ?? "",
+    })),
+    p_period_month: input.period_month ?? null,
+    p_due_date: input.due_date ?? null,
+  });
+
+  if (error) return { error: error.message || "Gagal menyimpan transaksi cepat." };
+  revalidatePath("/purchases");
+  revalidatePath("/sales");
+  revalidatePath("/products");
+  revalidatePath("/wallets");
+  revalidatePath("/invoices");
+  revalidatePath("/assets");
+  return { success: true };
+}
+
 export async function deletePurchase(id: string): Promise<Result> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("delete_purchase", { p_id: id });

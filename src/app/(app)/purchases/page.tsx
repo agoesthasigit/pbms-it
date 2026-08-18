@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/shared/page-header";
 import { PurchaseList } from "./purchase-list";
-import type { ProductWithStock, Distributor, WalletWithBalance } from "@/types/db";
+import type { ProductWithStock, Distributor, WalletWithBalance, Client } from "@/types/db";
 import type { PurchaseRow } from "@/types/phase3";
 
 export const metadata = { title: "Pembelian" };
@@ -9,7 +9,7 @@ export const metadata = { title: "Pembelian" };
 export default async function PurchasesPage() {
   const supabase = await createClient();
 
-  const [{ data: purchases }, { data: products }, { data: distributors }, { data: balances }, { data: wallets }] =
+  const [{ data: purchases }, { data: products }, { data: distributors }, { data: balances }, { data: wallets }, { data: clients }] =
     await Promise.all([
       supabase.from("purchases")
         .select("*, distributor:distributors(name), wallet:wallets(name), purchase_items(qty, price, product:products(name))")
@@ -18,6 +18,7 @@ export default async function PurchasesPage() {
       supabase.from("distributors").select("*").order("name"),
       supabase.from("v_wallet_balances").select("*"),
       supabase.from("wallets").select("*").order("created_at"),
+      supabase.from("clients").select("*").eq("status", "active").order("company_name"),
     ]);
 
   const walletsMerged: WalletWithBalance[] = (wallets ?? []).map((w) => ({
@@ -36,6 +37,7 @@ export default async function PurchasesPage() {
         products={(products ?? []) as ProductWithStock[]}
         distributors={(distributors ?? []) as Distributor[]}
         wallets={walletsMerged}
+        clients={(clients ?? []) as Client[]}
       />
     </div>
   );

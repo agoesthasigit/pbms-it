@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, ShoppingCart, Loader2, Search, RotateCcw, Receipt, Boxes } from "lucide-react";
+import { Plus, Trash2, ShoppingCart, Loader2, Search, RotateCcw, Receipt, Boxes, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
@@ -19,9 +19,10 @@ import { SummaryCard } from "@/components/shared/summary-card";
 import { StatCard } from "@/components/shared/stat-card";
 import { usePagination } from "@/components/shared/use-pagination";
 import { PaginationBar } from "@/components/shared/pagination-bar";
-import type { ProductWithStock, Distributor, WalletWithBalance } from "@/types/db";
+import type { ProductWithStock, Distributor, WalletWithBalance, Client } from "@/types/db";
 import type { PurchaseRow } from "@/types/phase3";
 import { PurchaseForm } from "./purchase-form";
+import { QuickDealForm } from "./quick-deal-form";
 import { deletePurchase } from "./actions";
 
 type PItem = { qty: number; price: number; product: { name: string } | null };
@@ -40,15 +41,17 @@ function lastMonthRange() {
 }
 
 export function PurchaseList({
-  purchases, products, distributors, wallets,
+  purchases, products, distributors, wallets, clients,
 }: {
   purchases: PurchaseRow[];
   products: ProductWithStock[];
   distributors: Distributor[];
   wallets: WalletWithBalance[];
+  clients: Client[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [qdOpen, setQdOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const confirm = useConfirm();
   const [q, setQ] = useState("");
@@ -181,6 +184,10 @@ export function PurchaseList({
           <Button variant="outline" onClick={resetRange} title="Kembali ke bulan ini">
             <RotateCcw className="h-4 w-4" /> Bulan Ini
           </Button>
+          <Button variant="outline" onClick={() => setQdOpen(true)}
+            title="Beli lalu langsung jual ke client dalam satu langkah">
+            <Zap className="h-4 w-4" /> Beli &amp; Jual
+          </Button>
           <Button onClick={() => setOpen(true)}>
             <Plus className="h-4 w-4" /> Pembelian Baru
           </Button>
@@ -243,6 +250,8 @@ export function PurchaseList({
 
       <PurchaseForm open={open} onOpenChange={setOpen}
         products={products} distributors={distributors} wallets={wallets} />
+      <QuickDealForm open={qdOpen} onOpenChange={setQdOpen}
+        products={products} distributors={distributors} wallets={wallets} clients={clients} />
     </div>
   );
 }
