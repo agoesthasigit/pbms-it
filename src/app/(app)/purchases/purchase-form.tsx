@@ -202,6 +202,12 @@ export function PurchaseForm({
                                 baru
                               </span>
                             )}
+                            {toNumber(l.selling_price) > 0 && (
+                              <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600"
+                                title="Harga jual default barang ini">
+                                jual {formatIDR(toNumber(l.selling_price))}
+                              </span>
+                            )}
                           </div>
                         </div>
                         <div className="col-span-3 sm:col-span-2">
@@ -259,6 +265,10 @@ export function PurchaseForm({
             <Button type="button" variant="outline" size="sm" onClick={addLine}>
               <Plus className="h-3.5 w-3.5" /> Tambah Barang
             </Button>
+
+            <p className="flex items-center gap-1 text-xs text-muted-foreground">
+              <SlidersHorizontal className="h-3 w-3" /> Ikon ini mengatur Harga Jual Default &amp; Garansi tiap barang — isi sekarang agar otomatis terpakai saat menjual.
+            </p>
           </div>
 
           <div className="space-y-1.5">
