@@ -86,6 +86,25 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
+- **2026-08-18 — Fix "duplicate key monthly_invoices_user_invoice_no_uniq" saat
+  tambah penjualan invoice bulanan.** Menu Penjualan → metode invoice bulanan
+  (kejadian nyata: client Rob Peetoom Seminyak) gagal dengan error index unik
+  nomor invoice. Penyebab: `create_sale` memanggil `find_or_create_invoice`, dan
+  fungsi itu **masih memakai `count(*) + 1`**. Migrasi `20260802_invoice_no_unique.sql`
+  dulu **hanya** memperbaiki `generate_monthly_invoice` (dipakai dari menu Invoice),
+  sedangkan `find_or_create_invoice` (dipakai dari menu Penjualan) **terlewat**.
+  Begitu ada invoice bulan itu dihapus, `count` turun → nomor lama dipakai ulang →
+  bentrok. Data nyata Agustus 2026 tersisa `001` & `003` (`002` terhapus),
+  `count+1 = 3` → coba `INV/2026/08/003` yang sudah ada → error.
+  - Migrasi `20260818_find_or_create_invoice_no_maxplus1.sql`:
+    `find_or_create_invoice` di-`CREATE OR REPLACE` (tanda tangan sama) — penomoran
+    kini **MAX + 1 lalu loop sampai bebas**, identik dengan `generate_monthly_invoice`.
+    Cabang "cari invoice cocok & belum lunas" TIDAK diubah; `create_sale` tak
+    disentuh. Nomor bekas invoice terhapus sengaja TIDAK didaur ulang (lubang nomor
+    wajar). Diterapkan ke DB produksi via **`pg` (npm)** — `psql.exe` ter-korupsi
+    lagi ("file or directory is corrupted"). Diverifikasi nomor Agustus berikutnya
+    jadi `004` (bukan `003`).
+
 - **2026-08-18 — Pemulihan file ter-zero + 3 revisi (invoice/penjualan/email).**
   Konteks: user "bersih-bersih data C" meng-**nol-byte-kan** 187 file tracked
   (`src/`, `public/`, `scripts/`, `supabase/migrations/`) — dipulihkan via
