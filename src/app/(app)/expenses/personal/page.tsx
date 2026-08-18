@@ -1,5 +1,6 @@
-import { ExpensePage } from "@/components/shared/expense-page";
-export const metadata = { title: "Pengeluaran Pribadi" };
+import { redirect } from "next/navigation";
+// Menu Pengeluaran Operasional & Pribadi kini digabung di satu halaman /expenses.
+// Route lama dipertahankan sebagai redirect agar bookmark/tautan lama tetap jalan.
 export default function Page() {
-  return <ExpensePage kind="personal" />;
+  redirect("/expenses");
 }

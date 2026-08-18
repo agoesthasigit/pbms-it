@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { sendMail, isMailerConfigured } from "@/lib/email/mailer";
+import { composeEmail } from "@/lib/email/signature";
 import type { CategoryType } from "@/types/db";
 
 type Result = { success?: boolean; error?: string };
@@ -119,4 +121,39 @@ export async function saveEmailSettings(input: {
   if (error) return { error: error.message || "Gagal menyimpan pengaturan email." };
   revalidatePath("/settings");
   return { success: true };
+}
+
+/**
+ * Kirim email PERCOBAAN ke alamat tujuan untuk memastikan kredensial Gmail
+ * (yang tersimpan di DB) benar-benar bisa mengirim. Memakai kredensial yang
+ * SUDAH tersimpan — simpan dulu sebelum tes.
+ */
+export async function sendTestEmail(to: string): Promise<Result & { from?: string }> {
+  const dest = to.trim();
+  if (!dest) return { error: "Isi email tujuan untuk percobaan." };
+  if (!EMAIL_RE.test(dest)) return { error: "Format email tujuan tidak valid." };
+
+  if (!(await isMailerConfigured()))
+    return { error: "Kredensial Gmail belum lengkap. Simpan email & App Password dulu, lalu coba lagi." };
+
+  const now = new Date().toLocaleString("id-ID", { dateStyle: "full", timeStyle: "short" });
+  const mail = await composeEmail(
+    `Ini adalah <b>email percobaan</b> dari aplikasi PBMS-IT.<br/><br/>` +
+    `Jika Anda menerima email ini, berarti pengaturan pengiriman email (Gmail) sudah benar ` +
+    `dan invoice serta NOTA bisa dikirim otomatis ke client.<br/><br/>` +
+    `Dikirim pada: ${now}.`
+  );
+
+  try {
+    const res = await sendMail({
+      to: dest,
+      subject: "Email Percobaan — PBMS-IT",
+      text: mail.text,
+      html: mail.html,
+      attachments: mail.attachments,
+    });
+    return { success: true, from: res.from };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Gagal mengirim email percobaan." };
+  }
 }

@@ -69,6 +69,7 @@ export async function createExpense(
     return { error: "Gagal mencatat transaksi wallet." };
   }
 
+  revalidatePath("/expenses");
   revalidatePath(`/expenses/${kind}`);
   revalidatePath("/wallets");
   return { success: true };
@@ -90,6 +91,7 @@ export async function deleteExpense(
   const { error: e2 } = await supabase.from(TABLE[kind]).delete().eq("id", id);
   if (e2) return { error: "Gagal menghapus pengeluaran." };
 
+  revalidatePath("/expenses");
   revalidatePath(`/expenses/${kind}`);
   revalidatePath("/wallets");
   return { success: true };

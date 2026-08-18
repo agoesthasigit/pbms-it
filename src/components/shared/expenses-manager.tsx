@@ -2,7 +2,10 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, Loader2, Wallet as WalletIcon, Receipt, Boxes, Search, RotateCcw } from "lucide-react";
+import {
+  Plus, Trash2, Loader2, Wallet as WalletIcon, Search, RotateCcw,
+  Briefcase, PiggyBank,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +35,12 @@ import type { ExpenseRow } from "@/types/phase3";
 import { createExpense, deleteExpense } from "./expense-actions";
 
 type Kind = "operational" | "personal";
+export type MergedExpenseRow = ExpenseRow & { kind: Kind };
+
+const KIND_LABEL: Record<Kind, string> = {
+  operational: "Operasional",
+  personal: "Pribadi",
+};
 
 const fmt = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -40,25 +49,35 @@ function monthRange() {
   return { from: fmt(new Date(now.getFullYear(), now.getMonth(), 1)),
            to: fmt(new Date(now.getFullYear(), now.getMonth() + 1, 0)) };
 }
-function lastMonthRange() {
-  const now = new Date();
-  return { from: fmt(new Date(now.getFullYear(), now.getMonth() - 1, 1)),
-           to: fmt(new Date(now.getFullYear(), now.getMonth(), 0)) };
+
+/** Badge jenis pengeluaran — Operasional (biru, ikut laba) vs Pribadi (ungu). */
+function KindBadge({ kind }: { kind: Kind }) {
+  return kind === "operational" ? (
+    <Badge className="border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-300">
+      <Briefcase className="mr-1 h-3 w-3" /> Operasional
+    </Badge>
+  ) : (
+    <Badge className="border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950 dark:text-violet-300">
+      <PiggyBank className="mr-1 h-3 w-3" /> Pribadi
+    </Badge>
+  );
 }
 
-export function ExpenseManager({
-  kind, expenses, wallets, categories, labels,
+export function ExpensesManager({
+  expenses, wallets, categoriesOp, categoriesPersonal, labels,
 }: {
-  kind: Kind;
-  expenses: ExpenseRow[];
+  expenses: MergedExpenseRow[];
   wallets: WalletWithBalance[];
-  categories: Category[];
+  categoriesOp: Category[];
+  categoriesPersonal: Category[];
   labels: LabelType[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
 
+  // Form tambah
+  const [formKind, setFormKind] = useState<Kind>("operational");
   const [walletId, setWalletId] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [labelId, setLabelId] = useState("");
@@ -71,37 +90,33 @@ export function ExpenseManager({
       .map((w) => ({ value: w.id, label: `${w.name} · ${formatIDR(Number(w.balance))}` })),
     [wallets]
   );
+  // Kategori mengikuti jenis yang dipilih di dialog.
   const categoryItems = useMemo(
-    () => categories.map((c) => ({ value: c.id, label: c.name })),
-    [categories]
+    () => (formKind === "operational" ? categoriesOp : categoriesPersonal)
+      .map((c) => ({ value: c.id, label: c.name })),
+    [formKind, categoriesOp, categoriesPersonal]
   );
   const labelItems = useMemo(
     () => labels.map((l) => ({ value: l.id, label: l.name })),
     [labels]
   );
+  const kindItems = [
+    { value: "operational", label: "Operasional (ikut laba usaha)" },
+    { value: "personal", label: "Pribadi (tidak kurangi laba usaha)" },
+  ];
 
-  // Ringkasan bulan berjalan — dihitung dari data yang sudah dimuat, tanpa query baru.
-  const { totalMonth, countMonth, avgMonth, compareTotal, percent } = useMemo(() => {
+  // Ringkasan bulan berjalan — dari data yang sudah dimuat, split per jenis.
+  const summary = useMemo(() => {
     const mr = monthRange();
-    const lm = lastMonthRange();
-    const inRange = (a: string, b: string) =>
-      expenses.filter((e) => e.expense_date >= a && e.expense_date <= b);
-    const thisMonth = inRange(mr.from, mr.to);
-    const total = thisMonth.reduce((s, e) => s + Number(e.amount), 0);
-    const count = thisMonth.length;
-    const lastM = inRange(lm.from, lm.to).reduce((s, e) => s + Number(e.amount), 0);
-    const pct = lastM > 0 ? ((total - lastM) / lastM) * 100 : (total > 0 ? 100 : null);
-    return {
-      totalMonth: total,
-      countMonth: count,
-      avgMonth: count > 0 ? total / count : 0,
-      compareTotal: lastM,
-      percent: pct,
-    };
+    const thisMonth = expenses.filter((e) => e.expense_date >= mr.from && e.expense_date <= mr.to);
+    const op = thisMonth.filter((e) => e.kind === "operational").reduce((s, e) => s + Number(e.amount), 0);
+    const pr = thisMonth.filter((e) => e.kind === "personal").reduce((s, e) => s + Number(e.amount), 0);
+    return { total: op + pr, op, pr, count: thisMonth.length };
   }, [expenses]);
 
-  // Filter daftar: rentang tanggal (default bulan berjalan) + kata kunci.
+  // Filter: jenis + rentang tanggal (default bulan berjalan) + kata kunci.
   const def = monthRange();
+  const [kindFilter, setKindFilter] = useState<"all" | Kind>("all");
   const [q, setQ] = useState("");
   const [from, setFrom] = useState(def.from);
   const [to, setTo] = useState(def.to);
@@ -109,31 +124,38 @@ export function ExpenseManager({
   const filtered = useMemo(() => {
     const key = q.toLowerCase();
     return expenses.filter((e) => {
+      if (kindFilter !== "all" && e.kind !== kindFilter) return false;
       if (from && e.expense_date < from) return false;
       if (to && e.expense_date > to) return false;
       if (key) {
         const hay = [
           e.description ?? "", e.category?.name ?? "",
-          e.label?.name ?? "", e.wallet?.name ?? "",
+          e.label?.name ?? "", e.wallet?.name ?? "", KIND_LABEL[e.kind],
         ].join(" ").toLowerCase();
         if (!hay.includes(key)) return false;
       }
       return true;
     });
-  }, [expenses, q, from, to]);
+  }, [expenses, kindFilter, q, from, to]);
 
-  const pg = usePagination(filtered, 10, `${kind}|${q}|${from}|${to}`);
+  const pg = usePagination(filtered, 10, `${kindFilter}|${q}|${from}|${to}`);
 
-  function resetFilter() { setFrom(def.from); setTo(def.to); setQ(""); }
+  const kindFilterItems = [
+    { value: "all", label: "Semua Jenis" },
+    { value: "operational", label: "Operasional" },
+    { value: "personal", label: "Pribadi" },
+  ];
+
+  function resetFilter() { setFrom(def.from); setTo(def.to); setQ(""); setKindFilter("all"); }
 
   function reset() {
-    setWalletId(""); setCategoryId(""); setLabelId("");
+    setFormKind("operational"); setWalletId(""); setCategoryId(""); setLabelId("");
     setDate(todayISO()); setAmount(""); setDescription("");
   }
 
   function handleSave() {
     startTransition(async () => {
-      const res = await createExpense(kind, {
+      const res = await createExpense(formKind, {
         wallet_id: walletId,
         category_id: categoryId || null,
         label_id: labelId || null,
@@ -142,17 +164,17 @@ export function ExpenseManager({
         description,
       });
       if (res.error) { toast.error(res.error); return; }
-      toast.success("Pengeluaran tersimpan & saldo wallet dikurangi.");
+      toast.success(`Pengeluaran ${KIND_LABEL[formKind]} tersimpan & saldo wallet dikurangi.`);
       reset();
       setOpen(false);
       router.refresh();
     });
   }
 
-  function handleDelete(e: ExpenseRow) {
+  function handleDelete(e: MergedExpenseRow) {
     if (!confirm("Hapus pengeluaran ini? Saldo wallet akan dikembalikan.")) return;
     startTransition(async () => {
-      const res = await deleteExpense(kind, e.id);
+      const res = await deleteExpense(e.kind, e.id);
       if (res.error) { toast.error(res.error); return; }
       toast.success("Pengeluaran dihapus & saldo dikembalikan.");
       router.refresh();
@@ -161,42 +183,51 @@ export function ExpenseManager({
 
   return (
     <div className="space-y-4">
-      {/* Ringkasan bulan berjalan */}
+      {/* Ringkasan bulan berjalan — total + rincian per jenis */}
       <div className="grid gap-4 lg:grid-cols-3">
         <SummaryCard
           title="Total Pengeluaran Bulan Ini"
-          value={totalMonth}
+          value={summary.total}
           icon={WalletIcon}
           tone="orange"
-          compareLabel="Dari bulan lalu"
-          compareValue={compareTotal}
-          percent={percent}
           invertColor
         />
         <StatCard
-          label="Jumlah Pengeluaran"
-          value={String(countMonth)}
-          icon={Receipt}
-          tone="amber"
-          hint={countMonth > 0 ? "transaksi bulan ini" : "Belum ada transaksi bulan ini"}
+          label="Operasional Bulan Ini"
+          value={formatIDR(summary.op)}
+          icon={Briefcase}
+          tone="sky"
+          hint="Ikut mengurangi laba usaha"
         />
         <StatCard
-          label="Rata-rata Pengeluaran"
-          value={formatIDR(avgMonth)}
-          icon={Boxes}
+          label="Pribadi Bulan Ini"
+          value={formatIDR(summary.pr)}
+          icon={PiggyBank}
           tone="violet"
-          hint={countMonth > 0 ? "Total dibagi jumlah transaksi" : "Belum ada transaksi"}
+          hint="Tidak mengurangi laba usaha"
         />
       </div>
 
-      {/* Toolbar: cari + rentang tanggal */}
+      {/* Toolbar: jenis + cari + rentang tanggal */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div className="grid flex-1 gap-3 sm:grid-cols-2 lg:max-w-2xl lg:grid-cols-3">
-          <div className="space-y-1 sm:col-span-2 lg:col-span-1">
+        <div className="grid flex-1 gap-3 sm:grid-cols-2 lg:max-w-3xl lg:grid-cols-4">
+          <div className="space-y-1">
+            <Label className="text-xs">Jenis</Label>
+            <Select items={kindFilterItems} value={kindFilter}
+              onValueChange={(v) => setKindFilter((v as "all" | Kind) ?? "all")}>
+              <SelectTrigger><SelectValue placeholder="Semua Jenis" /></SelectTrigger>
+              <SelectContent>
+                {kindFilterItems.map((it) => (
+                  <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
             <Label className="text-xs">Cari</Label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input className="pl-9" placeholder="Keterangan / kategori / label / wallet..."
+              <Input className="pl-9" placeholder="Keterangan / kategori / wallet..."
                 value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
           </div>
@@ -210,8 +241,8 @@ export function ExpenseManager({
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={resetFilter} title="Kembali ke bulan ini">
-            <RotateCcw className="h-4 w-4" /> Bulan Ini
+          <Button variant="outline" onClick={resetFilter} title="Kembali ke bulan ini, semua jenis">
+            <RotateCcw className="h-4 w-4" /> Reset
           </Button>
           <Button onClick={() => setOpen(true)}>
             <Plus className="h-4 w-4" /> Tambah Pengeluaran
@@ -225,14 +256,15 @@ export function ExpenseManager({
             <EmptyState icon={WalletIcon}
               title={expenses.length === 0 ? "Belum ada pengeluaran" : "Tidak ada hasil"}
               description={expenses.length === 0
-                ? "Catat pengeluaran Anda. Saldo wallet berkurang otomatis."
-                : "Tidak ada pengeluaran pada rentang tanggal / kata kunci ini. Ubah filter atau klik Bulan Ini."} />
+                ? "Catat pengeluaran operasional atau pribadi. Saldo wallet berkurang otomatis."
+                : "Tidak ada pengeluaran pada filter ini. Ubah filter atau klik Reset."} />
           ) : (
             <>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Tanggal</TableHead>
+                  <TableHead>Jenis</TableHead>
                   <TableHead>Kategori</TableHead>
                   <TableHead>Keterangan</TableHead>
                   <TableHead>Label</TableHead>
@@ -243,8 +275,9 @@ export function ExpenseManager({
               </TableHeader>
               <TableBody>
                 {pg.paged.map((e) => (
-                  <TableRow key={e.id}>
+                  <TableRow key={`${e.kind}-${e.id}`}>
                     <TableCell>{formatDate(e.expense_date)}</TableCell>
+                    <TableCell><KindBadge kind={e.kind} /></TableCell>
                     <TableCell>
                       <Badge variant="secondary">{e.category?.name ?? "-"}</Badge>
                     </TableCell>
@@ -286,11 +319,26 @@ export function ExpenseManager({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>
-              Tambah Pengeluaran {kind === "operational" ? "Operasional" : "Pribadi"}
-            </DialogTitle>
+            <DialogTitle>Tambah Pengeluaran</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Jenis Pengeluaran *</Label>
+              <Select items={kindItems} value={formKind}
+                onValueChange={(v) => { setFormKind((v as Kind) ?? "operational"); setCategoryId(""); }}>
+                <SelectTrigger><SelectValue placeholder="Pilih jenis" /></SelectTrigger>
+                <SelectContent>
+                  {kindItems.map((it) => (
+                    <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {formKind === "operational"
+                  ? "Biaya operasional bisnis — ikut dihitung dalam laba bersih usaha."
+                  : "Pengeluaran pribadi — mengurangi saldo wallet, TAPI tidak mengurangi laba bisnis."}
+              </p>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Tanggal</Label>

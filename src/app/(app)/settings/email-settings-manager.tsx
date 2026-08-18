@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2, Mail, Save, CheckCircle2, KeyRound } from "lucide-react";
+import { Loader2, Mail, Save, CheckCircle2, KeyRound, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import {
   Card,
   CardContent,
@@ -13,7 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { saveEmailSettings } from "./actions";
+import { saveEmailSettings, sendTestEmail } from "./actions";
 
 export type EmailSettings = {
   gmail_user: string | null;
@@ -27,6 +28,9 @@ export function EmailSettingsManager({ initial }: { initial: EmailSettings | nul
   const [appPassword, setAppPassword] = useState("");
   const [hasPassword, setHasPassword] = useState(Boolean(initial?.has_password));
   const [pending, startTransition] = useTransition();
+
+  const [testTo, setTestTo] = useState(initial?.gmail_user ?? "");
+  const [testing, startTest] = useTransition();
 
   function handleSave() {
     startTransition(async () => {
@@ -42,6 +46,17 @@ export function EmailSettingsManager({ initial }: { initial: EmailSettings | nul
       toast.success("Pengaturan email tersimpan.");
       if (appPassword.trim()) setHasPassword(true);
       setAppPassword(""); // jangan tahan password di memori form
+    });
+  }
+
+  function handleTest() {
+    startTest(async () => {
+      const res = await sendTestEmail(testTo);
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(`Email percobaan terkirim ke ${testTo.trim()}. Cek inbox (atau folder spam).`);
     });
   }
 
@@ -115,6 +130,42 @@ export function EmailSettingsManager({ initial }: { initial: EmailSettings | nul
             )}
             Simpan
           </Button>
+        </div>
+
+        <Separator />
+
+        {/* Test kirim email */}
+        <div className="space-y-2">
+          <Label htmlFor="test_to" className="flex items-center gap-1.5">
+            <Send className="h-3.5 w-3.5" /> Kirim Email Percobaan
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            Pastikan pengiriman email benar-benar berfungsi sebelum dipakai ke client.
+            Simpan pengaturan di atas dulu, lalu kirim percobaan ke alamat mana pun
+            (mis. email Anda sendiri) dan cek inbox.
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input
+              id="test_to"
+              type="email"
+              placeholder="email-tujuan@contoh.com"
+              value={testTo}
+              onChange={(e) => setTestTo(e.target.value)}
+            />
+            <Button
+              variant="outline"
+              onClick={handleTest}
+              disabled={testing || !testTo.trim()}
+              className="shrink-0"
+            >
+              {testing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              Kirim Tes
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

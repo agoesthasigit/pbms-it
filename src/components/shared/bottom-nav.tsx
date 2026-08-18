@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShoppingCart, ReceiptText, Briefcase, BarChart3 } from "lucide-react";
+import { ShoppingCart, ReceiptText, Banknote, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Navigasi bawah khusus mobile. Hanya 4 menu paling sering dipakai; menu
@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 const ITEMS = [
   { label: "Pembelian", href: "/purchases", icon: ShoppingCart },
   { label: "Penjualan", href: "/sales", icon: ReceiptText },
-  { label: "Operasional", href: "/expenses/operational", icon: Briefcase },
+  { label: "Pengeluaran", href: "/expenses", icon: Banknote },
   { label: "Laporan", href: "/reports", icon: BarChart3 },
 ];
 
