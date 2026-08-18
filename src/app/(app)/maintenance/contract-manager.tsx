@@ -204,7 +204,7 @@ export function ContractManager({
                       </Button>
                       <Button variant="ghost" size="icon"
                         className="text-muted-foreground hover:text-destructive"
-                        onClick={() => handleDelete(c)} disabled={pending}>
+                        title="Hapus" onClick={() => handleDelete(c)} disabled={pending}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </TableCell>

@@ -303,7 +303,7 @@ export function ExpensesManager({
                     <TableCell className="text-right">
                       <Button variant="ghost" size="icon"
                         className="text-muted-foreground hover:text-destructive"
-                        onClick={() => handleDelete(e)} disabled={pending}>
+                        title="Hapus" onClick={() => handleDelete(e)} disabled={pending}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </TableCell>

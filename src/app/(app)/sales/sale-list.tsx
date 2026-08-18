@@ -313,7 +313,7 @@ export function SaleList({
                         )}
                         <Button variant="ghost" size="icon"
                           className="text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDelete(s)} disabled={pending}>
+                          title="Hapus" onClick={() => handleDelete(s)} disabled={pending}>
                           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                         </Button>
                       </div>

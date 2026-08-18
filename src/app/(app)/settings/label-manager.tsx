@@ -100,6 +100,7 @@ export function LabelManager({ data }: { data: LabelType[] }) {
                   {label.name}
                   <button
                     type="button"
+                    aria-label="Hapus label"
                     onClick={() => handleDelete(label)}
                     disabled={pending}
                     className="ml-1 text-muted-foreground hover:text-destructive"

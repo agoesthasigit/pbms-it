@@ -111,12 +111,13 @@ export function InvoiceList({ invoices }: { invoices: MonthlyInvoice[] }) {
                       </TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="icon" nativeButton={false}
+                          title="Lihat invoice"
                           render={<Link href={`/invoices/${inv.id}`} />}>
                           <Eye className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon"
                           className="text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDelete(inv)} disabled={pending}>
+                          title="Hapus" onClick={() => handleDelete(inv)} disabled={pending}>
                           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                         </Button>
                       </TableCell>

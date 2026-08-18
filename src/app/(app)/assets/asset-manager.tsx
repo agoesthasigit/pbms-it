@@ -369,7 +369,7 @@ export function AssetManager({
                         </Button>
                         <Button variant="ghost" size="icon"
                           className="text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDelete(a)}>
+                          title="Hapus" onClick={() => handleDelete(a)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </TableCell>

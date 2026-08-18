@@ -124,7 +124,7 @@ export function RabList({ projects }: { projects: RabProject[] }) {
                         </Button>
                         <Button variant="ghost" size="icon"
                           className="text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDelete(p)} disabled={pending}>
+                          title="Hapus" onClick={() => handleDelete(p)} disabled={pending}>
                           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                         </Button>
                       </TableCell>

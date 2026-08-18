@@ -189,7 +189,7 @@ export function ClientManager({
                       </Button>
                       <Button variant="ghost" size="icon"
                         className="text-muted-foreground hover:text-destructive"
-                        onClick={() => handleDelete(c)}>
+                        title="Hapus" onClick={() => handleDelete(c)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </TableCell>

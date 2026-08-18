@@ -272,7 +272,7 @@ export function WalletManager({ wallets }: { wallets: WalletWithBalance[] }) {
                     </Button>
                     <Button variant="ghost" size="sm"
                       className="text-muted-foreground hover:text-destructive"
-                      onClick={() => handleDelete(w)}>
+                      title="Hapus" onClick={() => handleDelete(w)}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>

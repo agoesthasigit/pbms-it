@@ -145,7 +145,7 @@ export function CategoryManager({ data }: { data: Category[] }) {
                           variant="ghost"
                           size="icon"
                           className="text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDelete(cat)}
+                          title="Hapus" onClick={() => handleDelete(cat)}
                           disabled={pending}
                         >
                           <Trash2 className="h-4 w-4" />
