@@ -8,6 +8,7 @@ import {
   AlertTriangle, Info,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,6 +39,7 @@ export function ProductManager({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const confirm = useConfirm();
   const [q, setQ] = useState("");
   const [showEmpty, setShowEmpty] = useState(false); // default: sembunyikan stok habis
 
@@ -117,8 +119,8 @@ export function ProductManager({
       router.refresh();
     });
   }
-  function handleDelete(p: ProductWithStock) {
-    if (!confirm(`Hapus barang "${p.name}"?`)) return;
+  async function handleDelete(p: ProductWithStock) {
+    if (!(await confirm({ title: "Hapus barang?", description: `Barang "${p.name}" akan dihapus.`, destructive: true, confirmText: "Hapus" }))) return;
     startTransition(async () => {
       const res = await deleteProduct(p.id);
       if (res.error) { toast.error(res.error); return; }

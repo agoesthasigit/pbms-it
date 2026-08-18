@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2, Wrench, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { formatIDR } from "@/lib/utils/currency";
 import { formatDate } from "@/lib/utils/date";
@@ -13,9 +14,10 @@ import { deleteRepairLog } from "./repair-actions";
 export function RepairHistory({ logs }: { logs: RepairLog[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const confirm = useConfirm();
 
-  function handleDelete(id: string) {
-    if (!confirm("Hapus log perbaikan ini?")) return;
+  async function handleDelete(id: string) {
+    if (!(await confirm({ title: "Hapus log perbaikan?", description: "Log perbaikan ini akan dihapus.", destructive: true, confirmText: "Hapus" }))) return;
     startTransition(async () => {
       const res = await deleteRepairLog(id);
       if (res.error) { toast.error(res.error); return; }

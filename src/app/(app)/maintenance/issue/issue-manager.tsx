@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Receipt, CalendarDays, CheckCircle2, Undo2 } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,6 +32,7 @@ export function IssueManager({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const confirm = useConfirm();
 
   const [month, setMonth] = useState(toMonthInput(period));
   // pilihan & nominal per kontrak (hanya untuk yang belum ditagih)
@@ -84,12 +86,15 @@ export function IssueManager({
     });
   }
 
-  function handleCancel(r: ChargeRow) {
+  async function handleCancel(r: ChargeRow) {
     if (!r.issued_sale_id) return;
-    if (!confirm(
-      `Batalkan tagihan "${r.service_name}" untuk ${r.company_name} periode ${periodLabel(period)}?\n\n` +
-      `Tagihan akan dilepas dari invoice dan total invoice dihitung ulang.`
-    )) return;
+    if (!(await confirm({
+      title: "Batalkan tagihan?",
+      description:
+        `Batalkan tagihan "${r.service_name}" untuk ${r.company_name} periode ${periodLabel(period)}. ` +
+        `Tagihan akan dilepas dari invoice dan total invoice dihitung ulang.`,
+      destructive: true, confirmText: "Batalkan tagihan",
+    }))) return;
     startTransition(async () => {
       const res = await cancelCharge(r.issued_sale_id!);
       if (res.error) { toast.error(res.error); return; }

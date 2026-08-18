@@ -5,6 +5,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Calculator, Eye, Trash2, Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +26,7 @@ import { deleteRab } from "./actions";
 export function RabList({ projects }: { projects: RabProject[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const confirm = useConfirm();
   const [q, setQ] = useState("");
 
   const filtered = useMemo(() => {
@@ -36,10 +38,12 @@ export function RabList({ projects }: { projects: RabProject[] }) {
 
   const pg = usePagination(filtered, 10, q);
 
-  function handleDelete(p: RabProject) {
-    if (!confirm(
-      `Hapus RAB "${p.project_name}"?\n\nSemua item, termin, dan efeknya di wallet akan ikut dibatalkan.`
-    )) return;
+  async function handleDelete(p: RabProject) {
+    if (!(await confirm({
+      title: `Hapus RAB "${p.project_name}"?`,
+      description: "Semua item, termin, dan efeknya di wallet akan ikut dibatalkan.",
+      destructive: true, confirmText: "Hapus",
+    }))) return;
     startTransition(async () => {
       const res = await deleteRab(p.id);
       if (res.error) { toast.error(res.error); return; }

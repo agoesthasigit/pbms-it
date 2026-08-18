@@ -6,6 +6,7 @@ import {
   Plus, Pencil, Trash2, Loader2, Search, Camera, Wrench,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,6 +49,7 @@ export function CctvManager({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const confirm = useConfirm();
   const [q, setQ] = useState("");
   const [fClient, setFClient] = useState("all");
 
@@ -115,8 +117,8 @@ export function CctvManager({
     });
   }
 
-  function handleDelete(c: CctvSystem) {
-    if (!confirm(`Hapus CCTV "${c.nvr_brand}"?`)) return;
+  async function handleDelete(c: CctvSystem) {
+    if (!(await confirm({ title: "Hapus CCTV?", description: `CCTV "${c.nvr_brand}" akan dihapus.`, destructive: true, confirmText: "Hapus" }))) return;
     startTransition(async () => {
       const res = await deleteCctv(c.id);
       if (res.error) { toast.error(res.error); return; }

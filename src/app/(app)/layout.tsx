@@ -4,6 +4,7 @@ import { Brand } from "@/components/shared/brand";
 import { SidebarNav } from "@/components/shared/sidebar-nav";
 import { AppHeader } from "@/components/shared/app-header";
 import { BottomNav } from "@/components/shared/bottom-nav";
+import { ConfirmProvider } from "@/components/shared/confirm-dialog";
 
 export default async function AppLayout({
   children,
@@ -18,6 +19,7 @@ export default async function AppLayout({
   if (!user) redirect("/login");
 
   return (
+    <ConfirmProvider>
     <div className="min-h-screen bg-muted/30">
       {/* Sidebar desktop */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r bg-background lg:flex">
@@ -38,5 +40,6 @@ export default async function AppLayout({
       {/* Navigasi bawah — hanya tampil di mobile */}
       <BottomNav />
     </div>
+    </ConfirmProvider>
   );
 }

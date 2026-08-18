@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Plus, Trash2, Loader2, Tag } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +19,7 @@ export function LabelManager({ data }: { data: LabelType[] }) {
   const [name, setName] = useState("");
   const [color, setColor] = useState(PRESET_COLORS[0]);
   const [pending, startTransition] = useTransition();
+  const confirm = useConfirm();
 
   function handleAdd() {
     startTransition(async () => {
@@ -28,8 +30,8 @@ export function LabelManager({ data }: { data: LabelType[] }) {
     });
   }
 
-  function handleDelete(label: LabelType) {
-    if (!confirm(`Hapus label "${label.name}"?`)) return;
+  async function handleDelete(label: LabelType) {
+    if (!(await confirm({ title: "Hapus label?", description: `Label "${label.name}" akan dihapus.`, destructive: true, confirmText: "Hapus" }))) return;
     startTransition(async () => {
       const res = await deleteLabel(label.id);
       if (res.error) { toast.error(res.error); return; }

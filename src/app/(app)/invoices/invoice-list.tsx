@@ -20,6 +20,7 @@ import { PaginationBar } from "@/components/shared/pagination-bar";
 import {
   type MonthlyInvoice, type InvoiceStatus, INVOICE_STATUS_LABELS,
 } from "@/types/phase4";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import { deleteInvoice } from "./actions";
 import { SOFT_TONES } from "@/lib/utils/soft-tone";
 
@@ -33,6 +34,7 @@ const STATUS_STYLE: Record<InvoiceStatus, string> = {
 export function InvoiceList({ invoices }: { invoices: MonthlyInvoice[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const confirm = useConfirm();
   const [q, setQ] = useState("");
 
   const filtered = useMemo(() => {
@@ -44,12 +46,15 @@ export function InvoiceList({ invoices }: { invoices: MonthlyInvoice[] }) {
 
   const pg = usePagination(filtered, 10, q);
 
-  function handleDelete(inv: MonthlyInvoice) {
-    if (!confirm(
-      `Hapus/batalkan ${inv.invoice_no}? Penjualan di dalamnya kembali menjadi piutang${
-        inv.effective_status === "paid" ? " dan pemasukan wallet dibatalkan" : ""
-      }.`
-    )) return;
+  async function handleDelete(inv: MonthlyInvoice) {
+    if (!(await confirm({
+      title: `Hapus/batalkan ${inv.invoice_no}?`,
+      description:
+        `Penjualan di dalamnya kembali menjadi piutang${
+          inv.effective_status === "paid" ? " dan pemasukan wallet dibatalkan" : ""
+        }.`,
+      destructive: true, confirmText: "Hapus",
+    }))) return;
     startTransition(async () => {
       const res = await deleteInvoice(inv.id);
       if (res.error) { toast.error(res.error); return; }

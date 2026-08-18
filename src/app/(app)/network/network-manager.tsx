@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Pencil, Trash2, Loader2, Search, Wifi, Wrench } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,6 +46,7 @@ export function NetworkManager({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const confirm = useConfirm();
   const [q, setQ] = useState("");
   const [fClient, setFClient] = useState("all");
 
@@ -108,8 +110,8 @@ export function NetworkManager({
       router.refresh();
     });
   }
-  function handleDelete(n: NetworkCredential) {
-    if (!confirm(`Hapus credential "${n.ssid}"?`)) return;
+  async function handleDelete(n: NetworkCredential) {
+    if (!(await confirm({ title: "Hapus credential?", description: `Credential "${n.ssid}" akan dihapus.`, destructive: true, confirmText: "Hapus" }))) return;
     startTransition(async () => {
       const res = await deleteNetwork(n.id);
       if (res.error) { toast.error(res.error); return; }

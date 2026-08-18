@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Plus, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +32,7 @@ export function CategoryManager({ data }: { data: Category[] }) {
   const [name, setName] = useState("");
   const [type, setType] = useState<CategoryType>("client");
   const [pending, startTransition] = useTransition();
+  const confirm = useConfirm();
 
   function handleAdd() {
     startTransition(async () => {
@@ -51,8 +53,8 @@ export function CategoryManager({ data }: { data: Category[] }) {
     });
   }
 
-  function handleDelete(cat: Category) {
-    if (!confirm(`Hapus kategori "${cat.name}"?`)) return;
+  async function handleDelete(cat: Category) {
+    if (!(await confirm({ title: "Hapus kategori?", description: `Kategori "${cat.name}" akan dihapus.`, destructive: true, confirmText: "Hapus" }))) return;
     startTransition(async () => {
       const res = await deleteCategory(cat.id);
       if (res.error) { toast.error(res.error); return; }

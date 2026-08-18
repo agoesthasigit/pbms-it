@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Pencil, Trash2, Loader2, Search, Truck } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +29,7 @@ const emptyForm = {
 export function DistributorManager({ distributors }: { distributors: Distributor[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const confirm = useConfirm();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Distributor | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -72,8 +74,8 @@ export function DistributorManager({ distributors }: { distributors: Distributor
     });
   }
 
-  function handleDelete(d: Distributor) {
-    if (!confirm(`Hapus distributor "${d.name}"?`)) return;
+  async function handleDelete(d: Distributor) {
+    if (!(await confirm({ title: "Hapus distributor?", description: `Distributor "${d.name}" akan dihapus.`, destructive: true, confirmText: "Hapus" }))) return;
     startTransition(async () => {
       const res = await deleteDistributor(d.id);
       if (res.error) { toast.error(res.error); return; }

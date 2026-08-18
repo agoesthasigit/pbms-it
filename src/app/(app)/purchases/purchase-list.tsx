@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, ShoppingCart, Loader2, Search, RotateCcw, Receipt, Boxes } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,6 +50,7 @@ export function PurchaseList({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+  const confirm = useConfirm();
   const [q, setQ] = useState("");
 
   const def = monthRange();
@@ -115,8 +117,8 @@ export function PurchaseList({
 
   function resetRange() { setFrom(def.from); setTo(def.to); setQ(""); }
 
-  function handleDelete(p: PurchaseRow) {
-    if (!confirm("Hapus pembelian ini? Stok akan dikembalikan dan saldo wallet dikoreksi.")) return;
+  async function handleDelete(p: PurchaseRow) {
+    if (!(await confirm({ title: "Hapus pembelian?", description: "Stok akan dikembalikan dan saldo wallet dikoreksi.", destructive: true, confirmText: "Hapus" }))) return;
     startTransition(async () => {
       const res = await deletePurchase(p.id);
       if (res.error) { toast.error(res.error); return; }

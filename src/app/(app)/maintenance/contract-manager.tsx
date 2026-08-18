@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Pencil, Trash2, Loader2, FileText, Receipt } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -56,6 +57,7 @@ export function ContractManager({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const confirm = useConfirm();
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<MaintenanceContract | null>(null);
@@ -120,11 +122,14 @@ export function ContractManager({
     });
   }
 
-  function handleDelete(c: MaintenanceContract) {
-    if (!confirm(
-      `Hapus kontrak "${c.service_name}" untuk ${c.company_name ?? "client ini"}?\n\n` +
-      `Tagihan yang sudah terbit TIDAK ikut terhapus.`
-    )) return;
+  async function handleDelete(c: MaintenanceContract) {
+    if (!(await confirm({
+      title: "Hapus kontrak?",
+      description:
+        `Hapus kontrak "${c.service_name}" untuk ${c.company_name ?? "client ini"}. ` +
+        `Tagihan yang sudah terbit TIDAK ikut terhapus.`,
+      destructive: true, confirmText: "Hapus",
+    }))) return;
     startTransition(async () => {
       const res = await deleteContract(c.id);
       if (res.error) { toast.error(res.error); return; }

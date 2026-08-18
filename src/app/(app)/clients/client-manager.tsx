@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Pencil, Trash2, Loader2, Search, Users, LayoutDashboard } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,6 +42,7 @@ export function ClientManager({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const confirm = useConfirm();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -107,8 +109,8 @@ export function ClientManager({
       router.refresh();
     });
   }
-  function handleDelete(c: Client) {
-    if (!confirm(`Hapus client "${c.company_name}"?`)) return;
+  async function handleDelete(c: Client) {
+    if (!(await confirm({ title: "Hapus client?", description: `Client "${c.company_name}" akan dihapus.`, destructive: true, confirmText: "Hapus" }))) return;
     startTransition(async () => {
       const res = await deleteClientData(c.id);
       if (res.error) { toast.error(res.error); return; }

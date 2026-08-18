@@ -7,6 +7,7 @@ import {
   Banknote, Landmark, Smartphone,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,6 +50,7 @@ const emptyForm = {
 export function WalletManager({ wallets }: { wallets: WalletWithBalance[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const confirm = useConfirm();
 
   // form tambah/edit
   const [open, setOpen] = useState(false);
@@ -109,8 +111,8 @@ export function WalletManager({ wallets }: { wallets: WalletWithBalance[] }) {
     });
   }
 
-  function handleDelete(w: WalletWithBalance) {
-    if (!confirm(`Hapus wallet "${w.name}"?`)) return;
+  async function handleDelete(w: WalletWithBalance) {
+    if (!(await confirm({ title: "Hapus wallet?", description: `Wallet "${w.name}" akan dihapus.`, destructive: true, confirmText: "Hapus" }))) return;
     startTransition(async () => {
       const res = await deleteWallet(w.id);
       if (res.error) { toast.error(res.error); return; }

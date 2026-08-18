@@ -7,6 +7,7 @@ import {
   Briefcase, PiggyBank,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -74,6 +75,7 @@ export function ExpensesManager({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const confirm = useConfirm();
   const [open, setOpen] = useState(false);
 
   // Form tambah
@@ -171,8 +173,8 @@ export function ExpensesManager({
     });
   }
 
-  function handleDelete(e: MergedExpenseRow) {
-    if (!confirm("Hapus pengeluaran ini? Saldo wallet akan dikembalikan.")) return;
+  async function handleDelete(e: MergedExpenseRow) {
+    if (!(await confirm({ title: "Hapus pengeluaran?", description: "Saldo wallet akan dikembalikan.", destructive: true, confirmText: "Hapus" }))) return;
     startTransition(async () => {
       const res = await deleteExpense(e.kind, e.id);
       if (res.error) { toast.error(res.error); return; }

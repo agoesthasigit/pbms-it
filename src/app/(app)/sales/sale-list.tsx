@@ -29,6 +29,7 @@ import { PaginationBar } from "@/components/shared/pagination-bar";
 import type { ProductWithStock, Client, WalletWithBalance } from "@/types/db";
 import { type SaleRow, type SaleItemRow, PAYMENT_METHOD_LABELS } from "@/types/phase3";
 import { SendEmailDialog } from "@/components/shared/send-email-dialog";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import { SaleForm } from "./sale-form";
 import { deleteSale, paySale, sendSaleEmail } from "./actions";
 
@@ -70,6 +71,7 @@ export function SaleList({
   wallets: WalletWithBalance[];
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -146,8 +148,12 @@ export function SaleList({
 
   function resetRange() { setFrom(def.from); setTo(def.to); setQ(""); }
 
-  function handleDelete(s: SaleRow) {
-    if (!confirm("Hapus penjualan ini? Stok dikembalikan, asset & transaksi terkait dibatalkan.")) return;
+  async function handleDelete(s: SaleRow) {
+    if (!(await confirm({
+      title: "Hapus penjualan?",
+      description: "Stok dikembalikan, asset & transaksi terkait dibatalkan.",
+      destructive: true, confirmText: "Hapus",
+    }))) return;
     startTransition(async () => {
       const res = await deleteSale(s.id);
       if (res.error) { toast.error(res.error); return; }

@@ -7,6 +7,7 @@ import {
   FileDown, ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -65,6 +66,7 @@ export function AssetManager({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const confirm = useConfirm();
 
   const [q, setQ] = useState("");
   const [fClient, setFClient] = useState("all");
@@ -234,8 +236,8 @@ export function AssetManager({
     });
   }
 
-  function handleDelete(a: ClientAsset) {
-    if (!confirm(`Hapus asset "${a.product_name}"?\n\nFoto aset ikut terhapus.`)) return;
+  async function handleDelete(a: ClientAsset) {
+    if (!(await confirm({ title: "Hapus asset?", description: `Asset "${a.product_name}" akan dihapus. Foto aset ikut terhapus.`, destructive: true, confirmText: "Hapus" }))) return;
     startTransition(async () => {
       const res = await deleteAsset(a.id);
       if (res.error) { toast.error(res.error); return; }
