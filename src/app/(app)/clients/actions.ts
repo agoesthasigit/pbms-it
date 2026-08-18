@@ -42,6 +42,23 @@ export async function addClientData(input: ClientInput): Promise<Result> {
   return { success: true };
 }
 
+/** Tambah client cepat (hanya nama) untuk pemakaian inline di form lain. */
+export async function quickAddClient(
+  companyName: string
+): Promise<{ id?: string; label?: string; error?: string }> {
+  const name = companyName.trim();
+  if (!name) return { error: "Nama perusahaan wajib diisi." };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("clients")
+    .insert({ company_name: name, status: "active" })
+    .select("id, company_name")
+    .single();
+  if (error || !data) return { error: "Gagal menambah client." };
+  revalidatePath("/clients");
+  return { id: data.id, label: data.company_name };
+}
+
 export async function updateClientData(
   id: string,
   input: ClientInput

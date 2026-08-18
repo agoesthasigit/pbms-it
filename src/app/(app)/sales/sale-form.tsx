@@ -20,6 +20,8 @@ import { todayISO } from "@/lib/utils/date";
 import { toNumber } from "@/lib/utils/number";
 import type { ProductWithStock, Client, WalletWithBalance } from "@/types/db";
 import { type PaymentMethod, PAYMENT_METHOD_LABELS } from "@/types/phase3";
+import { InlineCreate } from "@/components/shared/inline-create";
+import { quickAddClient } from "../clients/actions";
 import { createSale } from "./actions";
 
 type Line = {
@@ -71,9 +73,10 @@ export function SaleForm({
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<Line[]>([newLine()]);
 
+  const [extraClients, setExtraClients] = useState<{ value: string; label: string }[]>([]);
   const clientItems = useMemo(
-    () => clients.map((c) => ({ value: c.id, label: c.company_name })),
-    [clients]
+    () => [...clients.map((c) => ({ value: c.id, label: c.company_name })), ...extraClients],
+    [clients, extraClients]
   );
   const walletItems = useMemo(
     () => wallets.filter((w) => w.is_active)
@@ -190,15 +193,20 @@ export function SaleForm({
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Client *</Label>
-              <Select items={clientItems} value={clientId || null}
-                onValueChange={(v) => setClientId(v ?? "")}>
-                <SelectTrigger><SelectValue placeholder="Pilih client" /></SelectTrigger>
-                <SelectContent>
-                  {clientItems.map((it) => (
-                    <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select items={clientItems} value={clientId || null}
+                  onValueChange={(v) => setClientId(v ?? "")}>
+                  <SelectTrigger className="flex-1"><SelectValue placeholder="Pilih client" /></SelectTrigger>
+                  <SelectContent>
+                    {clientItems.map((it) => (
+                      <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <InlineCreate title="Client Baru" fieldLabel="Nama perusahaan"
+                  placeholder="mis. Rob Peetoom Canggu" onCreate={quickAddClient}
+                  onCreated={(it) => { setExtraClients((p) => [...p, it]); setClientId(it.value); }} />
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label>Tanggal Jual</Label>

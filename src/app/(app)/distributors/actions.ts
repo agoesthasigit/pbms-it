@@ -34,6 +34,23 @@ export async function addDistributor(input: DistributorInput): Promise<Result> {
   return { success: true };
 }
 
+/** Tambah distributor cepat (hanya nama) untuk pemakaian inline di form lain. */
+export async function quickAddDistributor(
+  name: string
+): Promise<{ id?: string; label?: string; error?: string }> {
+  const n = name.trim();
+  if (!n) return { error: "Nama distributor wajib diisi." };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("distributors")
+    .insert({ name: n })
+    .select("id, name")
+    .single();
+  if (error || !data) return { error: "Gagal menambah distributor." };
+  revalidatePath("/distributors");
+  return { id: data.id, label: data.name };
+}
+
 export async function updateDistributor(
   id: string,
   input: DistributorInput

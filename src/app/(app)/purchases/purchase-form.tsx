@@ -19,6 +19,8 @@ import { CurrencyInput } from "@/components/shared/currency-input";
 import { todayISO } from "@/lib/utils/date";
 import { toNumber } from "@/lib/utils/number";
 import type { ProductWithStock, Distributor, WalletWithBalance } from "@/types/db";
+import { InlineCreate } from "@/components/shared/inline-create";
+import { quickAddDistributor } from "../distributors/actions";
 import { createPurchase } from "./actions";
 
 type Line = {
@@ -49,9 +51,10 @@ export function PurchaseForm({
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<Line[]>([newLine()]);
 
+  const [extraDistributors, setExtraDistributors] = useState<{ value: string; label: string }[]>([]);
   const distributorItems = useMemo(
-    () => distributors.map((d) => ({ value: d.id, label: d.name })),
-    [distributors]
+    () => [...distributors.map((d) => ({ value: d.id, label: d.name })), ...extraDistributors],
+    [distributors, extraDistributors]
   );
   const walletItems = useMemo(
     () => wallets.filter((w) => w.is_active)
@@ -127,15 +130,20 @@ export function PurchaseForm({
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Distributor</Label>
-              <Select items={distributorItems} value={distributorId || null}
-                onValueChange={(v) => setDistributorId(v ?? "")}>
-                <SelectTrigger><SelectValue placeholder="Pilih distributor" /></SelectTrigger>
-                <SelectContent>
-                  {distributorItems.map((it) => (
-                    <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select items={distributorItems} value={distributorId || null}
+                  onValueChange={(v) => setDistributorId(v ?? "")}>
+                  <SelectTrigger className="flex-1"><SelectValue placeholder="Pilih distributor" /></SelectTrigger>
+                  <SelectContent>
+                    {distributorItems.map((it) => (
+                      <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <InlineCreate title="Distributor Baru" fieldLabel="Nama distributor"
+                  placeholder="mis. Bhinneka" onCreate={quickAddDistributor}
+                  onCreated={(it) => { setExtraDistributors((p) => [...p, it]); setDistributorId(it.value); }} />
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label>Wallet Pembayar *</Label>
