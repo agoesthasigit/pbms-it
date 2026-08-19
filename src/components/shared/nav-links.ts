@@ -16,6 +16,7 @@ import {
   BarChart3,
   ArrowLeftRight,
   Settings,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -66,6 +67,9 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: "Lainnya",
-    items: [{ label: "Pengaturan", href: "/settings", icon: Settings }],
+    items: [
+      { label: "Pemeriksaan Data", href: "/data-check", icon: ShieldCheck },
+      { label: "Pengaturan", href: "/settings", icon: Settings },
+    ],
   },
 ];
