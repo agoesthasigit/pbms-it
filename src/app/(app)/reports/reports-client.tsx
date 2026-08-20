@@ -273,6 +273,39 @@ export function ReportsClient() {
           hint="Laba ÷ Pendapatan (akrual)" />
       </div>
 
+      {/* Catatan kas vs laba — tepat di bawah kartu ringkasan (termasuk Laba Bersih).
+          Muncul hanya saat kas (finance_summary) ≠ laba akrual; hilang saat 0. */}
+      {showCashNote && (
+        <div className="flex gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+          <div className="space-y-1">
+            <p>
+              <b>Kas bersih bulan ini {formatIDR(cashFlow)}</b> —{" "}
+              {cashGap > 0 ? "lebih" : "kurang"} {formatIDR(Math.abs(cashGap))} dari{" "}
+              <b>Laba Bersih</b> ({formatIDR(netProfit)}).
+            </p>
+            {ongoingProjects.length > 0 && cashGap > 0 ? (
+              <p className="text-muted-foreground">
+                Selisihnya <b>uang muka proyek berjalan</b> yang belum jadi laba — diakui
+                saat proyek selesai
+                {ongoingProjects.map((p, i) => (
+                  <span key={p.id}>
+                    {i === 0 ? ": " : ", "}
+                    {p.project_name} {formatIDR(p.remaining)}
+                  </span>
+                ))}
+                .
+              </p>
+            ) : (
+              <p className="text-muted-foreground">
+                Beda karena selisih waktu kas vs laba (mis. barang dibeli belum terjual,
+                atau uang muka proyek). Angka untung yang benar = <b>Laba Bersih</b>.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Rumus laba (informasi) */}
       <Card>
         <CardContent className="py-4">
@@ -421,36 +454,6 @@ export function ReportsClient() {
                 </div>
               ))}
             </div>
-
-            {/* Penanda: CASH FLOW (kas) beda dari Laba Bersih (akrual) — muncul
-                hanya saat ada selisih, mis. ada uang muka proyek berjalan. */}
-            {showCashNote && (
-              <div className="mt-3 flex gap-2 rounded-lg border border-warning/40 bg-warning/10 p-2.5 text-xs">
-                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
-                <div className="space-y-1">
-                  <p>
-                    <b>CASH FLOW</b> di atas adalah angka <b>kas</b> — beda{" "}
-                    {formatIDR(Math.abs(cashGap))} dari <b>Laba Bersih</b> (akrual).
-                  </p>
-                  {ongoingProjects.length > 0 && (
-                    <p>
-                      Sebabnya ada <b>proyek berjalan</b> yang masih menahan uang belum
-                      jadi laba (sisa uang muka setelah biaya)
-                      {ongoingProjects.map((p, i) => (
-                        <span key={p.id}>
-                          {i === 0 ? ": " : ", "}
-                          {p.project_name} {formatIDR(p.remaining)}
-                        </span>
-                      ))}
-                      . Diakui sebagai laba saat proyek selesai.
-                    </p>
-                  )}
-                  <p className="text-muted-foreground">
-                    Laba yang benar mengikuti kartu <b>Laba Bersih</b>.
-                  </p>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
 

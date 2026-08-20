@@ -343,11 +343,12 @@ lalu **rekonsiliasi angka nyata** (saldo wallet, HPP, piutang). Lima area yang d
 >   (kini "Pendapatan − HPP − Operasional − Pribadi [− PPh]"), grafik **"Penjualan vs
 >   Pengeluaran per Bulan"** & **"Laba Bersih per Bulan"** — semua akrual & saling cocok
 >   (revenue − expense = net). Gauge **BALANCE/CASH FLOW/SPENDING** sengaja tetap metrik
->   **kas**, dan diberi **catatan otomatis**: bila CASH FLOW (kas) ≠ Laba Bersih (akrual)
->   di layar, muncul penanda kuning yang menjelaskan selisihnya (mis. uang muka **proyek
->   berjalan** Rp X yang belum jadi laba, dengan nama proyeknya). Catatan **hilang sendiri**
->   saat selisih = 0 (bulan tanpa uang muka/penumpukan stok). Contoh: Juli menampilkan
->   catatan (selisih 3.075.001 = sisa uang muka proyek), Agustus tidak.
+>   **kas** (angka saja). **Catatan otomatis** kini diletakkan **tepat di bawah kartu
+>   ringkasan** (bukan di gauge, agar tak dobel & mudah dilihat): bila kas ≠ laba akrual,
+>   muncul penanda kuning "**Kas bersih bulan ini Rp X — lebih Rp Y dari Laba Bersih**",
+>   dengan rincian uang muka **proyek berjalan** (sisa `remaining`) yang belum jadi laba.
+>   **Hilang sendiri** saat selisih = 0. Contoh Juli: kas 8.973.381, lebih 3.075.001 dari
+>   laba 5.898.380 (= sisa uang muka proyek); Agustus tak ada catatan.
 > - Kartu kas (Total Penjualan/Pembelian/Pengeluaran/Saldo Masuk) tetap dari
 >   `finance_summary` karena memang angka kas yang berlabel benar.
 >
