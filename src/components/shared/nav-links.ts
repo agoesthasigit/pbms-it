@@ -62,7 +62,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: "Analisa",
     items: [
-      { label: "Piutang", href: "/piutang", icon: HandCoins },
+      { label: "Piutang & Hutang", href: "/piutang", icon: HandCoins },
       { label: "Riwayat Transaksi", href: "/transactions", icon: ArrowLeftRight },
       { label: "Laporan Keuangan", href: "/reports", icon: BarChart3 },
     ],

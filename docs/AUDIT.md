@@ -397,7 +397,17 @@ Bila **selalu bayar tunai/transfer saat beli**, cukup dicatat sebagai keputusan 
 > **portal login untuk distributor Cetak Ide** — Cetak Ide meng-input pembelian sendiri
 > (hanya mengisi **harga beli**); barang otomatis masuk **Stok** pemilik; pemilik lalu
 > menambahkan **harga jual** (marginnya). Termasuk juga penagihan/pelunasan akhir bulan
-> sebagai **hutang usaha**. Dicatat untuk dikerjakan **setelah audit selesai**.
+> sebagai **hutang usaha**.
+>
+> ✅ **FASE 1 SUDAH DIKERJAKAN (2026-08-21).** Metode bayar **Hutang** di menu Pembelian
+> (barang tetap masuk stok, wallet berkurang saat **dibayar**), pelunasan **multi-nota**
+> (centang / pilih semua distributor) via `pay_purchases`, menu **Piutang & Hutang**
+> (2 tab), kartu **Hutang** di Dashboard, **semua laporan kas sinkron** (finance_summary
+> berbasis wallet, Riwayat + baris "Bayar Hutang", export), dan Pemeriksaan Data (E5
+> revisi + **E6**). Migrasi `20260821_purchase_hutang.sql`; berlaku **semua distributor**;
+> jatuh tempo default akhir bulan (bisa diubah). Diuji end-to-end (rollback): stok naik,
+> wallet 0 saat beli → −total saat bayar; `create_quick_deal` tetap jalan; E5/E6 = 0.
+> **Fase 2 (nanti):** PDF bukti bayar hutang per distributor + portal Cetak Ide.
 
 ### 🟠 5.3 — `mark_invoice_paid` punya **dua versi** hidup bersamaan (risiko bruto ≠ netto)
 > ✅ **SUDAH DIPERBAIKI (2026-08-20)** — migrasi

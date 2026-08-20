@@ -22,4 +22,5 @@ export type DashboardCounts = {
   pending_invoices: number;
   expiring_warranty: number;
   total_receivable: number;
+  total_payable: number;
 };

@@ -259,12 +259,19 @@ export async function GET() {
       { header: "Tanggal", key: "tgl", type: "date" },
       { header: "Distributor", key: "dist", width: 22 },
       { header: "No Nota", key: "nota" },
+      { header: "Status Bayar", key: "status", width: 20 },
+      { header: "Jatuh Tempo", key: "due", type: "date" },
+      { header: "Tgl Dibayar", key: "paid", type: "date" },
       { header: "Wallet", key: "wallet", width: 18 },
       { header: "Total", key: "total", type: "money", width: 18 },
       { header: "Catatan", key: "catatan", width: 30 },
     ], purchases.map((p: any) => ({
       tgl: d(p.purchase_date), dist: distributorName.get(p.distributor_id) ?? "-",
-      nota: p.invoice_no ?? "", wallet: walletName.get(p.wallet_id) ?? "-",
+      nota: p.invoice_no ?? "",
+      status: p.is_credit ? (p.paid_date ? "Hutang (lunas)" : "Hutang (belum bayar)") : "Lunas",
+      due: p.due_date ? d(p.due_date) : "",
+      paid: p.paid_date ? d(p.paid_date) : "",
+      wallet: walletName.get(p.paid_wallet_id ?? p.wallet_id) ?? "-",
       total: num(p.total), catatan: p.notes ?? "",
     })));
 

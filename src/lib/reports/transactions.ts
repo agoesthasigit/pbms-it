@@ -32,9 +32,12 @@ export async function buildTransactionRows(
         "sale_items(qty, item_name, product:products(name))")
       .order("sale_date", { ascending: false }),
     supabase.from("purchases")
-      // purchase_items → keterangan diisi nama barang yang dibeli
+      // purchase_items → keterangan diisi nama barang yang dibeli.
+      // is_credit/paid_date → bedakan bayar langsung vs hutang.
       .select("id, purchase_date, total, wallet_id, invoice_no, notes, " +
-        "distributor:distributors(name), wallet:wallets(name), " +
+        "is_credit, paid_date, due_date, paid_wallet_id, " +
+        "distributor:distributors(name), wallet:wallets!wallet_id(name), " +
+        "paid_wallet:wallets!paid_wallet_id(name), " +
         "purchase_items(qty, product:products(name))")
       .order("purchase_date", { ascending: false }),
     supabase.from("operational_expenses")
@@ -105,6 +108,8 @@ export async function buildTransactionRows(
   // ---- Pembelian ----
   for (const p of (purchases ?? []) as any[]) {
     const itemsDesc = summarizeItems(p.purchase_items);
+    const isCredit = !!p.is_credit;
+    const unpaid = isCredit && !p.paid_date;
     rows.push({
       key: `purchase-${p.id}`,
       source: "purchase",
@@ -112,14 +117,36 @@ export async function buildTransactionRows(
       date: p.purchase_date,
       party: p.distributor?.name ?? "-",
       walletId: p.wallet_id ?? null,
-      walletName: p.wallet?.name ?? "-",
+      walletName: p.wallet?.name ?? (unpaid ? "(hutang, belum dibayar)" : "-"),
       categoryId: null,
       labelId: null,
       // Keterangan = nama barang dibeli; bila kosong, mundur ke Nota/catatan.
       description: itemsDesc || (p.invoice_no ? `Nota ${p.invoice_no}` : (p.notes ?? "")),
       amount: Number(p.total),
       isPiutang: false,
+      isHutang: unpaid,
+      // Pembelian hutang: kas keluar dihitung pada baris "Bayar Hutang" saat
+      // dilunasi (agar tak dobel). Pembelian bayar-langsung tetap dihitung.
+      countInTotal: !isCredit,
     });
+
+    // Baris pembayaran hutang — uang benar-benar keluar saat dilunasi.
+    if (isCredit && p.paid_date) {
+      rows.push({
+        key: `purchasepay-${p.id}`,
+        source: "purchase_payment",
+        direction: "out",
+        date: p.paid_date,
+        party: p.distributor?.name ?? "-",
+        walletId: p.paid_wallet_id ?? null,
+        walletName: p.paid_wallet?.name ?? "-",
+        categoryId: null,
+        labelId: null,
+        description: `Pembayaran hutang${p.invoice_no ? ` — Nota ${p.invoice_no}` : ""}`,
+        amount: Number(p.total),
+        isPiutang: false,
+      });
+    }
   }
 
   // ---- Pengeluaran operasional & pribadi ----

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   TrendingUp, TrendingDown, Wallet, Users, FileText, ShieldAlert,
-  ArrowRight, ShoppingCart, User2,
+  ArrowRight, ShoppingCart, User2, HandCoins,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -120,12 +120,15 @@ export function DashboardClient() {
       </div>
 
       {/* Kartu operasional */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <StatCard label="Piutang (belum diterima)" icon={HandCoins} tone="amber" accent="text-amber-600"
+          value={loading ? "…" : formatIDR(Number(counts?.total_receivable ?? 0))}
+          hint={counts ? `${counts.pending_invoices} invoice pending` : undefined} />
+        <StatCard label="Hutang (belum dibayar)" icon={ShoppingCart} tone="orange" accent="text-orange-600"
+          value={loading ? "…" : formatIDR(Number(counts?.total_payable ?? 0))}
+          hint="Ke distributor" />
         <StatCard label="Client Aktif" icon={Users} tone="teal"
           value={loading ? "…" : String(counts?.active_clients ?? 0)} />
-        <StatCard label="Invoice Pending" icon={FileText} tone="amber"
-          value={loading ? "…" : String(counts?.pending_invoices ?? 0)}
-          hint={counts ? `Piutang ${formatIDR(Number(counts.total_receivable))}` : undefined} />
         <StatCard label="Garansi < 30 Hari" icon={ShieldAlert} tone="orange"
           accent={Number(counts?.expiring_warranty ?? 0) > 0 ? "text-amber-600" : undefined}
           value={loading ? "…" : String(counts?.expiring_warranty ?? 0)} />

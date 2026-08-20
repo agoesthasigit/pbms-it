@@ -16,13 +16,18 @@ export type PurchaseItemInput = {
 
 export async function createPurchase(input: {
   distributor_id: string | null;
-  wallet_id: string;
+  /** Wajib untuk bayar langsung; null bila hutang (wallet menyusul saat bayar). */
+  wallet_id: string | null;
   purchase_date: string;
   invoice_no?: string;
   notes?: string;
   items: PurchaseItemInput[];
+  /** true = Hutang (bayar nanti). false = Bayar langsung. */
+  is_credit?: boolean;
+  /** Jatuh tempo (khusus hutang). */
+  due_date?: string | null;
 }): Promise<Result> {
-  if (!input.wallet_id) return { error: "Pilih wallet pembayar." };
+  if (!input.is_credit && !input.wallet_id) return { error: "Pilih wallet pembayar." };
   const valid = input.items.filter((i) => i.name.trim() && i.qty > 0);
   if (valid.length === 0) return { error: "Tambahkan minimal 1 barang." };
 
@@ -41,12 +46,39 @@ export async function createPurchase(input: {
       warranty_months: i.warranty_months ?? "",
       unit: i.unit ?? "",
     })),
+    p_is_credit: input.is_credit ?? false,
+    p_due_date: input.due_date ?? null,
   });
 
   if (error) return { error: error.message || "Gagal menyimpan pembelian." };
   revalidatePath("/purchases");
   revalidatePath("/products");
   revalidatePath("/wallets");
+  revalidatePath("/piutang");
+  return { success: true };
+}
+
+/** Lunasi beberapa nota hutang sekaligus (satu wallet, satu tanggal). */
+export async function payPurchases(input: {
+  ids: string[];
+  wallet_id: string;
+  paid_date: string;
+}): Promise<Result> {
+  if (!input.wallet_id) return { error: "Pilih wallet pembayar." };
+  if (!input.ids || input.ids.length === 0) return { error: "Pilih minimal 1 nota." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("pay_purchases", {
+    p_ids: input.ids,
+    p_wallet_id: input.wallet_id,
+    p_paid_date: input.paid_date,
+  });
+
+  if (error) return { error: error.message || "Gagal membayar hutang." };
+  revalidatePath("/piutang");
+  revalidatePath("/purchases");
+  revalidatePath("/wallets");
+  revalidatePath("/dashboard");
   return { success: true };
 }
 

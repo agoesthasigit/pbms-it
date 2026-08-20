@@ -32,6 +32,19 @@ const newLine = (): Line => ({
   selling_price: "", warranty_months: "12", showAdv: false,
 });
 
+const PAY_METHODS = [
+  { value: "langsung", label: "Bayar langsung" },
+  { value: "hutang", label: "Hutang (bayar nanti)" },
+];
+
+/** Tanggal akhir bulan berjalan (YYYY-MM-DD) — default jatuh tempo hutang. */
+function endOfMonthISO(): string {
+  const d = new Date();
+  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+  const pad = (x: number) => String(x).padStart(2, "0");
+  return `${last.getFullYear()}-${pad(last.getMonth() + 1)}-${pad(last.getDate())}`;
+}
+
 export function PurchaseForm({
   open, onOpenChange, products, distributors, wallets,
 }: {
@@ -46,10 +59,14 @@ export function PurchaseForm({
 
   const [distributorId, setDistributorId] = useState("");
   const [walletId, setWalletId] = useState("");
+  const [method, setMethod] = useState<"langsung" | "hutang">("langsung");
+  const [dueDate, setDueDate] = useState(endOfMonthISO());
   const [date, setDate] = useState(todayISO());
   const [invoiceNo, setInvoiceNo] = useState("");
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<Line[]>([newLine()]);
+
+  const isCredit = method === "hutang";
 
   const [extraDistributors, setExtraDistributors] = useState<{ value: string; label: string }[]>([]);
   const distributorItems = useMemo(
@@ -86,7 +103,8 @@ export function PurchaseForm({
   }
 
   function reset() {
-    setDistributorId(""); setWalletId(""); setDate(todayISO());
+    setDistributorId(""); setWalletId(""); setMethod("langsung");
+    setDueDate(endOfMonthISO()); setDate(todayISO());
     setInvoiceNo(""); setNotes(""); setLines([newLine()]);
   }
 
@@ -94,10 +112,12 @@ export function PurchaseForm({
     startTransition(async () => {
       const res = await createPurchase({
         distributor_id: distributorId || null,
-        wallet_id: walletId,
+        wallet_id: isCredit ? null : walletId,
         purchase_date: date,
         invoice_no: invoiceNo,
         notes,
+        is_credit: isCredit,
+        due_date: isCredit ? dueDate : null,
         items: lines.map((l) => ({
           name: l.name,
           qty: toNumber(l.qty),
@@ -107,7 +127,9 @@ export function PurchaseForm({
         })),
       });
       if (res.error) { toast.error(res.error); return; }
-      toast.success("Pembelian tersimpan. Stok bertambah & saldo wallet berkurang.");
+      toast.success(isCredit
+        ? "Pembelian hutang tersimpan. Stok bertambah; wallet berkurang saat dibayar."
+        : "Pembelian tersimpan. Stok bertambah & saldo wallet berkurang.");
       reset();
       onOpenChange(false);
       router.refresh();
@@ -146,17 +168,36 @@ export function PurchaseForm({
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>Wallet Pembayar *</Label>
-              <Select items={walletItems} value={walletId || null}
-                onValueChange={(v) => setWalletId(v ?? "")}>
-                <SelectTrigger><SelectValue placeholder="Pilih wallet" /></SelectTrigger>
+              <Label>Metode Bayar</Label>
+              <Select items={PAY_METHODS} value={method}
+                onValueChange={(v) => setMethod((v as "langsung" | "hutang") ?? "langsung")}>
+                <SelectTrigger><SelectValue placeholder="Metode" /></SelectTrigger>
                 <SelectContent>
-                  {walletItems.map((it) => (
+                  {PAY_METHODS.map((it) => (
                     <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+            {isCredit ? (
+              <div className="space-y-1.5">
+                <Label>Jatuh Tempo</Label>
+                <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <Label>Wallet Pembayar *</Label>
+                <Select items={walletItems} value={walletId || null}
+                  onValueChange={(v) => setWalletId(v ?? "")}>
+                  <SelectTrigger><SelectValue placeholder="Pilih wallet" /></SelectTrigger>
+                  <SelectContent>
+                    {walletItems.map((it) => (
+                      <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Tanggal</Label>
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
@@ -288,12 +329,15 @@ export function PurchaseForm({
         {/* Footer menempel: total + aksi */}
         <DialogFooter className="mx-0 mb-0 flex-row items-center justify-between gap-3 border-t bg-muted px-5 py-3.5 sm:justify-between">
           <div>
-            <div className="text-xs text-muted-foreground">Total Pembelian</div>
+            <div className="text-xs text-muted-foreground">
+              {isCredit ? "Total Hutang" : "Total Pembelian"}
+            </div>
             <div className="text-lg font-bold">{formatIDR(total)}</div>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Batal</Button>
-            <Button onClick={handleSave} disabled={pending || !walletId || total <= 0}>
+            <Button onClick={handleSave}
+              disabled={pending || total <= 0 || (!isCredit && !walletId)}>
               {pending && <Loader2 className="h-4 w-4 animate-spin" />}
               Simpan Pembelian
             </Button>

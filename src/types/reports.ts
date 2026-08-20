@@ -75,7 +75,7 @@ export type ProfitTrendPoint = {
 export type TxRow = {
   key: string;
   source: "sale" | "purchase" | "op" | "personal"
-    | "invoice" | "rab_payment" | "rab_expense";
+    | "invoice" | "rab_payment" | "rab_expense" | "purchase_payment";
   direction: "in" | "out";
   date: string;
   party: string;
@@ -88,6 +88,8 @@ export type TxRow = {
   description: string;
   amount: number;
   isPiutang: boolean;
+  /** true = pembelian hutang yang BELUM dibayar (belum keluar kas). */
+  isHutang?: boolean;
   /**
    * false = baris ini TIDAK ikut dijumlahkan di kartu ringkasan.
    * Dipakai untuk penjualan metode Invoice Bulanan: uangnya baru benar-benar
@@ -100,6 +102,7 @@ export type TxRow = {
 export const TX_SOURCE_LABEL: Record<TxRow["source"], string> = {
   sale: "Penjualan", purchase: "Pembelian", op: "Operasional", personal: "Pribadi",
   invoice: "Invoice", rab_payment: "Termin Proyek", rab_expense: "Biaya Proyek",
+  purchase_payment: "Bayar Hutang",
 };
 
 /** Satu baris analisa margin (item penjualan atau proyek selesai). */
