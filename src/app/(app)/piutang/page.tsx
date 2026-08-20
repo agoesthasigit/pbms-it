@@ -6,6 +6,7 @@ import {
   PiutangClient, type PiutangInvoice, type PiutangSale,
 } from "./piutang-client";
 import { HutangClient, type HutangPurchase } from "./hutang-client";
+import { RiwayatBayarClient, type HutangPayment } from "./riwayat-bayar-client";
 
 export const metadata = { title: "Piutang & Hutang" };
 
@@ -14,7 +15,7 @@ export const metadata = { title: "Piutang & Hutang" };
 export default async function PiutangPage() {
   const supabase = await createClient();
 
-  const [invRes, saleRes, hutRes, walRes] = await Promise.all([
+  const [invRes, saleRes, hutRes, walRes, payRes] = await Promise.all([
     // PIUTANG — invoice bulanan belum lunas
     supabase.from("v_monthly_invoices")
       .select("id, invoice_no, company_name, total, due_date, period_month, effective_status")
@@ -34,6 +35,14 @@ export default async function PiutangPage() {
       .order("due_date", { ascending: true }),
     // Wallet untuk dialog bayar hutang
     supabase.from("v_wallet_balances").select("id, name, balance, is_active"),
+    // RIWAYAT BAYAR — pembelian hutang yang SUDAH lunas
+    supabase.from("purchases")
+      .select("id, invoice_no, purchase_date, total, paid_date, paid_wallet_id, distributor_id, " +
+        "pay_email_sent_at, pay_email_sent_to, distributor:distributors(name, email), " +
+        "wallet:wallets!paid_wallet_id(name)")
+      .eq("is_credit", true)
+      .not("paid_date", "is", null)
+      .order("paid_date", { ascending: false }),
   ]);
 
   const invoices = (invRes.data ?? []) as PiutangInvoice[];
@@ -56,6 +65,30 @@ export default async function PiutangPage() {
     .filter((w) => w.is_active)
     .map((w) => ({ value: w.id, label: `${w.name} · ${formatIDR(Number(w.balance))}` }));
 
+  // Kelompokkan pembelian hutang lunas → "pembayaran" (distributor+tgl+wallet sama).
+  const payMap = new Map<string, HutangPayment>();
+  for (const p of (payRes.data ?? []) as any[]) {
+    const key = `${p.distributor_id ?? "none"}|${p.paid_date}|${p.paid_wallet_id ?? "none"}`;
+    let pay = payMap.get(key);
+    if (!pay) {
+      pay = {
+        key, ids: [], distributor_name: p.distributor?.name ?? "-",
+        distributor_email: p.distributor?.email ?? null,
+        paid_date: p.paid_date, wallet_name: p.wallet?.name ?? "-",
+        notas: [], total: 0, email_sent_at: null, email_sent_to: null,
+      };
+      payMap.set(key, pay);
+    }
+    pay.ids.push(p.id);
+    pay.notas.push({ invoiceNo: p.invoice_no ?? "", total: Number(p.total) });
+    pay.total += Number(p.total);
+    if (p.pay_email_sent_at && (!pay.email_sent_at || p.pay_email_sent_at > pay.email_sent_at)) {
+      pay.email_sent_at = p.pay_email_sent_at;
+      pay.email_sent_to = p.pay_email_sent_to ?? pay.email_sent_to;
+    }
+  }
+  const payments = [...payMap.values()];
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -66,12 +99,16 @@ export default async function PiutangPage() {
         <TabsList>
           <TabsTrigger value="piutang">Piutang</TabsTrigger>
           <TabsTrigger value="hutang">Hutang</TabsTrigger>
+          <TabsTrigger value="riwayat">Riwayat Bayar Hutang</TabsTrigger>
         </TabsList>
         <TabsContent value="piutang" className="pt-4">
           <PiutangClient invoices={invoices} sales={sales} />
         </TabsContent>
         <TabsContent value="hutang" className="pt-4">
           <HutangClient hutangs={hutangs} walletItems={walletItems} />
+        </TabsContent>
+        <TabsContent value="riwayat" className="pt-4">
+          <RiwayatBayarClient payments={payments} />
         </TabsContent>
       </Tabs>
     </div>

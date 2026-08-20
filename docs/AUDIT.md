@@ -407,7 +407,14 @@ Bila **selalu bayar tunai/transfer saat beli**, cukup dicatat sebagai keputusan 
 > revisi + **E6**). Migrasi `20260821_purchase_hutang.sql`; berlaku **semua distributor**;
 > jatuh tempo default akhir bulan (bisa diubah). Diuji end-to-end (rollback): stok naik,
 > wallet 0 saat beli → −total saat bayar; `create_quick_deal` tetap jalan; E5/E6 = 0.
-> **Fase 2 (nanti):** PDF bukti bayar hutang per distributor + portal Cetak Ide.
+>
+> ✅ **FASE 2 SUDAH DIKERJAKAN (2026-08-21)** — migrasi `20260821_hutang_payment_email.sql`.
+> Tab **"Riwayat Bayar Hutang"** (grouping per distributor+tgl+wallet): **Unduh Bukti (PDF)**
+> `BUKTI PEMBAYARAN HUTANG` + **Kirim Email** pelunasan ke distributor (subjek B:
+> `Pemberitahuan Pelunasan Hutang — [Distributor] — [tanggal]`, isi daftar nota + Total
+> Dibayarkan, lampiran PDF, tanda tangan Athaya, kirim manual). Penanda "terkirim"
+> (`pay_email_sent_at`). Detail aturan di **AGENTS.md → Riwayat perbaikan (2026-08-21)**.
+> **Fase 3 (belum):** portal login distributor Cetak Ide.
 
 ### 🟠 5.3 — `mark_invoice_paid` punya **dua versi** hidup bersamaan (risiko bruto ≠ netto)
 > ✅ **SUDAH DIPERBAIKI (2026-08-20)** — migrasi

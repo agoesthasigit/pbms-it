@@ -86,6 +86,49 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
+- **2026-08-21 — Fitur HUTANG PEMBELIAN (Fase 1 & 2) — audit 5.2.** Menu Pembelian kini
+  punya metode bayar **Hutang** (beli tempo, bayar belakangan) selain **Bayar langsung**.
+  Berlaku **semua distributor** (bukan cuma Cetak Ide); default metode tetap **Tunai/langsung**.
+  Aturan yang berlaku (penting saat menambah fitur terkait):
+  - **Model data** (`purchases`): kolom `is_credit`, `due_date`, `paid_date`, `paid_wallet_id`
+    (+ Fase 2: `pay_email_sent_at`, `pay_email_sent_to`). `wallet_id` kini **nullable**
+    (null untuk hutang). Pembelian lama di-**backfill** `paid_date=purchase_date`.
+  - **Prinsip akuntansi:** hutang = kewajiban uang **per-nota** (bukan per-barang) — buku
+    terpisah dari **stok** (per-barang) & **piutang** (uang client). **Stok tetap masuk saat
+    beli** (barang di tangan); **wallet baru berkurang saat DIBAYAR**. Jadi menjual barang
+    tak menyentuh hutang, dan hutang tetap berdiri sampai dilunasi. HPP (`cost_price`) tetap
+    terkunci saat beli, tak terpengaruh kapan dibayar.
+  - **RPC** (migrasi `20260821_purchase_hutang.sql`): `create_purchase` jadi **8-arg**
+    (+`p_is_credit`,`p_due_date`; DROP+CREATE — `create_quick_deal` yang memanggil 6-arg
+    tetap jalan lewat DEFAULT). `pay_purchases(ids[], wallet, date)` melunasi **multi-nota**
+    sekaligus — **Opsi II: 1 baris `wallet_transactions` expense PER nota** (ref_type
+    `purchase`, ref_id=nota), tanggal & wallet sama. Melewati nota bukan-hutang/sudah-lunas.
+  - **Bayar** (UI): tab **Hutang** di menu *Piutang & Hutang* — centang nota (atau
+    "pilih semua" per distributor) → **Bayar Terpilih** (dialog wallet+tanggal). Kalau
+    centang lintas distributor, `pay_purchases` tetap 1 aksi tapi laporan/bukti
+    mengelompokkannya **per distributor**.
+  - **Laporan kas SINKRON** (aturan wajib bila mengubah laporan): `finance_summary` laba-kas
+    memakai **wallet expense ref purchase** (bukan `purchases.total`) → hutang belum bayar
+    tak mengurangi kas; `total_purchase` (kartu) tetap aktivitas semua nota. `dashboard_counts`
+    +`total_payable`. **Laba Rugi akrual TIDAK berubah** (pembelian→persediaan→HPP saat jual).
+    Riwayat Transaksi: baris hutang belum bayar **tak dihitung** (`TxRow.isHutang`,
+    `countInTotal=false`) + baris **"Bayar Hutang"** (`source='purchase_payment'`) saat lunas.
+  - **Pemeriksaan Data**: **E5 direvisi** → hanya pembelian **lunas** (`paid_date` terisi)
+    yang wallet-expense-nya harus = total; **E6 baru** = hutang belum lunas tapi sudah ada
+    pengeluaran wallet (anomali). Total **22 cek**.
+  - **Fase 2 — Bukti & Email pelunasan** (grouping, tanpa tabel pembayaran): sebuah
+    "pembayaran" = nota-nota dengan **distributor+`paid_date`+`paid_wallet_id` sama**.
+    Tab **"Riwayat Bayar Hutang"** (tab ke-3): tiap pembayaran punya **Unduh Bukti (PDF)** +
+    **Kirim Email**. PDF: `lib/pdf/build-hutang-payment-pdf.ts` + `app/api/hutang-payment/pdf`
+    (route `?ids=`), meniru pola `build-invoice-pdf`. Email: `sendHutangPaymentEmail`
+    (purchases/actions) pakai ulang `composeEmail`+`sendMail`+`SendEmailDialog`, lampiran PDF,
+    tanda tangan Athaya. **Subjek selalu** `Pemberitahuan Pelunasan Hutang — [Distributor] —
+    [tanggal]` (opsi B). Isi: daftar nota (INV: Rp…) lalu **Total Dibayarkan**. Kirim
+    **manual** (review dulu). `distributors.email` sudah ada (form sudah punya inputnya).
+    Penanda terkirim via `mark_hutang_payment_emailed(ids[], to)` (stempel semua nota batch).
+  - **Fase 3 (belum):** portal login distributor Cetak Ide (input beli sendiri). Lihat
+    memory `cetak-ide-portal-feature`.
+
 - **2026-08-18 — Fix "duplicate key monthly_invoices_user_invoice_no_uniq" saat
   tambah penjualan invoice bulanan.** Menu Penjualan → metode invoice bulanan
   (kejadian nyata: client Rob Peetoom Seminyak) gagal dengan error index unik

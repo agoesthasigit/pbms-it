@@ -2,8 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { buildHutangPaymentPdf } from "@/lib/pdf/build-hutang-payment-pdf";
+import { composeEmail } from "@/lib/email/signature";
+import { sendMail, isMailerConfigured } from "@/lib/email/mailer";
 
 type Result = { success?: boolean; error?: string };
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type PurchaseItemInput = {
   name: string;
@@ -79,6 +84,49 @@ export async function payPurchases(input: {
   revalidatePath("/purchases");
   revalidatePath("/wallets");
   revalidatePath("/dashboard");
+  return { success: true };
+}
+
+/** Kirim email bukti pelunasan hutang (satu email per pembayaran/distributor). */
+export async function sendHutangPaymentEmail(input: {
+  ids: string[];
+  to: string;
+  subject: string;
+  body: string;
+}): Promise<Result> {
+  const to = input.to.trim();
+  if (!to) return { error: "Email distributor kosong. Isi email distributor dulu." };
+  if (!EMAIL_RE.test(to)) return { error: "Format email tujuan tidak valid." };
+  if (!input.subject.trim()) return { error: "Subject email tidak boleh kosong." };
+  if (!input.ids || input.ids.length === 0) return { error: "Tidak ada nota." };
+  if (!(await isMailerConfigured()))
+    return { error: "Email pengirim belum dikonfigurasi. Isi di menu Pengaturan → Email." };
+
+  const supabase = await createClient();
+
+  // PDF bukti (isi & nama file identik dengan tombol Unduh)
+  const pdf = await buildHutangPaymentPdf(supabase, input.ids);
+  if (!pdf.ok) return { error: pdf.message };
+
+  const mail = await composeEmail(input.body);
+  try {
+    await sendMail({
+      to,
+      subject: input.subject.trim(),
+      text: mail.text,
+      html: mail.html,
+      attachments: [
+        { filename: pdf.fileName, content: pdf.buffer, contentType: "application/pdf" },
+        ...mail.attachments,
+      ],
+    });
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Gagal mengirim email." };
+  }
+
+  // Tandai nota-nota dalam pembayaran ini sudah dikirim buktinya.
+  await supabase.rpc("mark_hutang_payment_emailed", { p_ids: input.ids, p_to: to });
+  revalidatePath("/piutang");
   return { success: true };
 }
 
