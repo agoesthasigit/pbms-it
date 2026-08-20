@@ -59,6 +59,18 @@ export type ProfitLoss = {
   inventory_total: number;
 };
 
+/**
+ * Satu titik tren laba **akrual** bulanan (untuk grafik Dashboard).
+ * Dihitung dari `buildProfitLoss` per bulan → memakai sumber angka yang sama
+ * dengan Laporan Laba Rugi, sehingga garis "Laba" di Dashboard = laporan.
+ */
+export type ProfitTrendPoint = {
+  month_start: string; // "YYYY-MM-01"
+  revenue: number;     // pendapatan usaha (barang/jasa + proyek selesai)
+  expense: number;     // HPP + operasional + pribadi + PPh
+  net: number;         // laba bersih akrual = revenue - expense
+};
+
 /** Satu baris di Riwayat Transaksi. */
 export type TxRow = {
   key: string;

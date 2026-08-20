@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   TrendingUp, ShoppingCart, TrendingDown, User2, Wallet, Percent,
-  ArrowUpRight, ArrowDownRight, Receipt,
+  ArrowUpRight, ArrowDownRight, Receipt, Info,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -29,10 +29,10 @@ import {
 import type {
   FinanceSummary, MonthlyTrend, IncomeBreakdown, OpExpenseBreakdown,
 } from "@/types/phase8";
-import type { ProfitLoss, MarginReport } from "@/types/reports";
+import type { ProfitLoss, MarginReport, ProfitTrendPoint } from "@/types/reports";
 import { ProfitLossView } from "./profit-loss-view";
 import { MarginView } from "./margin-view";
-import { getProfitLoss, getMarginReport } from "./actions";
+import { getProfitLoss, getMarginReport, getProfitLossTrend } from "./actions";
 
 const shortMonth = (iso: string) =>
   new Date(iso).toLocaleDateString("id-ID", { month: "short", year: "2-digit" });
@@ -95,6 +95,8 @@ export function ReportsClient() {
   const [catBreakdown, setCatBreakdown] = useState<{ name: string; value: number }[]>([]);
   const [lastRecords, setLastRecords] = useState<RecordRow[]>([]);
   const [pl, setPl] = useState<ProfitLoss | null>(null);
+  // Tren laba AKRUAL 12 bulan (sumber sama dgn Laba Rugi) untuk grafik Ringkasan.
+  const [profitTrend, setProfitTrend] = useState<ProfitTrendPoint[]>([]);
   const [marginReport, setMarginReport] = useState<MarginReport | null>(null);
 
   // Laba Rugi & Analisa Margin dihitung di server (server action) supaya
@@ -102,13 +104,15 @@ export function ReportsClient() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const [plRes, mRes] = await Promise.all([
+      const [plRes, mRes, trendRes] = await Promise.all([
         getProfitLoss(period.from, period.to),
         getMarginReport(period.from, period.to),
+        getProfitLossTrend(12),
       ]);
       if (!active) return;
       setPl(plRes);
       setMarginReport(mRes);
+      setProfitTrend(trendRes);
     })();
     return () => { active = false; };
   }, [period]);
@@ -180,13 +184,23 @@ export function ReportsClient() {
   const totalPurchase = Number(summary?.total_purchase ?? 0);
   const totalOpExpense = Number(summary?.total_op_expense ?? 0);
   const totalPersonal = Number(summary?.total_personal_expense ?? 0);
-  const netProfit = Number(summary?.net_profit ?? 0);
-  // margin = laba / total penjualan × 100
-  const margin = totalSales > 0 ? (netProfit / totalSales) * 100 : 0;
+  // Laba & margin memakai LABA AKRUAL (buildProfitLoss) — sumber sama dengan tab
+  // "Laba Rugi", bukan lagi finance_summary (kas) yang bisa beda dari kenyataan.
+  const netProfit = Number(pl?.net_profit ?? 0);
+  const revenueAccrual = Number(pl?.revenue_total ?? 0);
+  const cogsAccrual = Number(pl?.cogs_total ?? 0);
+  const pphAccrual = Number(pl?.pph_total ?? 0);
+  const personalAccrual = Number(pl?.personal_total ?? 0);
+  // biaya operasional murni (tanpa pribadi & PPh) = opex_total − pribadi − PPh
+  const opexOnlyAccrual = pl ? pl.opex_total - pl.personal_total - pl.pph_total : 0;
+  // margin = laba / pendapatan (akrual) × 100
+  const margin = revenueAccrual > 0 ? (netProfit / revenueAccrual) * 100 : 0;
 
-  // ── Gauge (skala auto dari riwayat 12 bulan) ──────────────────────────────
+  // ── Gauge (metrik KAS/likuiditas; skala auto dari riwayat 12 bulan) ────────
   const spending = totalOpExpense + totalPersonal;
-  const cashFlow = netProfit;
+  // CASH FLOW memakai laba KAS (finance_summary) — gauge ini memang metrik kas,
+  // sengaja dibedakan dari kartu "Laba Bersih" (akrual) di atas.
+  const cashFlow = Number(summary?.net_profit ?? 0);
   const monthlyOp = trend.map((t) => Number(t.op_expense));
   const monthlyNet = trend.map((t) => Number(t.net_profit));
   const spendMax = Math.max(1, ...monthlyOp, spending);
@@ -208,12 +222,20 @@ export function ReportsClient() {
     { label: "SPENDING", value: spending, min: 0, max: spendMax, text: compactIDR(-spending), reverse: true },
   ];
 
+  // Penanda: gauge CASH FLOW (kas) bisa berbeda dari kartu Laba Bersih (akrual).
+  // Muncul HANYA saat benar-benar ada selisih di layar; hilang sendiri saat 0
+  // (mis. bulan tanpa uang muka proyek & tanpa penumpukan stok).
+  const cashGap = Math.round(cashFlow - netProfit);
+  const ongoingProjects = pl?.ongoing ?? [];
+  const showCashNote = !loading && !!pl && cashGap !== 0;
+
   const dash = loading ? "…" : "";
-  const trendData = trend.map((t) => ({
+  // Grafik bulanan memakai laba AKRUAL: revenue − expense = net (ketiganya cocok).
+  const trendData = profitTrend.map((t) => ({
     name: shortMonth(t.month_start),
-    Penjualan: Number(t.income),
-    Pengeluaran: Number(t.op_expense),
-    Laba: Number(t.net_profit),
+    Penjualan: t.revenue,
+    Pengeluaran: t.expense,
+    Laba: t.net,
   }));
 
   return (
@@ -240,29 +262,38 @@ export function ReportsClient() {
         <StatCard label="Pengeluaran Pribadi" icon={User2} tone="teal"
           value={loading ? "…" : formatIDR(totalPersonal)} />
         <StatCard label="Laba Bersih" icon={Wallet}
+          hint="Akrual — sama dengan tab Laba Rugi"
           accent={netProfit >= 0 ? "text-emerald-600" : "text-destructive"}
           tone={netProfit >= 0 ? "emerald" : "red"}
-          value={loading ? "…" : formatIDR(netProfit)} />
+          value={loading || !pl ? "…" : formatIDR(netProfit)} />
         <StatCard label="Margin Laba" icon={Percent}
           accent={margin >= 0 ? "text-emerald-600" : "text-destructive"}
           tone={margin >= 0 ? "emerald" : "red"}
-          value={loading ? "…" : `${margin.toFixed(1)}%`}
-          hint="Laba ÷ Total Penjualan" />
+          value={loading || !pl ? "…" : `${margin.toFixed(1)}%`}
+          hint="Laba ÷ Pendapatan (akrual)" />
       </div>
 
       {/* Rumus laba (informasi) */}
       <Card>
         <CardContent className="py-4">
           <p className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">Laba Bersih</span> = Total Penjualan
-            − Total Pembelian − Pengeluaran Operasional − Pengeluaran Pribadi
+            <span className="font-medium text-foreground">Laba Bersih (akrual)</span> = Pendapatan
+            − HPP barang terjual − Biaya Operasional − Pengeluaran Pribadi
+            {pphAccrual > 0 ? " − PPh 23" : ""}
           </p>
-          {!loading && (
+          {!loading && pl && (
             <p className="mt-1 text-xs text-muted-foreground">
-              {formatIDR(totalSales)} − {formatIDR(totalPurchase)} − {formatIDR(totalOpExpense)}
-              {" "}− {formatIDR(totalPersonal)} = <b className={netProfit >= 0 ? "text-emerald-600" : "text-destructive"}>{formatIDR(netProfit)}</b>
+              {formatIDR(revenueAccrual)} − {formatIDR(cogsAccrual)} − {formatIDR(opexOnlyAccrual)}
+              {" "}− {formatIDR(personalAccrual)}
+              {pphAccrual > 0 ? ` − ${formatIDR(pphAccrual)}` : ""}
+              {" "}= <b className={netProfit >= 0 ? "text-emerald-600" : "text-destructive"}>{formatIDR(netProfit)}</b>
             </p>
           )}
+          <p className="mt-2 text-xs text-muted-foreground">
+            Pendapatan &amp; HPP memakai barang yang benar-benar terjual (bukan total
+            pembelian); termin proyek yang belum selesai tidak diakui. Sama persis dengan
+            tab <span className="font-medium">Laba Rugi</span>.
+          </p>
         </CardContent>
       </Card>
 
@@ -390,6 +421,36 @@ export function ReportsClient() {
                 </div>
               ))}
             </div>
+
+            {/* Penanda: CASH FLOW (kas) beda dari Laba Bersih (akrual) — muncul
+                hanya saat ada selisih, mis. ada uang muka proyek berjalan. */}
+            {showCashNote && (
+              <div className="mt-3 flex gap-2 rounded-lg border border-warning/40 bg-warning/10 p-2.5 text-xs">
+                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
+                <div className="space-y-1">
+                  <p>
+                    <b>CASH FLOW</b> di atas adalah angka <b>kas</b> — beda{" "}
+                    {formatIDR(Math.abs(cashGap))} dari <b>Laba Bersih</b> (akrual).
+                  </p>
+                  {ongoingProjects.length > 0 && (
+                    <p>
+                      Sebabnya ada <b>proyek berjalan</b> yang masih menahan uang belum
+                      jadi laba (sisa uang muka setelah biaya)
+                      {ongoingProjects.map((p, i) => (
+                        <span key={p.id}>
+                          {i === 0 ? ": " : ", "}
+                          {p.project_name} {formatIDR(p.remaining)}
+                        </span>
+                      ))}
+                      . Diakui sebagai laba saat proyek selesai.
+                    </p>
+                  )}
+                  <p className="text-muted-foreground">
+                    Laba yang benar mengikuti kartu <b>Laba Bersih</b>.
+                  </p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

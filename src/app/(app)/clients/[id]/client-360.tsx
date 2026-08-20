@@ -6,7 +6,7 @@ import {
 } from "recharts";
 import {
   Boxes, Wifi, Camera, Calculator, Wrench, ShieldCheck, TrendingUp, TrendingDown,
-  ShoppingCart, Coins, Wallet,
+  ShoppingCart, Coins, Wallet, HandCoins,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -138,6 +138,19 @@ export function Client360({ client }: { client: Client }) {
     return { penjualan, pembelian, labaJual, labaProyek, totalLaba, margin };
   }, [salesRaw, rabs, period]);
 
+  // Piutang berjalan (snapshot SAAT INI — tidak ikut filter periode): invoice
+  // bulanan belum lunas + penjualan terhutang belum lunas untuk client ini.
+  const piutang = useMemo(() => {
+    const invoice = invoices
+      .filter((i) => i.effective_status !== "paid")
+      .reduce((a, i) => a + Number(i.total), 0);
+    const terhutang = salesRaw
+      .filter((s) => s.payment_method === "terhutang" && !s.paid_date)
+      .reduce((a, s) => a + (s.sale_items ?? [])
+        .reduce((b, it) => b + Number(it.subtotal), 0), 0);
+    return { invoice, terhutang, total: invoice + terhutang };
+  }, [invoices, salesRaw]);
+
   const targetLabel: Record<string, string> = { asset: "Asset", network: "Network", cctv: "CCTV" };
 
   return (
@@ -168,6 +181,28 @@ export function Client360({ client }: { client: Client }) {
           value={loading ? "…" : summary.margin === null ? "—" : `${summary.margin.toFixed(1)}%`}
           hint="Total Laba ÷ Total Penjualan" />
       </div>
+
+      {/* Piutang berjalan — snapshot saat ini (tidak ikut filter periode) */}
+      {!loading && piutang.total > 0 && (
+        <Card className="border-warning/40 bg-warning/5">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-warning/15 text-warning">
+                <HandCoins className="h-4.5 w-4.5" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Piutang berjalan (belum diterima)</p>
+                <p className="text-2xl font-bold tracking-tight text-amber-600">
+                  {formatIDR(piutang.total)}
+                </p>
+              </div>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Invoice belum lunas {formatIDR(piutang.invoice)} · Terhutang {formatIDR(piutang.terhutang)}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Info kontak */}
       <Card>

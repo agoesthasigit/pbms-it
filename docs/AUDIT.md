@@ -29,6 +29,7 @@ Diisi **bertahap**; tiap tahap punya checkpoint agar bisa dilanjutkan kapan saja
 | 2 | Keamanan (RLS, secret, auth) | ✅ SELESAI (2026-08-18) | 🔴 2.1 & 🟠 2.2 **SUDAH DIPERBAIKI & diverifikasi**; 🟡 2.3/2.4 catatan; sisi kode bersih |
 | 3 | Alur Bisnis & Efisiensi Input | ✅ SELESAI (2026-08-18) | Otomatisasi sudah kuat; friction utama: beli→jual→invoice lintas 3 menu → usul "Transaksi Cepat" + 4 perbaikan kecil |
 | 4 | UX/UI & Desain | ✅ SELESAI (2026-08-18) | Matang (responsif+PWA+dark mode+empty/toast konsisten); 🟠 `confirm()` native 18 file + 🟡 input rupiah tanpa pemisah ribuan & 3 kecil |
+| 5 | Kebenaran Akuntansi (Profit·Piutang/Hutang·Wallet·Lifecycle·Client360) | ✅ SELESAI (2026-08-20) | Wallet & data rekonsiliasi **sempurna**; **🔴 5.1 laba KAS salah → ✅ DISATUKAN ke akrual** (Dashboard + tab Ringkasan; Juli kas 8,97jt→akrual 5,9jt, beda 3,07jt); **✅ 5.3 `mark_invoice_paid` 3-arg dihapus · ✅ 5.4 `delete_purchase` bergaransi stok**; **✅ 5.6 halaman /piutang + kartu Client 360 + Dashboard piutang fixed**; sisa 🟠 hutang distributor ditunda-fitur (5.2) · 🟡 5.5/5.7 keputusan desain |
 
 > Catatan metode: audit dikerjakan langsung (bukan multi-agent), keluaran berupa
 > laporan dokumen ini. Scan DB memakai koneksi **baca-saja** ke Supabase produksi
@@ -311,6 +312,176 @@ paling berdampak, disusul **4.2 input rupiah** (mengurangi salah ketik uang).
 
 ---
 
+## Tahap 5 — Kebenaran Akuntansi ✅
+
+**Cakupan.** Berbeda dari Tahap 1 (integritas data / apakah ada baris rusak), tahap ini
+menguji **kebenaran logika akuntansi** (apakah hitungan cocok dengan kenyataan). Baca-saja
+ke DB produksi (via `pg` + `SUPABASE_DB_URL`): membaca **sumber semua RPC uang**
+(`create_sale`, `create_purchase`, `delete_sale`, `delete_purchase`, `pay_sale`,
+`mark_invoice_paid`, `delete_monthly_invoice`, `create_quick_deal`), modul laporan
+([profit-loss](../src/lib/reports/profit-loss.ts), [transactions](../src/lib/reports/transactions.ts)),
+lalu **rekonsiliasi angka nyata** (saldo wallet, HPP, piutang). Lima area yang diminta pemilik:
+① Accounting & Profit ② Piutang & Hutang ③ Cash/Wallet ④ Sales & Purchase Lifecycle ⑤ Client 360.
+
+**Snapshot produksi (2026-08-20).** 1 wallet (saldo **9.427.647**) · penjualan
+45.604.000 · pembelian 30.579.902 · HPP barang terjual 30.579.902 · piutang berjalan
+(terhutang 3.975.000 + invoice draft 31.479.000) · 1 proyek RAB **berjalan** (termin
+30.000.000 sudah diterima, belum selesai).
+
+### 🟢 Yang sudah BENAR (terbukti lewat rekonsiliasi)
+- **Saldo wallet rekonsiliasi 100%.** `v_wallet_balances` = `initial_balance` + Σ(income+transfer_in) − Σ(expense+transfer_out); dihitung ulang independen → **sama persis** (9.427.647). Semua RPC uang menulis `wallet_transactions` yang konsisten.
+- **Revenue recognition (akrual) benar** di Laporan Laba Rugi: penjualan diakui saat `sale_date`; proyek RAB **hanya** saat status `done`; termin proyek **berjalan** TIDAK diakui sebagai laba (dipisah ke bagian D).
+- **Expense TIDAK dobel** di Laba Rugi: pembelian → **persediaan** (bukan biaya), baru jadi **HPP** saat barang benar-benar terjual (`sale_items.cost_price` terkunci saat jual). Operasional/pribadi/PPh dihitung sekali; RAB expense hanya masuk HPP proyek selesai. Penjualan `monthly_invoice` sengaja **tidak** dijumlah ulang di Riwayat (dipakai baris pelunasan) via `countInTotal`.
+- **Lifecycle simetris/reversibel:** `delete_sale` & `delete_monthly_invoice` membalik stok+aset+wallet; `delete_sale` menolak bila invoice sudah lunas; `create_quick_deal` (beli+jual) berjalan dalam **satu transaksi** (atomik, HPP terkunci benar).
+
+### 🔴 5.1 — KRITIS: Dashboard memakai laba **metode KAS** yang salah → beda dari laporan benar
+> ✅ **STATUS: SUDAH DIPERBAIKI (2026-08-20) — Dashboard & tab Ringkasan Laporan.**
+> Semua tampilan **laba** kini memakai `getProfitLoss`/`getProfitLossTrend` (server
+> action pembungkus `buildProfitLoss`) — **satu sumber angka**, sama dengan tab Laba Rugi:
+> - **Dashboard**: kartu **Laba Bersih** & **Margin** + garis **"Laba"** grafik tren.
+> - **Laporan → tab "Ringkasan"**: kartu **Laba Bersih** & **Margin**, teks rumus laba
+>   (kini "Pendapatan − HPP − Operasional − Pribadi [− PPh]"), grafik **"Penjualan vs
+>   Pengeluaran per Bulan"** & **"Laba Bersih per Bulan"** — semua akrual & saling cocok
+>   (revenue − expense = net). Gauge **BALANCE/CASH FLOW/SPENDING** sengaja tetap metrik
+>   **kas**, dan diberi **catatan otomatis**: bila CASH FLOW (kas) ≠ Laba Bersih (akrual)
+>   di layar, muncul penanda kuning yang menjelaskan selisihnya (mis. uang muka **proyek
+>   berjalan** Rp X yang belum jadi laba, dengan nama proyeknya). Catatan **hilang sendiri**
+>   saat selisih = 0 (bulan tanpa uang muka/penumpukan stok). Contoh: Juli menampilkan
+>   catatan (selisih 3.075.001 = sisa uang muka proyek), Agustus tidak.
+> - Kartu kas (Total Penjualan/Pembelian/Pengeluaran/Saldo Masuk) tetap dari
+>   `finance_summary` karena memang angka kas yang berlabel benar.
+>
+> Diverifikasi: Juli 2026 turun dari **8.973.381** (kas, salah) → **5.898.380** (akrual,
+> = laporan & = angka `buildProfitLoss` historis di CLAUDE.md); Agustus 2026 tetap
+> **6.523.600** (bulan ini kas & akrual kebetulan sama). `tsc --noEmit` bersih.
+> *(Verifikasi visual di app tak bisa — halaman di balik login.)*
+
+Aplikasi menampilkan **DUA angka laba yang berbeda** untuk periode yang sama:
+- **Dashboard** ("Laba Bersih", "Margin Laba", grafik tren "Laba") memanggil RPC lama
+  **`finance_summary`** — rumusnya berbasis kas:
+  `(penjualan + SEMUA termin RAB) − (SEMUA pembelian + biaya RAB) − operasional − pribadi`.
+  ([dashboard-client.tsx:57,80,97](../src/app/(app)/dashboard/dashboard-client.tsx) + juga masih dipanggil di [reports-client.tsx:127,132](../src/app/(app)/reports/reports-client.tsx)).
+- **Laporan Keuangan → Laba Rugi** memakai [`buildProfitLoss`](../src/lib/reports/profit-loss.ts) — akrual & benar (dibangun 2026-08-02, sudah dicocokkan dengan Excel pemilik).
+
+**Dampak nyata (bukan teori).** Contoh **Juli 2026**: proyek RAB **berjalan** menerima
+termin **30.000.000** dan sudah keluar biaya **26.924.999** di bulan sama. `finance_summary`
+(kas) menghitung **net** kas proyek itu (+3.075.001) sebagai laba, padahal proyek **belum
+selesai** → laba kas **8.973.381** vs laba akrual benar **5.898.380** → **beda 3.075.001**
+(persis = sisa uang muka proyek yang belum jadi laba). Arah error bisa terbalik juga: saat
+ada **stok belum terjual**, `finance_summary` menghitung seluruh pembelian sebagai biaya →
+laba **kurang-hitung**. Inilah **sumber langsung** kekhawatiran "hitungan keuangan berbeda
+dari kenyataan". (Selaras rujukan historis CLAUDE.md: selisih ±3 jt.)
+
+**Rekomendasi (belum diterapkan).** Jadikan **satu sumber angka**: pensiunkan
+`finance_summary` dari Dashboard & Reports, ganti kartu laba/margin/tren memakai hasil
+`buildProfitLoss` (akrual). `finance_summary` boleh disimpan hanya sebagai "arus kas
+periode" bila memang perlu, **dengan label tegas "kas", bukan "laba"**.
+
+### 🟠 5.2 — HUTANG ke distributor tidak ada konsepnya (pembelian selalu tunai)
+`create_purchase` **selalu** memotong wallet seketika sebesar total; tabel `purchases`
+tak punya kolom status-bayar / jatuh tempo. Artinya bila pemilik **beli tempo** (bayar
+belakangan ke distributor), saldo wallet **langsung berkurang** padahal uang masih di
+bank → **saldo ≠ kenyataan** sampai benar-benar dibayar, dan tak ada daftar "hutang
+usaha". Piutang (uang client ke kita) sudah tertangani, tapi sisi Hutang belum.
+**Rekomendasi:** bila praktik beli-tempo memang terjadi, tambahkan status bayar pada
+pembelian (mirip `terhutang` di penjualan) + wallet baru berkurang saat pelunasan.
+Bila **selalu bayar tunai/transfer saat beli**, cukup dicatat sebagai keputusan sadar.
+
+> 📌 **Konfirmasi pemilik (2026-08-20).** Praktik beli-tempo **memang ada** — distributor
+> **"Cetak Ide"** selalu dibeli **terhutang**, dibayar **akhir bulan**. Efek saat ini:
+> pembelian Cetak Ide langsung memotong wallet di tanggal beli (bukan saat bayar akhir
+> bulan) → **saldo wallet understated** sepanjang bulan; totalnya benar (tak dobel), hanya
+> **timing** yang meleset. **Keputusan pemilik: ditunda jadi FITUR pasca-audit.**
+> Ruang lingkup fitur yang diinginkan (lebih dari sekadar status bayar):
+> **portal login untuk distributor Cetak Ide** — Cetak Ide meng-input pembelian sendiri
+> (hanya mengisi **harga beli**); barang otomatis masuk **Stok** pemilik; pemilik lalu
+> menambahkan **harga jual** (marginnya). Termasuk juga penagihan/pelunasan akhir bulan
+> sebagai **hutang usaha**. Dicatat untuk dikerjakan **setelah audit selesai**.
+
+### 🟠 5.3 — `mark_invoice_paid` punya **dua versi** hidup bersamaan (risiko bruto ≠ netto)
+> ✅ **SUDAH DIPERBAIKI (2026-08-20)** — migrasi
+> `20260820_mark_invoice_paid_drop_3arg_and_delete_purchase_guard.sql`:
+> `DROP FUNCTION mark_invoice_paid(uuid,uuid,date)`. Kini **tinggal satu** versi
+> (5-arg netto + PPh). Panggilan bergaya 3-arg tetap jalan lewat DEFAULT arg 4&5
+> (pph_base=0 → netto=total), jadi tak ada fitur yang rusak — hanya jalur
+> bruto-tanpa-PPh yang hilang. Diverifikasi via `pg_proc`: overload = 1.
+
+Ada 2 fungsi: `mark_invoice_paid(uuid,uuid,date)` (3-arg) mencatat **BRUTO tanpa PPh**,
+dan `mark_invoice_paid(uuid,uuid,date,numeric,numeric)` (5-arg) mencatat **NETTO + PPh**.
+App selalu memanggil **5-arg** ([invoices/actions.ts:46](../src/app/(app)/invoices/actions.ts)) → **benar**. Tapi versi 3-arg **masih terekspos** sebagai RPC; bila terpanggil (kode masa depan / panggilan manual), wallet menerima **bruto** (tak cocok mutasi bank) dan PPh hilang dari laporan.
+**Rekomendasi:** `DROP FUNCTION public.mark_invoice_paid(uuid,uuid,date);` (sisakan hanya 5-arg).
+
+### 🟠 5.4 — `delete_purchase` tidak cek apakah stok pembelian sudah terjual
+> ✅ **SUDAH DIPERBAIKI (2026-08-20)** — migrasi yang sama. `delete_purchase`
+> di-`CREATE OR REPLACE` (tanda tangan sama) dengan **guard**: menolak hapus bila
+> stok produk saat ini < qty yang ditambah pembelian itu (`current_stock < qty_in`
+> lewat `v_product_stock`) → berarti barang sudah terjual. Pesan jelas ("stok "X"
+> tinggal N … Hapus penjualannya dulu") diteruskan ke UI via `error.message`
+> ([purchases/actions.ts:118](../src/app/(app)/purchases/actions.ts)). Diverifikasi:
+> guard aktif, dan pembelian lama yang barangnya sudah terjual (stok 0) kini
+> terlindung dari penghapusan yang tadinya membuat stok negatif. Pembalikan
+> stok/wallet + cascade `purchase_items` tak berubah.
+
+`delete_purchase` menghapus `stock_movements` + `wallet_transactions` pembelian tanpa
+memeriksa apakah barangnya **sudah keluar** lewat penjualan. Menghapus pembelian yang
+barangnya sudah terjual → **stok bisa negatif** dan `cost_price` pada penjualan lama
+tetap mengunci harga dari pembelian yang sudah tak ada (HPP menggantung).
+**Rekomendasi:** tolak hapus pembelian bila akan membuat stok produk terkait < 0 (atau
+bila sudah ada penjualan produk itu setelah tanggal pembelian). (Saat ini D1 stok
+negatif = 0, jadi **belum** terjadi — ini pencegahan.)
+
+### 🟡 5.5 — HPP memakai "harga beli TERAKHIR", bukan FIFO/rata-rata
+`create_sale` mengunci `cost_price = products.last_purchase_price` **saat jual**. Bila
+harga beli barang yang sama berubah antar pembelian, HPP unit lama bisa meleset dari
+modal riilnya (mengunci harga terbaru untuk semua unit tersisa). Untuk volume kecil
+umumnya dapat diterima; **catat sebagai keterbatasan metode**, bukan bug. Bila akurasi
+margin per-unit penting, pertimbangkan biaya rata-rata bergerak.
+
+### 🟡 5.6 — Piutang belum ada laporan terkonsolidasi + tak muncul di Client 360
+> ✅ **SUDAH DIPERBAIKI (2026-08-20).**
+> - **Halaman "Piutang"** baru (menu Analisa → `/piutang`): 3 kartu ringkas (Total
+>   Piutang · Invoice belum lunas · Penjualan terhutang) + tabel gabungan (client,
+>   jenis, jatuh tempo + **umur/lewat berapa hari**, jumlah) dengan pencarian.
+>   Server component `piutang/page.tsx` + `piutang-client.tsx`. Diverifikasi angka:
+>   invoice 31.479.000 (3) + terhutang 3.975.000 (2) = **35.454.000**.
+> - **Client 360**: kartu **"Piutang berjalan"** (snapshot saat ini, di luar filter
+>   periode) = invoice belum lunas + terhutang belum lunas client itu; muncul hanya
+>   bila > 0.
+>
+> ✅ **Temuan sampingan JUGA DIPERBAIKI (2026-08-20): Dashboard undercount Piutang.**
+> `dashboard_counts.total_receivable` dulu **hanya** menjumlahkan penjualan metode
+> `monthly_invoice` (invoice belum lunas) — **penjualan `terhutang` terlewat**. Migrasi
+> `20260820_dashboard_counts_receivable_include_terhutang.sql` menambahkan terhutang
+> belum lunas (`paid_date is null`). Diverifikasi: total_receivable kini **35.454.000**
+> (31.479.000 invoice + 3.975.000 terhutang) = sama dengan halaman /piutang. Tanda tangan
+> RPC tak berubah.
+
+Data piutang lengkap (terhutang belum lunas + invoice belum lunas). **Client 360**
+([client-360.tsx](../src/app/(app)/clients/[id]/client-360.tsx)) sudah bagus (profil,
+omzet 12 bln, riwayat jual, invoice, laba per client & margin); kini + kartu piutang.
+
+### 🟡 5.7 — Penjualan/Pembelian tidak bisa diedit (hanya buat & hapus)
+Koreksi transaksi dilakukan dengan hapus lalu buat ulang. Konsisten & aman untuk
+pembalikan, tapi memperbesar paparan ke 5.4 (hapus pembelian yang barangnya terjual)
+dan merepotkan untuk salah ketik kecil. Catat sebagai keputusan desain; bila sering
+salah ketik, pertimbangkan edit terbatas (field non-keuangan) tanpa mengubah efek stok/wallet.
+
+### Checkpoint Tahap 5 (untuk dilanjutkan)
+- [x] ① Accounting & Profit — revenue benar (akrual) · **expense TIDAK dobel** · HPP dari cost_price terjual · **🔴 laba dashboard salah (5.1)**
+- [x] ② Piutang & Hutang — piutang terlacak (belum ada laporan, 5.6) · **hutang distributor tak ada (5.2)**
+- [x] ③ Cash/Wallet — **saldo rekonsiliasi 100%** · transfer atomik · **dobel `mark_invoice_paid` (5.3)**
+- [x] ④ Sales & Purchase Lifecycle — create/delete simetris · quick_deal atomik · **`delete_purchase` tak cek stok (5.4)** · tak bisa edit (5.7)
+- [x] ⑤ Client 360 — sudah ada & lengkap · **tanpa piutang berjalan (5.6)**
+
+**Kesimpulan.** 🟢 **Fondasi akuntansi kuat & internal-konsisten** — saldo wallet
+rekonsiliasi sempurna, revenue akrual benar, expense tidak dobel, lifecycle reversibel.
+**Satu masalah nyata & mendesak: 5.1** — Dashboard menampilkan laba metode kas yang
+berbeda ±puluhan juta dari laporan yang benar. Ini **wajib** disatukan sebelum full-online
+agar angka yang dilihat sehari-hari = kenyataan. Sisanya (5.2–5.4) penutup lubang
+pencegahan, (5.5–5.7) keterbatasan/fitur.
+
+---
+
 ## Ringkasan Prioritas Tindakan (lintas tahap)
 
 Diurut dari paling mendesak. Audit = laporan; penerapan menunggu keputusan pemilik.
@@ -325,12 +496,22 @@ Diurut dari paling mendesak. Audit = laporan; penerapan menunggu keputusan pemil
 | 🟡 6 | Fitur "Pemeriksaan Data" (R1.1) | 1 | ✅ **diimplementasikan** (halaman /data-check; cron belum) |
 | 🟡 7 | Input rupiah berpemisah ribuan (4.2) | 4 | ✅ **diimplementasikan** (CurrencyInput) |
 | 🟡 8 | Perbaikan alur: 3.2 harga jual & 3.3 +Baru inline | 3 | ✅ **diimplementasikan** (3.4/3.5 belum) |
+| 🔴 4b | Laba KAS salah → satukan ke akrual (5.1) | 5 | ✅ **diperbaiki** (Dashboard + tab Ringkasan Laporan) |
+| 🟠 4c | Hapus overload `mark_invoice_paid` 3-arg (5.3) | 5 | ✅ **diperbaiki** |
+| 🟠 4d | `delete_purchase` cegah stok negatif / barang sudah terjual (5.4) | 5 | ✅ **diperbaiki** |
+| 🟠 4e | Konsep Hutang distributor / beli-tempo (5.2) | 5 | ⬜ (tergantung praktik) |
 | 🟡 9 | Batasi grant tulis view ke SELECT (2.3) | 2 | ⬜ |
 | 🟡 10 | A11y tombol ikon (4.4) + token semantik (4.5) | 4 | ✅ **diimplementasikan** |
+| 🟡 11 | Laporan Piutang + kartu piutang di Client 360 (5.6) | 5 | ✅ **diimplementasikan** (halaman /piutang + kartu Client360 + Dashboard undercount piutang **fixed**) |
+| 🟡 12 | Catatan metode HPP "harga terakhir" & edit transaksi (5.5/5.7) | 5 | ⬜ (keputusan desain) |
 
-**Penilaian keseluruhan.** Sistem **sehat & siap full-online** setelah lubang
-keamanan kritis (2.1/2.2) ditutup. Integritas data bersih, otomatisasi bisnis kuat,
-UX matang. Sisa item adalah peningkatan efisiensi & pemolesan — bukan penghambat.
+**Penilaian keseluruhan.** Sistem **sehat & internal-konsisten** — integritas data
+bersih, **saldo wallet rekonsiliasi 100%**, revenue akrual benar, expense tidak dobel,
+lifecycle reversibel, keamanan kritis (2.1/2.2) sudah ditutup. **Satu penghambat nyata
+tersisa sebelum full-online: 5.1** — Dashboard menampilkan laba metode **kas** yang bisa
+berbeda **puluhan juta** dari Laporan Laba Rugi yang benar. Menyatukan keduanya ke satu
+sumber akrual adalah tindakan paling penting agar "angka sehari-hari = kenyataan".
+Selebihnya penutup lubang pencegahan (5.2–5.4) & fitur/keterbatasan (5.5–5.7).
 
 ---
 

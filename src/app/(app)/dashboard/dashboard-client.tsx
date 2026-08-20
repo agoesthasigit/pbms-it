@@ -23,8 +23,10 @@ import {
   PeriodPicker, presetThisMonth, type Period,
 } from "@/components/shared/period-picker";
 import type {
-  FinanceSummary, MonthlyTrend, DashboardCounts,
+  FinanceSummary, DashboardCounts,
 } from "@/types/phase8";
+import type { ProfitLoss, ProfitTrendPoint } from "@/types/reports";
+import { getProfitLoss, getProfitLossTrend } from "../reports/actions";
 
 type PendingInvoice = {
   id: string; invoice_no: string; company_name: string;
@@ -44,7 +46,10 @@ export function DashboardClient() {
   const [loading, setLoading] = useState(true);
 
   const [summary, setSummary] = useState<FinanceSummary | null>(null);
-  const [trend, setTrend] = useState<MonthlyTrend[]>([]);
+  // Laba bersih & margin memakai LABA AKRUAL (buildProfitLoss), sumber yang sama
+  // dengan Laporan Laba Rugi — bukan lagi finance_summary (metode kas).
+  const [pl, setPl] = useState<ProfitLoss | null>(null);
+  const [profitTrend, setProfitTrend] = useState<ProfitTrendPoint[]>([]);
   const [counts, setCounts] = useState<DashboardCounts | null>(null);
   const [pendingInvoices, setPendingInvoices] = useState<PendingInvoice[]>([]);
   const [expiringAssets, setExpiringAssets] = useState<ExpiringAsset[]>([]);
@@ -53,9 +58,9 @@ export function DashboardClient() {
     let active = true;
     (async () => {
       setLoading(true);
-      const [sumRes, trendRes, countRes, invRes, assetRes] = await Promise.all([
+      const [sumRes, plRes, countRes, invRes, assetRes] = await Promise.all([
         supabase.rpc("finance_summary", { p_from: period.from, p_to: period.to }),
-        supabase.rpc("monthly_trend", { p_months: 12 }),
+        getProfitLoss(period.from, period.to),
         supabase.rpc("dashboard_counts"),
         supabase.from("v_monthly_invoices").select("id, invoice_no, company_name, total, due_date, effective_status")
           .neq("status", "paid").order("due_date", { ascending: true }).limit(5),
@@ -64,7 +69,7 @@ export function DashboardClient() {
       ]);
       if (!active) return;
       setSummary((sumRes.data?.[0] as FinanceSummary) ?? null);
-      setTrend((trendRes.data as MonthlyTrend[]) ?? []);
+      setPl(plRes);
       setCounts((countRes.data?.[0] as DashboardCounts) ?? null);
       setPendingInvoices((invRes.data as PendingInvoice[]) ?? []);
       setExpiringAssets((assetRes.data as ExpiringAsset[]) ?? []);
@@ -73,11 +78,21 @@ export function DashboardClient() {
     return () => { active = false; };
   }, [supabase, period]);
 
-  const chartData = trend.map((t) => ({
+  // Grafik tren 12 bulan memakai laba AKRUAL (independen dari periode kartu).
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const points = await getProfitLossTrend(12);
+      if (active) setProfitTrend(points);
+    })();
+    return () => { active = false; };
+  }, []);
+
+  const chartData = profitTrend.map((t) => ({
     name: shortMonth(t.month_start),
-    Penjualan: Number(t.income),
-    Pengeluaran: Number(t.op_expense),
-    Laba: Number(t.net_profit),
+    Penjualan: t.revenue,
+    Pengeluaran: t.expense,
+    Laba: t.net,
   }));
 
   return (
@@ -95,9 +110,10 @@ export function DashboardClient() {
         <StatCard label="Pengeluaran Pribadi" icon={User2} tone="teal"
           value={loading ? "…" : formatIDR(Number(summary?.total_personal_expense ?? 0))} />
         <StatCard label="Laba Bersih" icon={Wallet}
-          accent={Number(summary?.net_profit ?? 0) >= 0 ? "text-emerald-600" : "text-destructive"}
-          tone={Number(summary?.net_profit ?? 0) >= 0 ? "emerald" : "red"}
-          value={loading ? "…" : formatIDR(Number(summary?.net_profit ?? 0))} />
+          hint="Akrual — sama dengan Laporan Laba Rugi"
+          accent={Number(pl?.net_profit ?? 0) >= 0 ? "text-emerald-600" : "text-destructive"}
+          tone={Number(pl?.net_profit ?? 0) >= 0 ? "emerald" : "red"}
+          value={loading || !pl ? "…" : formatIDR(pl.net_profit)} />
         <StatCard label="Saldo Wallet Masuk" icon={Wallet} tone="teal"
           hint="Uang yang benar-benar diterima"
           value={loading ? "…" : formatIDR(Number(summary?.total_income ?? 0))} />
@@ -114,8 +130,8 @@ export function DashboardClient() {
           accent={Number(counts?.expiring_warranty ?? 0) > 0 ? "text-amber-600" : undefined}
           value={loading ? "…" : String(counts?.expiring_warranty ?? 0)} />
         <StatCard label="Margin Laba" icon={TrendingUp} tone="emerald"
-          value={loading || !summary || Number(summary.total_sales) === 0 ? "—"
-            : `${((Number(summary.net_profit) / Number(summary.total_sales)) * 100).toFixed(1)}%`} />
+          value={loading || !pl || pl.revenue_total === 0 ? "—"
+            : `${((pl.net_profit / pl.revenue_total) * 100).toFixed(1)}%`} />
       </div>
 
       {/* Grafik tren */}
