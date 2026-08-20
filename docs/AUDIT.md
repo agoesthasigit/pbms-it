@@ -494,7 +494,7 @@ Diurut dari paling mendesak. Audit = laporan; penerapan menunggu keputusan pemil
 | 🟠 3 | Rotasi anon key Supabase (tindak lanjut 2.1) | 2 | ⬜ dashboard (pemilik) |
 | 🟠 4 | Form "Transaksi Cepat" beli+jual (3.1) | 3 | ✅ **diimplementasikan** (RPC create_quick_deal + form) |
 | 🟠 5 | Ganti `confirm()` → `ConfirmDialog` (4.1) | 4 | ✅ **diimplementasikan** (18 file) |
-| 🟡 6 | Fitur "Pemeriksaan Data" (R1.1) | 1 | ✅ **diimplementasikan** (halaman /data-check; cron belum) |
+| 🟡 6 | Fitur "Pemeriksaan Data" (R1.1) | 1 | ✅ **diimplementasikan** (/data-check; **2026-08-20 +grup E konsistensi keuangan → 21 cek**; cron belum) |
 | 🟡 7 | Input rupiah berpemisah ribuan (4.2) | 4 | ✅ **diimplementasikan** (CurrencyInput) |
 | 🟡 8 | Perbaikan alur: 3.2 harga jual & 3.3 +Baru inline | 3 | ✅ **diimplementasikan** (3.4/3.5 belum) |
 | 🔴 4b | Laba KAS salah → satukan ke akrual (5.1) | 5 | ✅ **diperbaiki** (Dashboard + tab Ringkasan Laporan) |

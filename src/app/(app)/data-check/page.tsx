@@ -8,7 +8,7 @@ export default function DataCheckPage() {
     <div className="space-y-6">
       <PageHeader
         title="Pemeriksaan Data"
-        description="Jalankan 16 pemeriksaan integritas untuk mendeteksi anomali (nomor invoice kembar, stok/saldo negatif, data yatim, dsb) sedini mungkin."
+        description="Jalankan 21 pemeriksaan integritas & konsistensi keuangan untuk mendeteksi anomali (nomor invoice kembar, stok/saldo negatif, data yatim, modal/HPP hilang, pemasukan/pengeluaran wallet tak cocok, dsb) sedini mungkin."
       />
       <DataCheck />
     </div>
