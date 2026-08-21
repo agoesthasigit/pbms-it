@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { Fragment, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, ShoppingCart, Loader2, Search, RotateCcw, Receipt, Boxes, Zap } from "lucide-react";
+import { Plus, Trash2, ShoppingCart, Loader2, Search, RotateCcw, Receipt, Boxes, Zap, ChevronRight, ChevronDown, CalendarRange } from "lucide-react";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,16 @@ export function PurchaseList({
   const [pending, startTransition] = useTransition();
   const confirm = useConfirm();
   const [q, setQ] = useState("");
+
+  // Baris pembelian yang sedang dibuka (rincian item)
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  function toggleExpand(id: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
 
   const def = monthRange();
   const [from, setFrom] = useState(def.from);
@@ -119,6 +129,9 @@ export function PurchaseList({
   }, [purchases, totalPeriod, isThisMonth]);
 
   function resetRange() { setFrom(def.from); setTo(def.to); setQ(""); }
+  // Tampilkan SEMUA pembelian (hapus batas tanggal) — untuk melihat riwayat lama.
+  function showAll() { setFrom(""); setTo(""); }
+  const showingAll = from === "" && to === "";
 
   async function handleDelete(p: PurchaseRow) {
     if (!(await confirm({ title: "Hapus pembelian?", description: "Stok akan dikembalikan dan saldo wallet dikoreksi.", destructive: true, confirmText: "Hapus" }))) return;
@@ -135,7 +148,7 @@ export function PurchaseList({
       {/* Baris ringkasan — semuanya ikut filter tanggal */}
       <div className="grid gap-4 lg:grid-cols-3">
         <SummaryCard
-          title={isThisMonth ? "Total Pembelian Bulan Ini" : "Total Pembelian (Periode Dipilih)"}
+          title={showingAll ? "Total Pembelian (Semua)" : isThisMonth ? "Total Pembelian Bulan Ini" : "Total Pembelian (Periode Dipilih)"}
           value={totalPeriod}
           icon={ShoppingCart}
           tone="blue"
@@ -181,6 +194,10 @@ export function PurchaseList({
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant={showingAll ? "default" : "outline"} onClick={showAll}
+            title="Tampilkan semua pembelian (tanpa batas tanggal)">
+            <CalendarRange className="h-4 w-4" /> Semua
+          </Button>
           <Button variant="outline" onClick={resetRange} title="Kembali ke bulan ini">
             <RotateCcw className="h-4 w-4" /> Bulan Ini
           </Button>
@@ -204,6 +221,7 @@ export function PurchaseList({
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-8" />
                   <TableHead>Tanggal</TableHead>
                   <TableHead>Distributor</TableHead>
                   <TableHead>Barang</TableHead>
@@ -213,8 +231,15 @@ export function PurchaseList({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pg.paged.map((p) => (
-                  <TableRow key={p.id}>
+                {pg.paged.map((p) => {
+                  const isOpen = expanded.has(p.id);
+                  const items = itemsOf(p);
+                  return (
+                  <Fragment key={p.id}>
+                  <TableRow className="cursor-pointer" onClick={() => toggleExpand(p.id)}>
+                    <TableCell className="pr-0 text-muted-foreground">
+                      {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    </TableCell>
                     <TableCell>{formatDate(p.purchase_date)}</TableCell>
                     <TableCell className="font-medium">{p.distributor?.name ?? "-"}</TableCell>
                     <TableCell className="max-w-64">
@@ -230,14 +255,48 @@ export function PurchaseList({
                       {formatIDR(Number(p.total))}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon"
-                        className="text-muted-foreground hover:text-destructive"
-                        title="Hapus" onClick={() => handleDelete(p)} disabled={pending}>
-                        {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                      </Button>
+                      <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon"
+                          className="text-muted-foreground hover:text-destructive"
+                          title="Hapus" onClick={() => handleDelete(p)} disabled={pending}>
+                          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  {isOpen && (
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                      <TableCell colSpan={7} className="p-0">
+                        <div className="px-4 py-3">
+                          {items.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">Tidak ada rincian item.</p>
+                          ) : (
+                            <div className="divide-y rounded-lg border text-sm">
+                              <div className="grid grid-cols-[1fr_3rem_8rem_9rem] gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                                <span>Nama</span>
+                                <span className="text-center">Qty</span>
+                                <span className="text-right">Harga satuan</span>
+                                <span className="text-right">Subtotal</span>
+                              </div>
+                              {items.map((it, i) => (
+                                <div key={i} className="grid grid-cols-[1fr_3rem_8rem_9rem] gap-2 px-3 py-1.5">
+                                  <span className="min-w-0 truncate">{it.product?.name ?? "?"}</span>
+                                  <span className="text-center tabular-nums">{it.qty}</span>
+                                  <span className="text-right tabular-nums">{formatIDR(Number(it.price))}</span>
+                                  <span className="text-right font-medium tabular-nums">
+                                    {formatIDR(Number(it.qty) * Number(it.price))}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  </Fragment>
+                  );
+                })}
               </TableBody>
             </Table>
             <PaginationBar page={pg.page} totalPages={pg.totalPages}

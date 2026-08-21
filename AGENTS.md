@@ -86,6 +86,18 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
+- **2026-08-22 — Menu Pembelian: tombol "Semua" + baris expand, & query menyurface error.**
+  Tindak lanjut bug daftar Pembelian kosong. (1) `purchase-list.tsx`: tombol **"Semua"**
+  (`showAll` → `from=""`,`to=""`; varian tombol jadi solid saat aktif; judul SummaryCard →
+  "Total Pembelian (Semua)") untuk melihat riwayat tanpa batas tanggal; **baris bisa di-expand**
+  (pola sama `sale-list.tsx`: `Fragment`+`expanded:Set`+chevron, tabel rincian item
+  nama/qty/harga/subtotal; tombol Hapus dibungkus `stopPropagation`). (2) Helper baru
+  `src/lib/supabase/unwrap.ts` — `unwrap(res, label)` **melempar** bila `res.error` (bukan
+  menelan jadi `data ?? []`), dipakai di `purchases/page.tsx` untuk keenam query. Jadi query
+  gagal LANTANG (error boundary + log), bukan tampil "kosong". **Rollout `unwrap` ke halaman
+  list lain masih terbuka** (baru Pembelian). `tsc` bersih; verifikasi visual tak bisa
+  (di balik login) — perubahan UI mengikuti pola `sale-list.tsx` yang sudah terbukti.
+
 - **2026-08-22 — Tanda tangan email ikut BRAND (lanjutan fitur 2 brand).** Sebelumnya
   `composeEmail(body)` selalu tanda tangan **Athaya** meski lampiran PDF-nya sudah ber-tema
   brand. Kini `composeEmail(body, brand?)` memilih tanda tangan per brand. `signature.ts`:

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { unwrap } from "@/lib/supabase/unwrap";
 import { PageHeader } from "@/components/shared/page-header";
 import { PurchaseList } from "./purchase-list";
 import type { ProductWithStock, Distributor, WalletWithBalance, Client } from "@/types/db";
@@ -9,7 +10,9 @@ export const metadata = { title: "Pembelian" };
 export default async function PurchasesPage() {
   const supabase = await createClient();
 
-  const [{ data: purchases }, { data: products }, { data: distributors }, { data: balances }, { data: wallets }, { data: clients }] =
+  // unwrap(...) → melempar bila query gagal (bukan menelan jadi daftar kosong).
+  // Ini yang menangkap bug embed wallets ambigu 2026-08-22 secara LANTANG.
+  const [pRes, prodRes, distRes, balRes, walRes, cliRes] =
     await Promise.all([
       supabase.from("purchases")
         // wallet:wallets!wallet_id → tegaskan FK, karena purchases kini punya 2 relasi
@@ -23,6 +26,13 @@ export default async function PurchasesPage() {
       supabase.from("wallets").select("*").order("created_at"),
       supabase.from("clients").select("*").eq("status", "active").order("company_name"),
     ]);
+
+  const purchases = unwrap(pRes, "purchases");
+  const products = unwrap(prodRes, "v_product_stock");
+  const distributors = unwrap(distRes, "distributors");
+  const balances = unwrap(balRes, "v_wallet_balances");
+  const wallets = unwrap(walRes, "wallets");
+  const clients = unwrap(cliRes, "clients");
 
   const walletsMerged: WalletWithBalance[] = (wallets ?? []).map((w) => ({
     ...w,
