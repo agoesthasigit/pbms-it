@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { CategoryManager } from "./category-manager";
 import { LabelManager } from "./label-manager";
 import { ExportAllButton } from "./export-button";
+import { BackupGuide } from "./backup-guide";
 import { EmailSettingsManager, type EmailSettings } from "./email-settings-manager";
 import type { Category, Label } from "@/types/db";
 
@@ -51,7 +52,21 @@ export default async function SettingsPage() {
         <TabsContent value="email">
           <EmailSettingsManager initial={emailSettings ?? null} />
         </TabsContent>
-        <TabsContent value="backup">
+        <TabsContent value="backup" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Backup Database (Lengkap)</CardTitle>
+              <CardDescription>
+                Cadangkan seluruh database (struktur + isi) ke folder{" "}
+                <code className="rounded bg-muted px-1 py-0.5 text-xs">backups/</code>.
+                Jalankan dari VSCode bila lupa caranya.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <BackupGuide />
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Export Semua Data</CardTitle>

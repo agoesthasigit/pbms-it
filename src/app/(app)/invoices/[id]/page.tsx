@@ -12,6 +12,7 @@ import { SOFT_TONES } from "@/lib/utils/soft-tone";
 import type { WalletWithBalance } from "@/types/db";
 import {
   type MonthlyInvoice, type InvoiceStatus, INVOICE_STATUS_LABELS,
+  BRAND_LABELS, BRAND_TONE, toBrand,
 } from "@/types/phase4";
 import { InvoiceActions } from "./invoice-actions";
 import { InvoiceLines } from "./invoice-lines";
@@ -114,7 +115,12 @@ export default async function InvoiceDetailPage({
       </PageHeader>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Badge className={STATUS_STYLE[st]}>{INVOICE_STATUS_LABELS[st]}</Badge>
+        <div className="flex items-center gap-2">
+          <Badge className={STATUS_STYLE[st]}>{INVOICE_STATUS_LABELS[st]}</Badge>
+          <Badge className={SOFT_TONES[BRAND_TONE[toBrand(inv.brand)]]}>
+            {BRAND_LABELS[toBrand(inv.brand)]}
+          </Badge>
+        </div>
         <InvoiceActions invoice={inv} wallets={wallets}
           serviceBase={Number(serviceBase ?? 0)} />
       </div>

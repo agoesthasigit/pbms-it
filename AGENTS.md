@@ -86,6 +86,71 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
+- **2026-08-21 — DUA BRAND penjualan/invoice: Athaya Computer & Cetak Ide (Fase A+B).**
+  Usaha berkembang → dipisah dua brand: **Athaya Computer** (komputer/printer/servis) &
+  **Cetak Ide** (ATK/percetakan/desain). Client YANG SAMA bisa punya **2 invoice bulanan
+  terpisah** di bulan sama (satu per brand). Keputusan user: **entitas sama** (rekening
+  bank, alamat, kontak, PPh SAMA) → beda hanya **kop (nama+tagline) & tema warna**.
+  Aturan penting bila menambah fitur terkait:
+  - **Prinsip:** brand murni dimensi **label + pengelompokan + tampilan**. TIDAK menyentuh
+    alur uang (wallet, HPP, PPh 23, piutang, stok). Laporan keuangan & Pemeriksaan Data
+    tak berubah. Brand tak pernah masuk hitungan keuangan.
+  - **Penomoran:** Athaya tetap seri **`INV/YYYY/MM/NNN`** (invoice lama tak diusik),
+    Cetak Ide seri baru **`CTK/YYYY/MM/NNN`**. Dua prefix tak pernah bentrok di index unik.
+    Helper `next_invoice_no(period, brand)` (MAX+1 lalu loop; regex per-prefix) dipakai
+    bersama 3 fungsi penomoran.
+  - **Brand ditandai PER-NOTA** (dropdown "Atas Nama (Brand)" di form penjualan, default
+    Athaya). Untuk invoice bulanan, brand penjualan = brand invoice-nya.
+  - **Maintenance selalu `athaya`** (servis komputer). `issue_maintenance_charges` membatasi
+    draft yang boleh digabungi ke `brand='athaya'`.
+  - **Migrasi `20260821_invoice_brand.sql`** (diterapkan via `scripts/apply-migration.mjs`,
+    psql.exe masih korup): kolom `brand text not null default 'athaya'` + check di `sales`
+    & `monthly_invoices` (data lama otomatis backfill 'athaya' — diverifikasi 8 invoice +
+    19 sales). Fungsi:
+    - `next_invoice_no(date, text)` **baru** — nomor invoice berikut per (periode, brand).
+    - `find_or_create_invoice` → **4-arg** (+`p_brand` default 'athaya'; DROP+CREATE).
+      Pencocokan invoice belum-lunas kini WAJIB brand sama → penjualan Cetak Ide tak
+      nyasar ke invoice Athaya & sebaliknya.
+    - `create_sale` → **9-arg** (+`p_brand` default 'athaya' di AKHIR; DROP+CREATE).
+      `create_quick_deal` (memanggil 8-arg) tetap jalan lewat DEFAULT. Simpan `sales.brand`
+      + teruskan brand ke find_or_create_invoice.
+    - `generate_monthly_invoice` → **4-arg** (+brand; DROP+CREATE) — mengelompokkan hanya
+      penjualan brand terkait. (Fungsi ini tak terpasang di UI, dijaga konsisten.)
+    - `issue_maintenance_charges` & `add_invoice_item` → CREATE OR REPLACE (tanda tangan
+      sama). `add_invoice_item` **mewarisi brand dari invoice**-nya.
+    - `v_monthly_invoices` dibuat ulang (kolom `brand` di AKHIR SELECT) + `security_invoker=on`
+      dipertahankan.
+    - **Smoke test (rollback, set request.jwt.claims):** Athaya→INV/2026/08/003,
+      Cetak Ide (client+periode sama)→CTK/2026/08/001 (invoice terpisah), panggil ulang
+      Cetak Ide→menyatu. Semua ✓.
+  - **PDF 2 tema (Fase B):** `types/phase4.ts` — `BUSINESS_IDENTITIES` (map athaya/cetak_ide,
+    tiap identitas +`theme`), `businessIdentity(brand)`, `Brand`, `BRAND_LABELS`, `BRAND_TONE`,
+    `toBrand()`. `BUSINESS_IDENTITY` tetap = athaya (mundur-kompatibel: export/report/tanda
+    tangan email). Athaya `#0f766e` (teal), **Cetak Ide `#F8AB01` (oranye)** — nama "CETAK IDE",
+    tagline "Creative Advertising - Design - Printing"; **sisanya sama**. `invoice-pdf.tsx` &
+    `sale-pdf.tsx`: StyleSheet statis → `makeStyles(theme)`, semua warna teal → `theme`;
+    komponen pilih tema via `businessIdentity(invoice.brand)` / `businessIdentity(nota.brand)`.
+    `build-sale-pdf.ts` select+teruskan `sale.brand` ke `SaleNota.brand`; `build-invoice-pdf.ts`
+    sudah `v_monthly_invoices.*` (brand ikut).
+  - **UI:** form penjualan (`sale-form.tsx`) dropdown brand; badge brand (Athaya teal /
+    Cetak Ide oranye) di `invoice-list.tsx`, `sales/sale-list.tsx`, `invoices/[id]/page.tsx`
+    (pencarian invoice juga cocokkan label brand). `SOFT_TONES.teal` ditambah. `SaleRow.brand`
+    & `MonthlyInvoice.brand` ditambah; `createSale` action teruskan `p_brand`.
+  - **CATATAN scope (email):** tanda tangan/isi email invoice tetap identitas **Athaya**
+    (`signature.ts` pakai `BUSINESS_IDENTITY`=athaya) sesuai permintaan "hanya PDF yang
+    berubah". Lampiran PDF-nya tetap ber-tema brand yang benar. Bila kelak ingin tanda
+    tangan email ikut brand, ganti `composeEmail` agar terima brand.
+  - `tsc --noEmit` bersih; verifikasi visual app tak bisa (di balik login).
+
+- **2026-08-21 — Kartu panduan Backup di Pengaturan → Backup & Data.** User sering lupa
+  cara backup database. Ditambah **kartu info statis** di atas kartu "Export Semua Data":
+  langkah backup lewat Terminal VSCode + tombol **Salin** perintah `npm run backup`
+  (di balik layar memakai `pg_dump` portabel `tools/pgsql/`; butuh `SUPABASE_DB_URL`
+  Session pooler di `.env.local`; hasil `schema_*.sql`+`data_*.sql` di `backups/`).
+  Komponen `settings/backup-guide.tsx` (client, pakai `sonner` toast + clipboard), dipasang
+  di `settings/page.tsx` (tab `backup` jadi `space-y-4`, 2 kartu). Murni UI, tak sentuh data;
+  `tsc` bersih. Verifikasi visual tak bisa (di balik login).
+
 - **2026-08-21 — Edit/Hapus baris invoice bulanan + Batal Lunas (Tahap 1).** Menu
   Invoice Bulanan → *Lihat Invoice*. Dulu koreksi barang/harga salah = hapus SELURUH
   invoice lalu buat ulang. Kini bisa **edit/hapus PER BARIS** — **hanya invoice BELUM

@@ -20,6 +20,7 @@ import { todayISO } from "@/lib/utils/date";
 import { toNumber } from "@/lib/utils/number";
 import type { ProductWithStock, Client, WalletWithBalance } from "@/types/db";
 import { type PaymentMethod, PAYMENT_METHOD_LABELS } from "@/types/phase3";
+import { type Brand, BRAND_LABELS } from "@/types/phase4";
 import { InlineCreate } from "@/components/shared/inline-create";
 import { quickAddClient } from "../clients/actions";
 import { createSale } from "./actions";
@@ -67,6 +68,7 @@ export function SaleForm({
   const [clientId, setClientId] = useState("");
   const [walletId, setWalletId] = useState("");
   const [date, setDate] = useState(todayISO());
+  const [brand, setBrand] = useState<Brand>("athaya");
   const [method, setMethod] = useState<PaymentMethod>("cash");
   const [period, setPeriod] = useState(thisMonth);
   const [dueDate, setDueDate] = useState(endOfMonth(thisMonth));
@@ -85,6 +87,8 @@ export function SaleForm({
   );
   const methodItems = (Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[])
     .map((m) => ({ value: m, label: PAYMENT_METHOD_LABELS[m] }));
+  const brandItems = (Object.keys(BRAND_LABELS) as Brand[])
+    .map((b) => ({ value: b, label: BRAND_LABELS[b] }));
   const productItems = useMemo(
     // produk jasa (is_service, mis. "Jasa") disembunyikan dari dropdown barang;
     // barang stok habis (≤0) juga disembunyikan agar dropdown tak kepanjangan —
@@ -128,7 +132,7 @@ export function SaleForm({
   }
 
   function reset() {
-    setClientId(""); setWalletId(""); setDate(todayISO());
+    setClientId(""); setWalletId(""); setDate(todayISO()); setBrand("athaya");
     setMethod("cash"); setPeriod(thisMonth); setDueDate(endOfMonth(thisMonth));
     setNotes(""); setLines([newLine()]);
   }
@@ -166,6 +170,7 @@ export function SaleForm({
         ),
         period_month: method === "monthly_invoice" ? period : null,
         due_date: (method === "monthly_invoice" || method === "terhutang") ? dueDate : null,
+        brand,
       });
       if (res.error) { toast.error(res.error); return; }
       toast.success(
@@ -189,6 +194,25 @@ export function SaleForm({
         </DialogHeader>
 
         <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
+          {/* Brand penerbit nota/invoice — menentukan kop & tema PDF, dan pemisahan
+              invoice bulanan (Athaya & Cetak Ide jadi invoice terpisah). */}
+          <div className="space-y-1.5">
+            <Label>Atas Nama (Brand) *</Label>
+            <Select items={brandItems} value={brand}
+              onValueChange={(v) => setBrand((v ?? "athaya") as Brand)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {brandItems.map((it) => (
+                  <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Menentukan kop &amp; warna NOTA/invoice. Invoice bulanan tiap brand terpisah
+              (Athaya → INV, Cetak Ide → CTK) walau client-nya sama.
+            </p>
+          </div>
+
           {/* Info penjualan */}
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">

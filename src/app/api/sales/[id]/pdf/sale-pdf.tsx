@@ -3,24 +3,25 @@ import {
   Document, Page, Text, View, StyleSheet,
 } from "@react-pdf/renderer";
 import { terbilang } from "@/lib/utils/terbilang";
-import { BUSINESS_IDENTITY } from "@/types/phase4";
+import { businessIdentity, type Brand } from "@/types/phase4";
 
 const idr = (n: number) =>
   "Rp " + new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(n);
 const tgl = (d: string) =>
   new Date(d).toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" });
 
-const s = StyleSheet.create({
+// Tema warna mengikuti brand (Athaya = teal, Cetak Ide = oranye).
+const makeStyles = (theme: string) => StyleSheet.create({
   page: { padding: 40, fontSize: 10, fontFamily: "Helvetica", color: "#111827" },
   row: { flexDirection: "row" },
   between: { flexDirection: "row", justifyContent: "space-between" },
-  bizName: { fontSize: 18, fontFamily: "Helvetica-Bold", color: "#0f766e" },
+  bizName: { fontSize: 18, fontFamily: "Helvetica-Bold", color: theme },
   muted: { color: "#6b7280" },
   title: { fontSize: 22, fontFamily: "Helvetica-Bold", textAlign: "right" },
   section: { marginTop: 24 },
   label: { fontSize: 9, color: "#6b7280", marginBottom: 3 },
   th: {
-    flexDirection: "row", backgroundColor: "#0f766e", color: "#fff",
+    flexDirection: "row", backgroundColor: theme, color: "#fff",
     paddingVertical: 6, paddingHorizontal: 8, fontFamily: "Helvetica-Bold", fontSize: 9,
   },
   td: {
@@ -32,17 +33,17 @@ const s = StyleSheet.create({
   totalBox: { marginTop: 12, alignItems: "flex-end" },
   grand: {
     flexDirection: "row", width: 240, justifyContent: "space-between",
-    paddingVertical: 8, borderTopWidth: 2, borderTopColor: "#0f766e", marginTop: 4,
+    paddingVertical: 8, borderTopWidth: 2, borderTopColor: theme, marginTop: 4,
   },
-  grandText: { fontFamily: "Helvetica-Bold", fontSize: 13, color: "#0f766e" },
+  grandText: { fontFamily: "Helvetica-Bold", fontSize: 13, color: theme },
   paidTag: {
     marginTop: 6, alignSelf: "flex-end", paddingVertical: 3, paddingHorizontal: 10,
-    borderWidth: 1, borderColor: "#0f766e", borderRadius: 4,
-    color: "#0f766e", fontFamily: "Helvetica-Bold", fontSize: 10,
+    borderWidth: 1, borderColor: theme, borderRadius: 4,
+    color: theme, fontFamily: "Helvetica-Bold", fontSize: 10,
   },
   terbilang: {
     marginTop: 16, padding: 10, backgroundColor: "#f9fafb",
-    borderLeftWidth: 3, borderLeftColor: "#0f766e", fontStyle: "italic",
+    borderLeftWidth: 3, borderLeftColor: theme, fontStyle: "italic",
   },
   payFooter: {
     marginTop: 28, flexDirection: "row", justifyContent: "space-between",
@@ -51,13 +52,13 @@ const s = StyleSheet.create({
   footBlockLeft: { flex: 1, paddingRight: 24 },
   footBlockRight: { width: 210 },
   footHeading: {
-    fontSize: 9, fontFamily: "Helvetica-Bold", color: "#0f766e",
+    fontSize: 9, fontFamily: "Helvetica-Bold", color: theme,
     marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5,
   },
   termsText: { fontSize: 8.5, color: "#4b5563", lineHeight: 1.5 },
   payName: { fontSize: 11, fontFamily: "Helvetica-Bold", marginBottom: 2 },
   payBank: { fontSize: 10, color: "#111827" },
-  payAcc: { fontSize: 13, fontFamily: "Helvetica-Bold", color: "#0f766e", marginTop: 2 },
+  payAcc: { fontSize: 13, fontFamily: "Helvetica-Bold", color: theme, marginTop: 2 },
 });
 
 const TERMS_TEXT =
@@ -74,6 +75,7 @@ export type SaleNota = {
   client_address?: string | null;
   client_phone?: string | null;
   notes?: string | null;
+  brand?: Brand; // penerbit nota (tema warna & kop)
 };
 
 export function SalePdf({
@@ -82,7 +84,8 @@ export function SalePdf({
   nota: SaleNota;
   rows: { name: string; qty: number; price: number; subtotal: number }[];
 }) {
-  const B = BUSINESS_IDENTITY;
+  const B = businessIdentity(nota.brand);
+  const s = makeStyles(B.theme);
   // Tanggal nota: pakai tanggal lunas bila ada (terhutang), selain itu tanggal jual.
   const notaDate = nota.paid_date ?? nota.sale_date;
 

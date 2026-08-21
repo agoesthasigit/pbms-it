@@ -28,6 +28,7 @@ import { usePagination } from "@/components/shared/use-pagination";
 import { PaginationBar } from "@/components/shared/pagination-bar";
 import type { ProductWithStock, Client, WalletWithBalance } from "@/types/db";
 import { type SaleRow, type SaleItemRow, PAYMENT_METHOD_LABELS } from "@/types/phase3";
+import { BRAND_LABELS, BRAND_TONE, toBrand } from "@/types/phase4";
 import { SendEmailDialog } from "@/components/shared/send-email-dialog";
 import { useConfirm } from "@/components/shared/confirm-dialog";
 import { SaleForm } from "./sale-form";
@@ -265,7 +266,14 @@ export function SaleList({
                       {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                     </TableCell>
                     <TableCell>{formatDate(s.sale_date)}</TableCell>
-                    <TableCell className="font-medium">{s.client?.company_name ?? "-"}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex flex-col gap-1">
+                        <span>{s.client?.company_name ?? "-"}</span>
+                        <Badge className={`w-fit ${SOFT_TONES[BRAND_TONE[toBrand(s.brand)]]}`}>
+                          {BRAND_LABELS[toBrand(s.brand)]}
+                        </Badge>
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Badge variant={s.payment_method === "cash" || s.payment_method === "transfer"
                         ? "default" : "secondary"}>

@@ -38,6 +38,7 @@ export async function createSale(input: {
   items: SaleItemInput[];
   period_month?: string | null;   // untuk piutang
   due_date?: string | null;       // untuk piutang
+  brand?: string;                 // 'athaya' | 'cetak_ide' (default athaya)
 }): Promise<Result> {
   const paysNow = input.payment_method === "cash" || input.payment_method === "transfer";
   if (!input.client_id) return { error: "Pilih client." };
@@ -64,6 +65,7 @@ export async function createSale(input: {
     p_due_date: (input.payment_method === "monthly_invoice"
       || input.payment_method === "terhutang")
       ? (input.due_date || null) : null,
+    p_brand: input.brand === "cetak_ide" ? "cetak_ide" : "athaya",
   });
 
   if (error) return { error: error.message || "Gagal menyimpan penjualan." };

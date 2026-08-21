@@ -10,6 +10,7 @@ export const SOFT_TONES = {
   amber:
     "bg-amber-100 text-amber-700 hover:bg-amber-100 dark:bg-amber-500/15 dark:text-amber-400 dark:hover:bg-amber-500/15",
   sky: "bg-sky-100 text-sky-700 hover:bg-sky-100 dark:bg-sky-500/15 dark:text-sky-400 dark:hover:bg-sky-500/15",
+  teal: "bg-teal-100 text-teal-700 hover:bg-teal-100 dark:bg-teal-500/15 dark:text-teal-400 dark:hover:bg-teal-500/15",
   slate:
     "bg-slate-100 text-slate-700 hover:bg-slate-100 dark:bg-slate-500/20 dark:text-slate-300 dark:hover:bg-slate-500/20",
 } as const;

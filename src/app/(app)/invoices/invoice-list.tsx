@@ -19,6 +19,7 @@ import { usePagination } from "@/components/shared/use-pagination";
 import { PaginationBar } from "@/components/shared/pagination-bar";
 import {
   type MonthlyInvoice, type InvoiceStatus, INVOICE_STATUS_LABELS,
+  BRAND_LABELS, BRAND_TONE, toBrand,
 } from "@/types/phase4";
 import { useConfirm } from "@/components/shared/confirm-dialog";
 import { deleteInvoice } from "./actions";
@@ -41,7 +42,8 @@ export function InvoiceList({ invoices }: { invoices: MonthlyInvoice[] }) {
     if (!q) return invoices;
     const key = q.toLowerCase();
     return invoices.filter((inv) =>
-      `${inv.invoice_no} ${inv.company_name ?? ""}`.toLowerCase().includes(key));
+      `${inv.invoice_no} ${inv.company_name ?? ""} ${BRAND_LABELS[toBrand(inv.brand)]}`
+        .toLowerCase().includes(key));
   }, [invoices, q]);
 
   const pg = usePagination(filtered, 10, q);
@@ -95,7 +97,14 @@ export function InvoiceList({ invoices }: { invoices: MonthlyInvoice[] }) {
                   const st = (inv.effective_status ?? inv.status) as InvoiceStatus;
                   return (
                     <TableRow key={inv.id}>
-                      <TableCell className="font-medium">{inv.invoice_no}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex flex-col gap-1">
+                          <span>{inv.invoice_no}</span>
+                          <Badge className={`w-fit ${SOFT_TONES[BRAND_TONE[toBrand(inv.brand)]]}`}>
+                            {BRAND_LABELS[toBrand(inv.brand)]}
+                          </Badge>
+                        </div>
+                      </TableCell>
                       <TableCell>{inv.company_name ?? "-"}</TableCell>
                       <TableCell>
                         {new Date(inv.period_month).toLocaleDateString("id-ID", {

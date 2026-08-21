@@ -30,6 +30,7 @@ export type SaleRow = {
   nota_no?: string | null;
   email_sent_at?: string | null;
   email_sent_to?: string | null;
+  brand?: "athaya" | "cetak_ide";
   client?: { company_name: string; email?: string | null } | null;
   wallet?: { name: string } | null;
   /** Rincian item penjualan (barang & jasa) untuk tampilan baris yang bisa dibuka. */
