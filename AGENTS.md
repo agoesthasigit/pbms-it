@@ -86,6 +86,50 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
+- **2026-08-21 — Edit/Hapus baris invoice bulanan + Batal Lunas (Tahap 1).** Menu
+  Invoice Bulanan → *Lihat Invoice*. Dulu koreksi barang/harga salah = hapus SELURUH
+  invoice lalu buat ulang. Kini bisa **edit/hapus PER BARIS** — **hanya invoice BELUM
+  LUNAS** agar laporan keuangan tak rusak. Aturan (penting bila menambah fitur terkait):
+  - **Prinsip kas:** baris invoice bermetode `monthly_invoice` **tak punya transaksi
+    wallet** sampai invoice dilunasi (`create_sale` hanya menambah `monthly_invoices.total`).
+    Jadi edit harga / hapus baris pada invoice belum lunas = **NOL dampak kas** — hanya
+    menata `sales.total` & `monthly_invoices.total` (plus stok untuk hapus baris barang).
+  - **RPC** (migrasi `20260821_invoice_line_edit.sql`, 3 fungsi `SECURITY DEFINER`):
+    - `delete_invoice_item(sale_item_id)` — balik stok (hapus **satu** `stock_movements`
+      `sale_out` cocok `product_id`+`qty` via `ctid limit 1`; ref_id=sale_id bukan per-item),
+      hapus `client_assets` baris itu, hapus `sale_item`, nota kosong ikut terhapus, hitung
+      ulang total. Baris **jasa** tak sentuh stok/aset. Guard: invoice ≠ `paid`, baris bukan
+      maintenance, **bukan baris terakhir invoice** (blokir → "gunakan Hapus Invoice", cegah
+      invoice kosong).
+    - `update_invoice_item(sale_item_id, item_name, price)` — harga (semua baris) + nama
+      (**baris jasa saja**; barang pakai nama katalog, salah produk = hapus+jual ulang).
+      `subtotal` kolom generated → tak di-set manual. Qty **tidak** diedit di Tahap 1.
+    - `unpay_invoice(invoice_id)` — **Batal Lunas**: hapus `wallet_transactions`
+      (`ref_type='invoice'`) + reset `paid_date/paid_wallet_id/pph_*`, status → `sent` (bila
+      `email_sent_at` terisi) / `draft`. Membalik penuh `mark_invoice_paid` (netto+PPh) →
+      aman diedit lalu lunas ulang.
+  - **Maintenance dikecualikan** dari edit/hapus per-baris (tetap lewat kontrak / hapus
+    seluruh invoice). Penanda "sudah ditagih" maintenance = **adanya baris `sales`** periode
+    itu; `delete_monthly_invoice` menghapus baris → periode **otomatis** bisa ditagih ulang
+    (tak ada flag terpisah). Invoice berisi maintenance saja = sah, dibiarkan.
+  - **UI:** `invoices/[id]/invoice-lines.tsx` (baru, client) — tabel rincian interaktif,
+    tombol Edit/Hapus per baris hanya saat belum lunas, banner peringatan bila `sent`,
+    banner kunci bila lunas. `invoice-actions.tsx` + tombol **Batal Lunas** (dialog netto
+    ditarik). `page.tsx` query tambah `sale_items.id` & `product.is_service`.
+  - **psql.exe korup lagi** ("file or directory is corrupted") — migrasi diterapkan via
+    `scripts/apply-migration.mjs` (pakai `pg` npm + `SUPABASE_DB_URL`, bungkus begin/commit).
+    `tsc` bersih; verifikasi visual tak bisa (di balik login).
+  - **Tahap 2 — Tambah baris langsung dari invoice** (migrasi `20260821_add_invoice_item.sql`):
+    `add_invoice_item(invoice_id, is_service, product_id, item_name, qty, price,
+    warranty_months=12, serial=null)` menautkan penjualan baru **LANGSUNG** ke `invoice_id`
+    (bukan lewat `find_or_create_invoice`), jadi bekerja untuk invoice **draft & sent** (asal
+    belum lunas). Logika per-item **meniru `create_sale`**: barang → validasi stok, kunci HPP
+    (`last_purchase_price`), `stock_movements` sale_out, `client_assets` bila `track_as_asset`;
+    jasa → produk generik `'Jasa'` + `item_name`, tanpa stok/aset. `sale_date` = hari terakhir
+    periode invoice. UI: tombol **Tambah Baris** di header kartu rincian (hanya belum lunas) →
+    dialog pilih Barang/Jasa (`invoice-lines.tsx`), page ambil daftar barang dari
+    `v_product_stock` (`is_service=false, is_active`). Guard invoice lunas ditolak di RPC.
+
 - **2026-08-21 — Fitur HUTANG PEMBELIAN (Fase 1 & 2) — audit 5.2.** Menu Pembelian kini
   punya metode bayar **Hutang** (beli tempo, bayar belakangan) selain **Bayar langsung**.
   Berlaku **semua distributor** (bukan cuma Cetak Ide); default metode tetap **Tunai/langsung**.

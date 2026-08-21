@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, CheckCircle2, Send, Download, FileText, Mail } from "lucide-react";
+import { Loader2, CheckCircle2, Send, Download, FileText, Mail, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { CurrencyInput } from "@/components/shared/currency-input";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -21,7 +21,7 @@ import { toNumber } from "@/lib/utils/number";
 import { SendEmailDialog } from "@/components/shared/send-email-dialog";
 import type { WalletWithBalance } from "@/types/db";
 import type { MonthlyInvoice } from "@/types/phase4";
-import { markInvoicePaid, setInvoiceStatus, sendInvoiceEmail } from "../actions";
+import { markInvoicePaid, setInvoiceStatus, sendInvoiceEmail, unpayInvoice } from "../actions";
 
 export function InvoiceActions({
   invoice, wallets, serviceBase,
@@ -37,6 +37,7 @@ export function InvoiceActions({
   const [walletId, setWalletId] = useState("");
   const [paidDate, setPaidDate] = useState(todayISO());
   const [emailOpen, setEmailOpen] = useState(false);
+  const [unpayOpen, setUnpayOpen] = useState(false);
 
   // PPh 23: aktif otomatis bila invoice mengandung jasa (barang tidak kena).
   const [pphOn, setPphOn] = useState(serviceBase > 0);
@@ -76,6 +77,16 @@ export function InvoiceActions({
       const res = await setInvoiceStatus(invoice.id, status);
       if (res.error) { toast.error(res.error); return; }
       toast.success(status === "sent" ? "Ditandai terkirim." : "Dikembalikan ke draft.");
+      router.refresh();
+    });
+  }
+
+  function handleUnpay() {
+    startTransition(async () => {
+      const res = await unpayInvoice(invoice.id);
+      if (res.error) { toast.error(res.error); return; }
+      toast.success("Pelunasan dibatalkan. Uang ditarik dari wallet, invoice bisa diedit.");
+      setUnpayOpen(false);
       router.refresh();
     });
   }
@@ -122,6 +133,11 @@ export function InvoiceActions({
       {!isPaid && (
         <Button onClick={() => setPaidOpen(true)} disabled={pending}>
           <CheckCircle2 className="h-4 w-4" /> Tandai Lunas
+        </Button>
+      )}
+      {isPaid && (
+        <Button variant="outline" onClick={() => setUnpayOpen(true)} disabled={pending}>
+          <RotateCcw className="h-4 w-4" /> Batal Lunas
         </Button>
       )}
 
@@ -211,6 +227,34 @@ export function InvoiceActions({
             <Button onClick={handlePaid} disabled={pending || !walletId || baseTooBig}>
               {pending && <Loader2 className="h-4 w-4 animate-spin" />}
               Konfirmasi Lunas
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={unpayOpen} onOpenChange={setUnpayOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Batalkan Pelunasan?</DialogTitle>
+            <DialogDescription>
+              Uang yang masuk saat pelunasan akan ditarik kembali dari wallet dan
+              catatan PPh 23 dihapus. Status invoice kembali ke belum lunas
+              sehingga isinya bisa diedit. Lakukan koreksi lalu tandai lunas lagi.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm dark:border-amber-500/25 dark:bg-amber-500/10">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Ditarik dari wallet (netto)</span>
+              <span className="font-semibold text-destructive">
+                − {formatIDR(bruto - Number(invoice.pph_amount ?? 0))}
+              </span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUnpayOpen(false)}>Batal</Button>
+            <Button variant="destructive" onClick={handleUnpay} disabled={pending}>
+              {pending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Ya, Batalkan Lunas
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -134,3 +134,97 @@ export async function deleteInvoice(invoice_id: string): Promise<Result> {
   revalidatePath("/wallets");
   return { success: true };
 }
+
+// ── Edit/Hapus baris invoice (hanya invoice BELUM LUNAS) ────────────────────
+
+/** Hapus satu baris invoice: balikkan stok (barang), hapus aset, hitung ulang. */
+export async function deleteInvoiceItem(input: {
+  sale_item_id: string;
+  invoice_id: string;
+}): Promise<Result> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("delete_invoice_item", {
+    p_sale_item_id: input.sale_item_id,
+  });
+  if (error) return { error: error.message || "Gagal menghapus baris." };
+  revalidatePath(`/invoices/${input.invoice_id}`);
+  revalidatePath("/invoices");
+  revalidatePath("/sales");
+  revalidatePath("/products");
+  revalidatePath("/reports");
+  return { success: true };
+}
+
+/** Edit baris invoice: harga (semua baris) + nama (baris jasa saja). */
+export async function updateInvoiceItem(input: {
+  sale_item_id: string;
+  invoice_id: string;
+  item_name?: string | null;
+  price: number;
+}): Promise<Result> {
+  if (!(input.price >= 0)) return { error: "Harga tidak valid." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("update_invoice_item", {
+    p_sale_item_id: input.sale_item_id,
+    p_item_name: input.item_name ?? null,
+    p_price: input.price,
+  });
+  if (error) return { error: error.message || "Gagal menyimpan perubahan." };
+  revalidatePath(`/invoices/${input.invoice_id}`);
+  revalidatePath("/invoices");
+  revalidatePath("/sales");
+  revalidatePath("/reports");
+  return { success: true };
+}
+
+/** Tambah baris (barang/jasa) langsung ke invoice belum lunas. */
+export async function addInvoiceItem(input: {
+  invoice_id: string;
+  is_service: boolean;
+  product_id?: string | null;
+  item_name?: string | null;
+  qty: number;
+  price: number;
+  warranty_months?: number;
+  serial?: string | null;
+}): Promise<Result> {
+  if (!(input.qty > 0)) return { error: "Qty harus lebih dari 0." };
+  if (!(input.price >= 0)) return { error: "Harga tidak valid." };
+  if (input.is_service) {
+    if (!input.item_name?.trim()) return { error: "Nama jasa tidak boleh kosong." };
+  } else if (!input.product_id) {
+    return { error: "Barang wajib dipilih." };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("add_invoice_item", {
+    p_invoice_id: input.invoice_id,
+    p_is_service: input.is_service,
+    p_product_id: input.product_id ?? null,
+    p_item_name: input.item_name ?? null,
+    p_qty: input.qty,
+    p_price: input.price,
+    p_warranty_months: input.warranty_months ?? 12,
+    p_serial: input.serial ?? null,
+  });
+  if (error) return { error: error.message || "Gagal menambah baris." };
+  revalidatePath(`/invoices/${input.invoice_id}`);
+  revalidatePath("/invoices");
+  revalidatePath("/sales");
+  revalidatePath("/products");
+  revalidatePath("/reports");
+  return { success: true };
+}
+
+/** Batal Lunas: balik pemasukan wallet + PPh, status kembali ke sent/draft. */
+export async function unpayInvoice(invoice_id: string): Promise<Result> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("unpay_invoice", {
+    p_invoice_id: invoice_id,
+  });
+  if (error) return { error: error.message || "Gagal membatalkan lunas." };
+  revalidatePath(`/invoices/${invoice_id}`);
+  revalidatePath("/invoices");
+  revalidatePath("/wallets");
+  revalidatePath("/reports");
+  return { success: true };
+}

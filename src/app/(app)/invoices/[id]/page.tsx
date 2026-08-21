@@ -5,9 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { formatIDR } from "@/lib/utils/currency";
 import { formatDate } from "@/lib/utils/date";
@@ -17,6 +14,7 @@ import {
   type MonthlyInvoice, type InvoiceStatus, INVOICE_STATUS_LABELS,
 } from "@/types/phase4";
 import { InvoiceActions } from "./invoice-actions";
+import { InvoiceLines } from "./invoice-lines";
 
 export const metadata = { title: "Detail Invoice" };
 
@@ -42,13 +40,28 @@ export default async function InvoiceDetailPage({
   // penjualan yang tergabung + itemnya
   const { data: sales } = await supabase
     .from("sales")
-    .select("id, sale_date, total, notes, maintenance_contract_id, sale_items(qty, price, subtotal, item_name, product:products(name))")
+    .select("id, sale_date, total, notes, maintenance_contract_id, sale_items(id, qty, price, subtotal, item_name, product:products(name, is_service))")
     .eq("monthly_invoice_id", id)
     .order("sale_date");
 
   // Nilai JASA di invoice ini → usulan dasar kena pajak PPh 23 saat pelunasan
   const { data: serviceBase } = await supabase
     .rpc("invoice_service_base", { p_invoice_id: id });
+
+  // Daftar barang (bukan jasa) untuk dialog "Tambah Baris"
+  const { data: rawProducts } = await supabase
+    .from("v_product_stock")
+    .select("id, name, current_stock, default_selling_price, default_warranty_months")
+    .eq("is_service", false)
+    .eq("is_active", true)
+    .order("name");
+  const productOptions = (rawProducts ?? []).map((p) => ({
+    id: p.id as string,
+    name: p.name as string,
+    current_stock: Number(p.current_stock ?? 0),
+    default_selling_price: Number(p.default_selling_price ?? 0),
+    default_warranty_months: Number(p.default_warranty_months ?? 12),
+  }));
 
   const { data: balances } = await supabase.from("v_wallet_balances").select("*");
   const { data: rawWallets } = await supabase.from("wallets").select("*").order("created_at");
@@ -68,6 +81,28 @@ export default async function InvoiceDetailPage({
 
   const inv = invoice as MonthlyInvoice;
   const st = (inv.effective_status ?? inv.status) as InvoiceStatus;
+
+  // Baris rata (flatten) untuk tabel rincian — dipakai komponen interaktif.
+  const rows = ordered.flatMap((s) => {
+    const isMaint = Boolean(
+      (s as { maintenance_contract_id: string | null }).maintenance_contract_id
+    );
+    const items = s.sale_items as unknown as {
+      id: string; qty: number; price: number; subtotal: number;
+      item_name: string | null;
+      product: { name: string; is_service: boolean } | null;
+    }[];
+    return items.map((it, idx) => ({
+      saleItemId: it.id,
+      dateLabel: idx === 0 ? formatDate(s.sale_date) : "",
+      name: it.item_name ?? it.product?.name ?? "-",
+      isService: Boolean(it.product?.is_service),
+      isMaintenance: isMaint,
+      qty: it.qty,
+      price: Number(it.price),
+      subtotal: Number(it.subtotal),
+    }));
+  });
 
   return (
     <div className="space-y-6">
@@ -142,45 +177,13 @@ export default async function InvoiceDetailPage({
         </Card>
       )}
 
-      <Card>
-        <CardHeader><CardTitle className="text-base">Rincian Penjualan</CardTitle></CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Tanggal</TableHead>
-                <TableHead>Barang</TableHead>
-                <TableHead className="text-center">Qty</TableHead>
-                <TableHead className="text-right">Harga</TableHead>
-                <TableHead className="text-right">Subtotal</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {ordered.flatMap((s) =>
-                (s.sale_items as unknown as {
-                  qty: number; price: number; subtotal: number;
-                  item_name: string | null;
-                  product: { name: string } | null;
-                }[]).map((it, idx) => (
-                  <TableRow key={`${s.id}-${idx}`}>
-                    <TableCell>{idx === 0 ? formatDate(s.sale_date) : ""}</TableCell>
-                    <TableCell>{it.item_name ?? it.product?.name ?? "-"}</TableCell>
-                    <TableCell className="text-center">{it.qty}</TableCell>
-                    <TableCell className="text-right">{formatIDR(Number(it.price))}</TableCell>
-                    <TableCell className="text-right">{formatIDR(Number(it.subtotal))}</TableCell>
-                  </TableRow>
-                ))
-              )}
-              <TableRow className="border-t-2">
-                <TableCell colSpan={4} className="text-right font-bold">Grand Total</TableCell>
-                <TableCell className="text-right text-lg font-bold">
-                  {formatIDR(Number(inv.total))}
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <InvoiceLines
+        invoiceId={inv.id}
+        status={inv.status}
+        total={Number(inv.total)}
+        rows={rows}
+        products={productOptions}
+      />
     </div>
   );
 }
