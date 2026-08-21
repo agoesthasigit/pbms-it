@@ -86,6 +86,24 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
+- **2026-08-21 — Backup DB murni Node (buang pg_dump.exe yang korup).** `npm run backup`
+  gagal: `spawnSync tools/pgsql/bin/pg_dump.exe UNKNOWN`. Sebab: `pg_dump.exe` **korup di
+  level NTFS** ("file or directory is corrupted") — pola berulang di mesin ini (dulu psql.exe
+  juga). Ukuran file terlihat normal tapi blok datanya rusak → tak bisa dieksekusi. `tools/`
+  gitignored → tak bisa `git checkout`. **Solusi (pilihan user):** tulis ulang
+  `scripts/backup.mjs` **murni Node** pakai paket `pg` (sudah dependency) — tak ada .exe rapuh
+  lagi, perintah tetap `npm run backup`. Output ke `backups/`:
+  - `schema_<ts>.sql` = **gabungan seluruh `supabase/migrations/*.sql`** berurutan (skema =
+    sumber kebenaran, sudah di git).
+  - `data_<ts>.sql` = `INSERT` semua tabel `public`. Tiap kolom di-`::text` di query (aman
+    untuk uuid/jsonb/bytea/timestamp; tujuan kolom yang parse), `standard_conforming_strings=on`
+    + gandakan kutip tunggal. Kolom **generated** (mis. `sale_items.subtotal`) **dilewati**
+    (`is_generated='NEVER'`). File dibungkus `session_replication_role=replica` (bypass FK/
+    trigger saat load massal) + BEGIN/COMMIT. Restore: schema dulu, lalu data.
+  - Diuji nyata: 332 baris / 26 tabel; subtotal generated benar-benar dilewati, kolom `brand`
+    ikut. Kartu Backup di /settings diperbarui (tak lagi sebut pg_dump/tools). `tools/pgsql/`
+    kini sepenuhnya tak dipakai (backup & migrasi sama-sama pakai `pg` npm).
+
 - **2026-08-21 — DUA BRAND penjualan/invoice: Athaya Computer & Cetak Ide (Fase A+B).**
   Usaha berkembang → dipisah dua brand: **Athaya Computer** (komputer/printer/servis) &
   **Cetak Ide** (ATK/percetakan/desain). Client YANG SAMA bisa punya **2 invoice bulanan

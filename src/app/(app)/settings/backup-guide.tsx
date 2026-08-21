@@ -29,8 +29,9 @@ export function BackupGuide() {
     <div className="space-y-4 text-sm">
       <p className="text-muted-foreground">
         Backup dijalankan <strong>lokal</strong> lewat komputer ini (nol beban
-        Supabase). Cukup ingat <strong>satu</strong> perintah — di balik layar ia
-        memakai <code className="rounded bg-muted px-1 py-0.5">pg_dump</code>.
+        Supabase). Cukup ingat <strong>satu</strong> perintah — skrip murni Node
+        (memakai paket <code className="rounded bg-muted px-1 py-0.5">pg</code>),
+        tanpa program tambahan.
       </p>
 
       <ol className="list-decimal space-y-2 pl-5 text-muted-foreground">
@@ -91,10 +92,8 @@ export function BackupGuide() {
         <p className="mt-1">
           Pastikan file <code className="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">.env.local</code>{" "}
           memuat <code className="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">SUPABASE_DB_URL</code>{" "}
-          (connection string <em>Session pooler</em> dari Supabase), dan{" "}
-          <code className="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">pg_dump</code>{" "}
-          portabel ada di folder{" "}
-          <code className="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">tools/pgsql/</code>.
+          (connection string <em>Session pooler</em> dari Supabase Dashboard →
+          Database → Connection string).
         </p>
       </div>
     </div>

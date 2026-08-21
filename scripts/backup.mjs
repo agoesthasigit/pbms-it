@@ -1,24 +1,25 @@
 // ============================================================
-//  Backup database PBMS-IT (Supabase Postgres) — LOKAL saja.
+//  Backup database PBMS-IT (Supabase Postgres) — LOKAL, MURNI NODE.
+//
+//  Tidak lagi memakai pg_dump.exe: binari portabel di mesin ini BERULANG kali
+//  korup di level NTFS ("file or directory is corrupted"). Skrip ini memakai
+//  paket `pg` (npm) yang sudah jadi dependency → tak ada .exe rapuh.
 //
 //  Menghasilkan 2 file ber-timestamp di folder backups/:
-//    - schema_<ts>.sql : struktur (tabel, view, fungsi, RLS) schema public
-//    - data_<ts>.sql   : isi data schema public (bisa di-restore ke Postgres mana pun)
+//    - schema_<ts>.sql : struktur DB = gabungan seluruh supabase/migrations/*.sql
+//                        berurutan (sumber kebenaran skema; juga tersimpan di git).
+//    - data_<ts>.sql   : isi data schema public sebagai perintah INSERT.
+//
+//  Restore ke Postgres kosong: jalankan schema_*.sql dulu, lalu data_*.sql.
 //
 //  Jalankan:  npm run backup
-//
-//  Prasyarat:
-//    1) pg_dump portabel ada di tools/pgsql/bin/pg_dump.exe
-//       (atau set env PG_DUMP ke path pg_dump lain).
-//    2) .env.local memuat SUPABASE_DB_URL = connection string Postgres.
-//       Ambil dari Supabase Dashboard → Project Settings → Database →
-//       Connection string → tab "Session pooler" (ramah IPv4 & mendukung pg_dump).
+//  Prasyarat: .env.local memuat SUPABASE_DB_URL (connection string Session pooler).
 // ============================================================
 
-import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import process from "node:process";
+import pg from "pg";
 
 const root = process.cwd();
 
@@ -26,35 +27,16 @@ const root = process.cwd();
 try {
   process.loadEnvFile(resolve(root, ".env.local"));
 } catch {
-  // .env.local boleh tidak ada bila SUPABASE_DB_URL sudah di environment
+  // boleh tidak ada bila SUPABASE_DB_URL sudah di environment
 }
 
 const DB_URL = process.env.SUPABASE_DB_URL;
 if (!DB_URL) {
   console.error(
     "\n❌ SUPABASE_DB_URL belum diset.\n" +
-      "   Tambahkan baris berikut ke .env.local (password ada di string ini):\n" +
-      '   SUPABASE_DB_URL="postgresql://postgres.<ref>:<PASSWORD>@aws-0-<region>.pooler.supabase.com:5432/postgres"\n' +
-      "   (salin dari Supabase Dashboard → Database → Connection string → Session pooler)\n",
-  );
-  process.exit(1);
-}
-
-// --- Lokasi pg_dump portabel ---
-const isWin = process.platform === "win32";
-const defaultPgDump = resolve(
-  root,
-  "tools",
-  "pgsql",
-  "bin",
-  isWin ? "pg_dump.exe" : "pg_dump",
-);
-const PG_DUMP = process.env.PG_DUMP || defaultPgDump;
-
-if (PG_DUMP !== "pg_dump" && !existsSync(PG_DUMP)) {
-  console.error(
-    `\n❌ pg_dump tidak ditemukan di:\n   ${PG_DUMP}\n` +
-      "   Pastikan biner portabel sudah diekstrak, atau set env PG_DUMP.\n",
+      "   Tambahkan ke .env.local (salin dari Supabase Dashboard → Database →\n" +
+      '   Connection string → Session pooler):\n' +
+      '   SUPABASE_DB_URL="postgresql://postgres.<ref>:<PASSWORD>@aws-0-<region>.pooler.supabase.com:5432/postgres"\n',
   );
   process.exit(1);
 }
@@ -72,36 +54,141 @@ const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())
 const schemaFile = resolve(backupsDir, `schema_${ts}.sql`);
 const dataFile = resolve(backupsDir, `data_${ts}.sql`);
 
-// Argumen bersama: hanya schema public, tanpa owner/privilege agar portable.
-const common = [
-  DB_URL,
-  "--schema=public",
-  "--no-owner",
-  "--no-privileges",
-];
+const rel = (p) => p.replace(root + "\\", "").replace(root + "/", "");
 
-function run(label, args, outFile) {
-  process.stdout.write(`→ ${label} ... `);
-  try {
-    execFileSync(PG_DUMP, [...args, "-f", outFile], {
-      stdio: ["ignore", "ignore", "pipe"],
-    });
-    console.log("OK");
-  } catch (err) {
-    console.log("GAGAL");
-    const msg = err.stderr ? err.stderr.toString() : err.message;
-    console.error("\n" + msg);
-    process.exit(1);
+// ------------------------------------------------------------
+// (1) SCHEMA = gabungan seluruh migrasi berurutan.
+// ------------------------------------------------------------
+function writeSchema() {
+  process.stdout.write("→ Struktur (schema) ... ");
+  const migDir = resolve(root, "supabase", "migrations");
+  if (!existsSync(migDir)) {
+    console.log("DILEWATI (folder migrasi tak ada)");
+    return;
   }
+  const files = readdirSync(migDir).filter((f) => f.endsWith(".sql")).sort();
+  const parts = [
+    "-- ============================================================",
+    `-- SCHEMA PBMS-IT — gabungan ${files.length} migrasi (urut nama file).`,
+    `-- Dibuat: ${now.toISOString()}`,
+    "-- Restore: jalankan file ini di Postgres kosong, lalu data_*.sql.",
+    "-- ============================================================",
+    "",
+  ];
+  for (const f of files) {
+    parts.push(`-- ---------- ${f} ----------`);
+    parts.push(readFileSync(resolve(migDir, f), "utf8").replace(/\r\n/g, "\n").trimEnd());
+    parts.push("");
+  }
+  writeFileSync(schemaFile, parts.join("\n"), "utf8");
+  console.log("OK");
 }
 
-console.log(`\nBackup PBMS-IT — ${ts}\n`);
-run("Struktur (schema)", [...common, "--schema-only"], schemaFile);
-run("Isi data", [...common, "--data-only"], dataFile);
+// ------------------------------------------------------------
+// (2) DATA = INSERT per tabel. Semua kolom di-cast ke text supaya aman untuk
+//     semua tipe (uuid/jsonb/bytea/timestamp/array); tujuan kolom yang menentukan
+//     parsing. Kolom generated dilewati (tak boleh di-INSERT).
+// ------------------------------------------------------------
+function quote(v) {
+  if (v === null || v === undefined) return "NULL";
+  // v selalu string karena di-cast ::text di query. standard_conforming_strings=on
+  // → backslash literal, cukup gandakan tanda kutip tunggal.
+  return "'" + String(v).replace(/'/g, "''") + "'";
+}
 
-console.log(`\n✅ Selesai. Tersimpan di folder backups/:`);
-console.log(`   - ${schemaFile.replace(root + "\\", "").replace(root + "/", "")}`);
-console.log(`   - ${dataFile.replace(root + "\\", "").replace(root + "/", "")}\n`);
-console.log(
-  "Untuk restore ke Postgres lain: jalankan schema_*.sql dulu, lalu data_*.sql.\n",
-);
+async function writeData(client) {
+  process.stdout.write("→ Isi data ... ");
+
+  // Tabel dasar (bukan view) di schema public.
+  const { rows: tables } = await client.query(`
+    select tablename
+    from pg_tables
+    where schemaname = 'public'
+    order by tablename
+  `);
+
+  const out = [
+    "-- ============================================================",
+    "-- DATA PBMS-IT (schema public) — perintah INSERT.",
+    `-- Dibuat: ${now.toISOString()}`,
+    "-- Restore: jalankan schema_*.sql dulu (Postgres kosong), lalu file ini.",
+    "-- ============================================================",
+    "SET standard_conforming_strings = on;",
+    "-- Nonaktifkan trigger & cek FK saat load massal (butuh hak owner/superuser).",
+    "SET session_replication_role = replica;",
+    "BEGIN;",
+    "",
+  ];
+
+  let totalRows = 0;
+  for (const { tablename } of tables) {
+    // Kolom non-generated, urut ordinal. Generated (mis. subtotal) dilewati.
+    const { rows: cols } = await client.query(
+      `select column_name
+         from information_schema.columns
+        where table_schema = 'public' and table_name = $1
+          and is_generated = 'NEVER'
+        order by ordinal_position`,
+      [tablename],
+    );
+    if (cols.length === 0) continue;
+
+    const colNames = cols.map((c) => c.column_name);
+    const selectList = colNames.map((c) => `"${c}"::text as "${c}"`).join(", ");
+    const { rows } = await client.query(
+      `select ${selectList} from public."${tablename}"`,
+    );
+
+    if (rows.length === 0) {
+      out.push(`-- ${tablename}: 0 baris`);
+      out.push("");
+      continue;
+    }
+
+    out.push(`-- ${tablename}: ${rows.length} baris`);
+    const colList = colNames.map((c) => `"${c}"`).join(", ");
+    for (const r of rows) {
+      const vals = colNames.map((c) => quote(r[c])).join(", ");
+      out.push(`INSERT INTO public."${tablename}" (${colList}) VALUES (${vals});`);
+    }
+    out.push("");
+    totalRows += rows.length;
+  }
+
+  out.push("COMMIT;");
+  out.push("SET session_replication_role = origin;");
+  writeFileSync(dataFile, out.join("\n"), "utf8");
+  console.log(`OK (${totalRows} baris dari ${tables.length} tabel)`);
+}
+
+// ------------------------------------------------------------
+async function main() {
+  console.log(`\nBackup PBMS-IT — ${ts}\n`);
+
+  const client = new pg.Client({
+    connectionString: DB_URL,
+    ssl: { rejectUnauthorized: false },
+  });
+
+  try {
+    await client.connect();
+    writeSchema();
+    await writeData(client);
+  } catch (err) {
+    console.log("GAGAL");
+    console.error("\n" + (err?.message ?? String(err)));
+    process.exitCode = 1;
+    return;
+  } finally {
+    await client.end();
+  }
+
+  console.log(`\n✅ Selesai. Tersimpan di folder backups/:`);
+  console.log(`   - ${rel(schemaFile)}`);
+  console.log(`   - ${rel(dataFile)}`);
+  console.log(
+    "\nUntuk restore ke Postgres kosong: jalankan schema_*.sql dulu, lalu data_*.sql.\n",
+  );
+}
+
+await main();
