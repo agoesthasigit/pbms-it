@@ -86,6 +86,31 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
+- **2026-08-22 — Tanda tangan email ikut BRAND (lanjutan fitur 2 brand).** Sebelumnya
+  `composeEmail(body)` selalu tanda tangan **Athaya** meski lampiran PDF-nya sudah ber-tema
+  brand. Kini `composeEmail(body, brand?)` memilih tanda tangan per brand. `signature.ts`:
+  `SIGNATURES: Record<Brand, ...>` — Athaya (teal `#1CA9C9`/`#0E7C9B`, logo
+  `public/email-logo.png`, cid `athaya-logo`) & **Cetak Ide** (nama "Cetak Ide", tagline
+  "Creative Advertising - Design - Printing", **kontak SAMA** via konstanta `CONTACT`, warna
+  aksen **oranye `#F8AB01`**, logo `public/email-logo-cetak-ide.png`, cid `cetak-ide-logo`).
+  Logo di-`readFile` per brand; bila file tak ada → tanda tangan tetap terkirim tanpa `<img>`
+  (graceful). Pemanggil: `sendInvoiceEmail` → `composeEmail(body, pdf.invoice.brand)`,
+  `sendSaleEmail` → `composeEmail(body, pdf.nota.brand)`. **Pelunasan hutang** (`sendHutangPaymentEmail`,
+  purchases) tetap Athaya (default) — itu bisnis→distributor, bukan storefront. Catatan mailer:
+  `MailAttachment` tak mendeklarasikan `cid` di TS, tapi objek dari `loadLogo` membawa `cid`
+  saat runtime → nodemailer memakainya untuk inline (duck-typed; pola lama yang sudah jalan).
+  `tsc` bersih; kedua file logo sudah ada di `public/`.
+  - **BUG FIX — daftar Pembelian selalu KOSONG (regresi dari fitur Hutang).** User lapor
+    history pembelian tak muncul meski filter tanggal benar. Sebab: fitur Hutang (20260821)
+    menambah FK **`purchases.paid_wallet_id` → wallets**, jadi `purchases` kini punya **2 FK
+    ke wallets** (`wallet_id` + `paid_wallet_id`). Query `purchases/page.tsx` memakai embed
+    `wallet:wallets(name)` **tanpa hint FK** → PostgREST ambigu → **query gagal, data null,
+    seluruh daftar kosong** (filter tanggal cuma teralihkan perhatian; bukan penyebab).
+    Fix: `wallet:wallets!wallet_id(name)` (persis pola `sales/page.tsx` yang dulu sudah
+    diperbaiki untuk masalah identik). Query purchases lain sudah aman (reports/piutang pakai
+    hint atau tanpa embed wallet). Pelajaran: **tiap tambah FK kedua ke tabel yang sudah
+    di-embed, sisir semua `.select` embed tabel itu & tambah `!fk_column`.**
+
 - **2026-08-21 — Backup DB murni Node (buang pg_dump.exe yang korup).** `npm run backup`
   gagal: `spawnSync tools/pgsql/bin/pg_dump.exe UNKNOWN`. Sebab: `pg_dump.exe` **korup di
   level NTFS** ("file or directory is corrupted") — pola berulang di mesin ini (dulu psql.exe

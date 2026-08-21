@@ -90,8 +90,8 @@ export async function sendInvoiceEmail(input: {
   const pdf = await buildInvoicePdf(supabase, input.invoice_id);
   if (!pdf.ok) return { error: pdf.message };
 
-  // Rangkai isi + tanda tangan (logo inline) → HTML & teks
-  const mail = await composeEmail(input.body);
+  // Rangkai isi + tanda tangan (logo inline) → HTML & teks, mengikuti brand invoice
+  const mail = await composeEmail(input.body, pdf.invoice.brand);
 
   try {
     await sendMail({

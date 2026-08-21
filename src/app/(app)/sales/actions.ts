@@ -114,8 +114,8 @@ export async function sendSaleEmail(input: {
   const pdf = await buildSalePdf(supabase, input.sale_id);
   if (!pdf.ok) return { error: pdf.message };
 
-  // Rangkai isi + tanda tangan (logo inline) → HTML & teks
-  const mail = await composeEmail(input.body);
+  // Rangkai isi + tanda tangan (logo inline) → HTML & teks, mengikuti brand nota
+  const mail = await composeEmail(input.body, pdf.nota.brand);
 
   try {
     await sendMail({

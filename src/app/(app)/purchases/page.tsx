@@ -12,7 +12,10 @@ export default async function PurchasesPage() {
   const [{ data: purchases }, { data: products }, { data: distributors }, { data: balances }, { data: wallets }, { data: clients }] =
     await Promise.all([
       supabase.from("purchases")
-        .select("*, distributor:distributors(name), wallet:wallets(name), purchase_items(qty, price, product:products(name))")
+        // wallet:wallets!wallet_id → tegaskan FK, karena purchases kini punya 2 relasi
+        // ke wallets (wallet_id & paid_wallet_id, dari fitur Hutang) → tanpa ini embed
+        // ambigu, query gagal, dan seluruh daftar pembelian tampak kosong.
+        .select("*, distributor:distributors(name), wallet:wallets!wallet_id(name), purchase_items(qty, price, product:products(name))")
         .order("purchase_date", { ascending: false }),
       supabase.from("v_product_stock").select("*").eq("is_active", true).order("name"),
       supabase.from("distributors").select("*").order("name"),
