@@ -86,6 +86,19 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
+- **2026-08-22 — E2E smoke test (Playwright) — audit tampilan semua menu.** Menutup celah
+  yang membuat bug "daftar Pembelian kosong" lolos: tak ada yang membuka halaman sambil login.
+  `@playwright/test` (devDep) + `playwright.config.ts` (webServer `npm run dev -- --port 3100`,
+  `process.loadEnvFile('.env.local')`, 2 project: `setup`→`smoke`). `e2e/auth.setup.ts` login
+  sekali (`#email`/`#password`, tombol "Masuk", tunggu `**/dashboard`) → simpan sesi ke
+  `e2e/.auth/state.json` (gitignored). `e2e/smoke.spec.ts`: buka **23 menu** utama, assert (a)
+  tak dilempar ke `/login`, (b) `<h1>` (PageHeader) tampil — bila query gagal, `unwrap`
+  melempar → Next error page tanpa `<h1>` → **test merah**. Plus 1 test `/data-check` harus
+  lapor **"Data sehat"** (validasi data lewat UI). **Kredensial akun test** dari `.env.local`:
+  `E2E_TEST_EMAIL`/`E2E_TEST_PASSWORD` (akun test KHUSUS, bukan akun utama; jangan di-commit).
+  Jalankan: `npm run test:e2e`. **Diverifikasi: 25/25 lulus (1.9 mnt).** Route dinamis `[id]`
+  dilewati. Butuh sekali `npx playwright install chromium` di mesin baru/CI.
+
 - **2026-08-22 — Menu Pembelian: tombol "Semua" + baris expand, & query menyurface error.**
   Tindak lanjut bug daftar Pembelian kosong. (1) `purchase-list.tsx`: tombol **"Semua"**
   (`showAll` → `from=""`,`to=""`; varian tombol jadi solid saat aktif; judul SummaryCard →

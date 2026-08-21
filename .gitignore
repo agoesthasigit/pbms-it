@@ -48,3 +48,8 @@ next-env.d.ts
 # Service Worker
 public/sw.js
 public/sw.js.map
+# playwright / e2e
+/test-results/
+/playwright-report/
+/playwright/.cache/
+e2e/.auth/
