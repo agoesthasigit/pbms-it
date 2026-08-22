@@ -266,6 +266,17 @@ Bila menambah distributor portal baru, ulangi hanya ini (inti tak berubah):
 
 ## 8. Log Revisi Aturan (WAJIB diperbarui tiap ada perubahan)
 
+- **2026-08-23 — Portal +tab "Pelunasan" + pagination + filter tanggal.** Permintaan pemilik.
+  (1) Tab **Pelunasan** (riwayat pembayaran) — mengelompokkan nota `accepted` yang sudah dibayar
+  per `paid_date` (tampil: tanggal, total, daftar nota+tujuan). **Tanpa unduh PDF** (sudah via
+  email); **tanpa** info wallet/kas (non-sensitif saja). RPC `portal_list_orders` +field
+  `paid_date`,`invoice_no` (migrasi `20260823_portal_list_orders_paid_fields.sql`).
+  (2) **Pagination 20/halaman** (usePagination/PaginationBar) untuk semua tab portal.
+  (3) **Filter rentang tanggal** (Dari/Sampai, default awal–akhir bulan) — pengajuan by `order_date`,
+  pelunasan by `paid_date`. **Gotcha diperbaiki:** default tanggal dihitung dari komponen LOKAL
+  (bukan `toISOString()` yang menggeser hari mundur di TZ Indonesia UTC+8).
+  Verifikasi live (data uji e2e, dibersihkan): tab count Aktif/Arsip/Pelunasan, pagination
+  "1–20 dari 22/23", grup pembayaran 2 nota Rp80rb, filter tanggal 22↔23. `tsc` bersih.
 - **2026-08-22 — v1 (rencana disepakati).** Semua keputusan di dokumen ini hasil diskusi
   pemilik: staging+Terima; Supabase Auth manual (tanpa service role); jangkar kunci =
   pelunasan hutang (lepas dari invoice client); harga jual milik pemilik; tujuan teks bebas
