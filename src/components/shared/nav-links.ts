@@ -5,6 +5,7 @@ import {
   Truck,
   Package,
   ShoppingCart,
+  Inbox,
   ReceiptText,
   Banknote,
   Boxes,
@@ -43,6 +44,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: "Transaksi",
     items: [
+      { label: "Pengajuan Masuk", href: "/distributor-orders", icon: Inbox },
       { label: "Pembelian", href: "/purchases", icon: ShoppingCart },
       { label: "Penjualan", href: "/sales", icon: ReceiptText },
       { label: "Pengeluaran", href: "/expenses", icon: Banknote },

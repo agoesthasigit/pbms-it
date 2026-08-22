@@ -32,7 +32,7 @@ export async function buildHutangPaymentPdf(
 
   const { data } = await supabase
     .from("purchases")
-    .select("id, invoice_no, purchase_date, total, paid_date, is_credit, " +
+    .select("id, invoice_no, purchase_date, total, paid_date, is_credit, notes, " +
       "distributor:distributors(name, email)")
     .in("id", ids)
     .eq("is_credit", true)
@@ -45,11 +45,18 @@ export async function buildHutangPaymentPdf(
   const distributorEmail = notas[0].distributor?.email ?? null;
   const paidDate = notas[0].paid_date as string;
 
+  // Tujuan pengiriman disimpan di notes sbg "Tujuan: X | ..." (nota dari portal).
+  const tujuan = (notes?: string | null): string | undefined => {
+    const m = (notes ?? "").match(/Tujuan:\s*([^|]+)/i);
+    return m ? m[1].trim() : undefined;
+  };
+
   const rows: HutangPaymentRow[] = notas
     .map((p) => ({
       invoiceNo: p.invoice_no ?? "",
       purchaseDate: p.purchase_date,
       total: Number(p.total),
+      destination: tujuan(p.notes),
     }))
     .sort((a, b) => a.purchaseDate.localeCompare(b.purchaseDate));
   const total = rows.reduce((s, r) => s + r.total, 0);

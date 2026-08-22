@@ -23,7 +23,13 @@ import { SidebarNav } from "./sidebar-nav";
 import { ThemeToggle } from "./theme-toggle";
 import { logout } from "@/app/(auth)/login/actions";
 
-export function AppHeader({ email }: { email: string }) {
+export function AppHeader({
+  email,
+  badges,
+}: {
+  email: string;
+  badges?: Record<string, number>;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -43,7 +49,7 @@ export function AppHeader({ email }: { email: string }) {
             <SheetTitle>Menu navigasi</SheetTitle>
           </SheetHeader>
           <Brand />
-          <SidebarNav onNavigate={() => setOpen(false)} />
+          <SidebarNav onNavigate={() => setOpen(false)} badges={badges} />
         </SheetContent>
       </Sheet>
 

@@ -50,5 +50,9 @@ export default defineConfig({
     url: BASE,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
+    // Sebagian mesin (proxy TLS) tak memercayai root CA Supabase di bundel Node →
+    // login gagal (UNABLE_TO_VERIFY_LEAF_SIGNATURE). --use-system-ca (Node 24)
+    // memercayai CA sistem. Aman di CI (tak ada efek bila CA sudah dipercaya).
+    env: { NODE_OPTIONS: "--use-system-ca" },
   },
 });

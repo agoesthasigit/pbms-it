@@ -14,6 +14,7 @@ const ROUTES: string[] = [
   "/dashboard",
   "/wallets",
   "/products",
+  "/distributor-orders",
   "/purchases",
   "/sales",
   "/invoices",
@@ -49,6 +50,15 @@ for (const route of ROUTES) {
     await expect(page.locator("h1").first()).toBeVisible();
   });
 }
+
+// Guard peran: akun PEMILIK (sesi test = pemilik) tak boleh masuk /portal
+// (itu untuk akun distributor). Server layout mengarahkannya ke /dashboard.
+// Menjaga pemisahan peran portal distributor tak bocor.
+test("akun pemilik tidak bisa membuka /portal (guard peran)", async ({ page }) => {
+  await page.goto("/portal", { waitUntil: "domcontentloaded" });
+  await expect(page).not.toHaveURL(/\/portal/);
+  await expect(page).toHaveURL(/\/dashboard/);
+});
 
 // Validasi DATA lewat tampilan: halaman Pemeriksaan Data harus melaporkan
 // "Data sehat" (semua cek lolos). Bila ada anomali, test gagal & menunjuknya —

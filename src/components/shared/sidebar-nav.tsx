@@ -5,7 +5,14 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { NAV_GROUPS } from "./nav-links";
 
-export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+export function SidebarNav({
+  onNavigate,
+  badges,
+}: {
+  onNavigate?: () => void;
+  /** Jumlah lencana per href (mis. { "/distributor-orders": 3 }). */
+  badges?: Record<string, number>;
+}) {
   const pathname = usePathname();
 
   return (
@@ -33,6 +40,18 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                 >
                   <item.icon className="h-4 w-4 shrink-0" />
                   <span className="truncate">{item.label}</span>
+                  {badges && badges[item.href] > 0 && (
+                    <span
+                      className={cn(
+                        "ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold",
+                        active
+                          ? "bg-primary-foreground/20 text-primary-foreground"
+                          : "bg-primary text-primary-foreground"
+                      )}
+                    >
+                      {badges[item.href]}
+                    </span>
+                  )}
                 </Link>
               );
             })}

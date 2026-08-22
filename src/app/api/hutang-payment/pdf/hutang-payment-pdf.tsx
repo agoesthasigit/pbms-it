@@ -27,6 +27,7 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: "#e5e7eb",
   },
   cNo: { flex: 4 }, cDate: { flex: 2, textAlign: "center" }, cSub: { flex: 2, textAlign: "right" },
+  destLine: { fontSize: 8, color: "#6b7280", marginTop: 1 },
   totalBox: { marginTop: 12, alignItems: "flex-end" },
   grand: {
     flexDirection: "row", width: 260, justifyContent: "space-between",
@@ -45,7 +46,13 @@ const s = StyleSheet.create({
   note: { marginTop: 28, fontSize: 8.5, color: "#6b7280", lineHeight: 1.5 },
 });
 
-export type HutangPaymentRow = { invoiceNo: string; purchaseDate: string; total: number };
+export type HutangPaymentRow = {
+  invoiceNo: string;
+  purchaseDate: string;
+  total: number;
+  /** Tujuan pengiriman (untuk nota dari portal distributor); opsional. */
+  destination?: string;
+};
 
 export function HutangPaymentPdf({
   distributorName, paidDate, rows, total,
@@ -99,7 +106,12 @@ export function HutangPaymentPdf({
           </View>
           {rows.map((r, i) => (
             <View style={s.td} key={i}>
-              <Text style={s.cNo}>{r.invoiceNo || "Tanpa nota"}</Text>
+              <View style={s.cNo}>
+                <Text>{r.invoiceNo || "Tanpa nota"}</Text>
+                {r.destination ? (
+                  <Text style={s.destLine}>Tujuan: {r.destination}</Text>
+                ) : null}
+              </View>
               <Text style={s.cDate}>{tgl(r.purchaseDate)}</Text>
               <Text style={s.cSub}>{idr(r.total)}</Text>
             </View>
