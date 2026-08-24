@@ -266,6 +266,12 @@ Bila menambah distributor portal baru, ulangi hanya ini (inti tak berubah):
 
 ## 8. Log Revisi Aturan (WAJIB diperbarui tiap ada perubahan)
 
+- **2026-08-23 — Hapus pengajuan DITOLAK dari Arsip.** Agar tak jadi data gantung, distributor
+  boleh menghapus pengajuannya yang **rejected** (per-baris, permanen). `portal_delete_order`
+  kini izinkan `status in ('draft','rejected') and purchase_id is null` (migrasi
+  `20260823_portal_delete_rejected.sql`); **Lunas/accepted tetap TERKUNCI** (terikat pembelian
+  /hutang). UI: tombol Hapus hanya pada baris "Ditolak" di Arsip (Lunas tak punya tombol).
+  Verifikasi: guard RPC (Lunas ditolak / Ditolak boleh) + UI + hapus end-to-end. `tsc` bersih.
 - **2026-08-23 — Portal +tab "Pelunasan" + pagination + filter tanggal.** Permintaan pemilik.
   (1) Tab **Pelunasan** (riwayat pembayaran) — mengelompokkan nota `accepted` yang sudah dibayar
   per `paid_date` (tampil: tanggal, total, daftar nota+tujuan). **Tanpa unduh PDF** (sudah via

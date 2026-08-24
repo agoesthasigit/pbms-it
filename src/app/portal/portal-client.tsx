@@ -295,6 +295,7 @@ export function PortalClient({ orders }: { orders: Order[] }) {
             {(pg.paged as Order[]).map((o) => {
               const isOpen = expanded.has(o.id);
               const isDraft = o.status === "draft";
+              const isRejected = o.status === "rejected";
               return (
                 <div key={o.id}>
                   <div className="flex cursor-pointer items-center gap-3 p-3" onClick={() => toggle(o.id)}>
@@ -307,7 +308,7 @@ export function PortalClient({ orders }: { orders: Order[] }) {
                       <p className="text-xs text-muted-foreground">{fmtDate(o.order_date)} · {o.item_count} barang</p>
                     </div>
                     <p className="shrink-0 text-right font-semibold tabular-nums">{rp(o.total)}</p>
-                    {isDraft && (
+                    {isDraft ? (
                       <div className="flex shrink-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
                         <Button variant="ghost" size="icon-sm" title="Ubah" onClick={() => openEdit(o)}>
                           <Pencil className="h-4 w-4" />
@@ -316,7 +317,13 @@ export function PortalClient({ orders }: { orders: Order[] }) {
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
-                    )}
+                    ) : isRejected ? (
+                      <div className="flex shrink-0 items-center" onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon-sm" title="Hapus dari arsip" disabled={pending} onClick={() => onDelete(o)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    ) : null}
                   </div>
                   {isOpen && (
                     <div className="border-t px-3 pb-3">
