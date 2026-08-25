@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import {
-  Inbox, Check, X, Undo2, ChevronDown, Loader2, MapPin, Truck,
+  Inbox, Check, X, Undo2, ChevronDown, Loader2, MapPin, Truck, Store, FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/shared/confirm-dialog";
@@ -11,12 +11,18 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { CurrencyInput } from "@/components/shared/currency-input";
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { acceptOrder, unacceptOrder, rejectOrder } from "./actions";
+import { formatIDR } from "@/lib/utils/currency";
+import type { WalletWithBalance } from "@/types/db";
+import { acceptOrder, acceptOrderDropship, unacceptOrder, rejectOrder } from "./actions";
 
 export type AdminItem = { id: string; name: string; qty: number; cost_price: number };
 export type AdminOrder = {
@@ -28,16 +34,41 @@ export type AdminOrder = {
   is_paid: boolean;
   items: AdminItem[];
 };
+export type ProductFlag = { track_as_asset: boolean; is_active: boolean };
+type ClientLite = { id: string; company_name: string };
+type SaleMethod = "monthly_invoice" | "cash" | "transfer";
+type Brand = "cetak_ide" | "athaya";
+
+const METHODS: { value: SaleMethod; label: string }[] = [
+  { value: "monthly_invoice", label: "Invoice bulanan" },
+  { value: "cash", label: "Tunai" },
+  { value: "transfer", label: "Transfer" },
+];
+const BRANDS: { value: Brand; label: string }[] = [
+  { value: "cetak_ide", label: "Cetak Ide" },
+  { value: "athaya", label: "Athaya Computer" },
+];
 
 const rp = (n: number) => "Rp " + new Intl.NumberFormat("id-ID").format(Math.round(n || 0));
 const digits = (s: string) => Number((s || "").replace(/\D/g, "")) || 0;
 const fmtDate = (s: string) =>
   new Date(s + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 const orderTotal = (o: AdminOrder) => o.items.reduce((s, it) => s + it.qty * it.cost_price, 0);
+const thisMonthYM = () => {
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`;
+};
 
-type SellRow = { sell: string; warranty: string };
+type SellRow = { sell: string; warranty: string; asset: boolean; active: boolean; existed: boolean };
 
-export function OrdersClient({ orders }: { orders: AdminOrder[] }) {
+export function OrdersClient({
+  orders, clients, wallets, productFlags,
+}: {
+  orders: AdminOrder[];
+  clients: ClientLite[];
+  wallets: WalletWithBalance[];
+  productFlags: Record<string, ProductFlag>;
+}) {
   const confirm = useConfirm();
   const [tab, setTab] = useState<"menunggu" | "diterima">("menunggu");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -49,9 +80,24 @@ export function OrdersClient({ orders }: { orders: AdminOrder[] }) {
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Mode dropship (Terima + langsung jual)
+  const [dropship, setDropship] = useState(false);
+  const [clientId, setClientId] = useState("");
+  const [method, setMethod] = useState<SaleMethod>("monthly_invoice");
+  const [saleWalletId, setSaleWalletId] = useState("");
+  const [period, setPeriod] = useState(thisMonthYM());
+  const [brand, setBrand] = useState<Brand>("cetak_ide");
+
   const menunggu = useMemo(() => orders.filter((o) => o.status === "draft"), [orders]);
   const diterima = useMemo(() => orders.filter((o) => o.status === "accepted"), [orders]);
   const list = tab === "menunggu" ? menunggu : diterima;
+
+  const clientItems = useMemo(
+    () => clients.map((c) => ({ value: c.id, label: c.company_name })), [clients]);
+  const walletItems = useMemo(
+    () => wallets.filter((w) => w.is_active)
+      .map((w) => ({ value: w.id, label: `${w.name} · ${formatIDR(Number(w.balance))}` })), [wallets]);
+  const paysNow = method === "cash" || method === "transfer";
 
   function toggle(id: string) {
     setExpanded((prev) => {
@@ -64,8 +110,23 @@ export function OrdersClient({ orders }: { orders: AdminOrder[] }) {
   function openAccept(o: AdminOrder) {
     setTarget(o);
     setNotes("");
+    setDropship(false);
+    setClientId("");
+    setMethod("monthly_invoice");
+    setSaleWalletId("");
+    setPeriod(thisMonthYM());
+    setBrand("cetak_ide");
     const init: Record<string, SellRow> = {};
-    for (const it of o.items) init[it.id] = { sell: "", warranty: "12" };
+    for (const it of o.items) {
+      const f = productFlags[it.name.toLowerCase()];
+      init[it.id] = {
+        sell: "",
+        warranty: "12",
+        asset: f ? f.track_as_asset : true,
+        active: f ? f.is_active : true,
+        existed: !!f,
+      };
+    }
     setRows(init);
   }
 
@@ -76,23 +137,64 @@ export function OrdersClient({ orders }: { orders: AdminOrder[] }) {
 
   async function doAccept() {
     if (!target) return;
-    const lines = target.items.map((it) => ({
-      item_id: it.id,
-      selling_price: digits(rows[it.id]?.sell ?? ""),
-      warranty_months: digits(rows[it.id]?.warranty ?? "") || 12,
-    }));
-    if (lines.some((l) => l.selling_price <= 0)) {
+    const sells = target.items.map((it) => digits(rows[it.id]?.sell ?? ""));
+    if (sells.some((s) => s <= 0)) {
       toast.error("Isi harga jual semua barang (lebih dari 0).");
       return;
     }
+    if (dropship && !clientId) {
+      toast.error("Pilih client tujuan penjualan.");
+      return;
+    }
+    if (dropship && paysNow && !saleWalletId) {
+      toast.error("Pilih wallet penerima.");
+      return;
+    }
+
     setSaving(true);
-    const res = await acceptOrder({ id: target.id, lines, extra_notes: notes.trim() });
+    let res: { ok: boolean; error?: string };
+    if (dropship) {
+      res = await acceptOrderDropship({
+        id: target.id,
+        client_id: clientId,
+        sale_method: method,
+        sale_wallet_id: paysNow ? saleWalletId : null,
+        period_month: method === "monthly_invoice" ? `${period}-01` : null,
+        brand,
+        extra_notes: notes.trim(),
+        lines: target.items.map((it) => {
+          const r = rows[it.id];
+          return {
+            item_id: it.id,
+            selling_price: digits(r?.sell ?? ""),
+            warranty_months: digits(r?.warranty ?? "") || 12,
+            track_as_asset: r?.asset ?? true,
+            is_active: r?.active ?? true,
+          };
+        }),
+      });
+    } else {
+      // Terima biasa (pembelian saja) — harga jual jadi harga jual default produk.
+      res = await acceptOrder({
+        id: target.id,
+        extra_notes: notes.trim(),
+        lines: target.items.map((it) => ({
+          item_id: it.id,
+          selling_price: digits(rows[it.id]?.sell ?? ""),
+          warranty_months: digits(rows[it.id]?.warranty ?? "") || 12,
+        })),
+      });
+    }
     setSaving(false);
     if (!res.ok) {
       toast.error(res.error ?? "Gagal menerima.");
       return;
     }
-    toast.success("Pengajuan diterima — masuk stok & hutang.");
+    toast.success(
+      dropship
+        ? "Diterima & langsung terjual — hutang tercatat, penjualan dibuat."
+        : "Pengajuan diterima — masuk stok & hutang."
+    );
     setTarget(null);
   }
 
@@ -235,7 +337,7 @@ export function OrdersClient({ orders }: { orders: AdminOrder[] }) {
 
       {/* Dialog Terima */}
       <Dialog open={!!target} onOpenChange={(v) => !v && setTarget(null)}>
-        <DialogContent className="flex max-h-[90vh] flex-col gap-0 p-0 sm:max-w-2xl">
+        <DialogContent className="flex max-h-[92vh] flex-col gap-0 p-0 sm:max-w-2xl">
           <DialogHeader className="border-b p-4">
             <DialogTitle>Terima Pengajuan</DialogTitle>
           </DialogHeader>
@@ -249,6 +351,85 @@ export function OrdersClient({ orders }: { orders: AdminOrder[] }) {
                 </p>
               </div>
 
+              {/* Mode dropship */}
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3">
+                <Switch checked={dropship} onCheckedChange={setDropship} className="mt-0.5" />
+                <span className="min-w-0 flex-1 text-sm">
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <Store className="h-4 w-4 text-muted-foreground" /> Langsung jual ke client (dropship)
+                  </span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    Barang dikirim langsung ke client — beli & jual sekaligus, stok bersih 0.
+                    Nonaktif = hanya masuk stok &amp; hutang.
+                  </span>
+                </span>
+              </label>
+
+              {/* Panel penjualan (dropship) */}
+              {dropship && (
+                <div className="space-y-3 rounded-lg border border-sky-200 bg-sky-50/60 p-3 dark:border-sky-500/25 dark:bg-sky-500/10">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Client tujuan *</Label>
+                      <Select items={clientItems} value={clientId || null} onValueChange={(v) => setClientId(v ?? "")}>
+                        <SelectTrigger><SelectValue placeholder="Pilih client" /></SelectTrigger>
+                        <SelectContent>
+                          {clientItems.map((it) => (
+                            <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Brand (atas nama) *</Label>
+                      <Select items={BRANDS} value={brand} onValueChange={(v) => setBrand((v ?? "cetak_ide") as Brand)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {BRANDS.map((it) => (
+                            <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Metode bayar *</Label>
+                      <Select items={METHODS} value={method} onValueChange={(v) => setMethod((v ?? "monthly_invoice") as SaleMethod)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {METHODS.map((it) => (
+                            <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {method === "monthly_invoice" ? (
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Periode invoice *</Label>
+                        <Input type="month" value={period} onChange={(e) => setPeriod(e.target.value)} />
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Wallet penerima *</Label>
+                        <Select items={walletItems} value={saleWalletId || null} onValueChange={(v) => setSaleWalletId(v ?? "")}>
+                          <SelectTrigger><SelectValue placeholder="Pilih wallet" /></SelectTrigger>
+                          <SelectContent>
+                            {walletItems.map((it) => (
+                              <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+                  {method === "monthly_invoice" && (
+                    <p className="flex items-center gap-1.5 text-xs text-sky-700 dark:text-sky-300">
+                      <FileText className="h-3.5 w-3.5" /> Masuk invoice bulanan client (jadi piutang, belum menambah kas).
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Tabel barang: harga jual + garansi (+ toggle katalog saat dropship) */}
               <div className="overflow-x-auto rounded-lg border">
                 <table className="w-full text-sm">
                   <thead>
@@ -258,14 +439,21 @@ export function OrdersClient({ orders }: { orders: AdminOrder[] }) {
                       <th className="px-2 py-2 text-right font-medium">Modal</th>
                       <th className="px-2 py-2 text-right font-medium">Harga jual</th>
                       <th className="px-2 py-2 text-center font-medium">Garansi</th>
+                      {dropship && <th className="px-2 py-2 text-center font-medium">Aset</th>}
+                      {dropship && <th className="px-2 py-2 text-center font-medium">Aktif</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y">
                     {target.items.map((it) => {
-                      const r = rows[it.id] ?? { sell: "", warranty: "12" };
+                      const r = rows[it.id] ?? { sell: "", warranty: "12", asset: true, active: true, existed: false };
                       return (
                         <tr key={it.id}>
-                          <td className="px-2 py-1.5">{it.name}</td>
+                          <td className="px-2 py-1.5">
+                            {it.name}
+                            {dropship && r.existed && (
+                              <span className="ml-1 text-[11px] text-muted-foreground">· produk lama</span>
+                            )}
+                          </td>
                           <td className="px-2 py-1.5 text-center tabular-nums">{it.qty}</td>
                           <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">{rp(it.cost_price)}</td>
                           <td className="px-2 py-1.5">
@@ -285,12 +473,31 @@ export function OrdersClient({ orders }: { orders: AdminOrder[] }) {
                               }
                             />
                           </td>
+                          {dropship && (
+                            <td className="px-2 py-1.5 text-center">
+                              <Switch checked={r.asset}
+                                onCheckedChange={(v) => setRows((p) => ({ ...p, [it.id]: { ...r, asset: v } }))} />
+                            </td>
+                          )}
+                          {dropship && (
+                            <td className="px-2 py-1.5 text-center">
+                              <Switch checked={r.active}
+                                onCheckedChange={(v) => setRows((p) => ({ ...p, [it.id]: { ...r, active: v } }))} />
+                            </td>
+                          )}
                         </tr>
                       );
                     })}
                   </tbody>
                 </table>
               </div>
+
+              {dropship && (
+                <p className="text-xs text-muted-foreground">
+                  <b>Aset</b> &amp; <b>Aktif</b> = setelan katalog produk (sama dengan menu Stok Barang) —
+                  berlaku untuk penjualan berikutnya, tidak mengubah nota yang sudah terjual.
+                </p>
+              )}
 
               <div className="grid grid-cols-3 gap-2 text-sm">
                 <div className="rounded-lg border p-2">
@@ -321,8 +528,14 @@ export function OrdersClient({ orders }: { orders: AdminOrder[] }) {
               </div>
 
               <p className="text-xs text-muted-foreground">
-                Setelah diterima: barang masuk <b>stok</b>, tercatat sebagai <b>hutang</b> ke
-                distributor (jatuh tempo akhir bulan), dan siap dijual ke client.
+                {dropship ? (
+                  <>Setelah diterima: barang masuk lalu <b>langsung terjual</b> ke client (stok bersih 0),
+                    tercatat sebagai <b>hutang</b> ke distributor (jatuh tempo akhir bulan), dan penjualannya
+                    masuk sesuai metode di atas.</>
+                ) : (
+                  <>Setelah diterima: barang masuk <b>stok</b>, tercatat sebagai <b>hutang</b> ke
+                    distributor (jatuh tempo akhir bulan), dan siap dijual ke client.</>
+                )}
               </p>
             </div>
           )}
@@ -337,7 +550,7 @@ export function OrdersClient({ orders }: { orders: AdminOrder[] }) {
               </Button>
               <Button onClick={doAccept} disabled={saving} className="gap-2">
                 {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                <Check className="h-4 w-4" /> Terima
+                <Check className="h-4 w-4" /> {dropship ? "Terima & Jual" : "Terima"}
               </Button>
             </div>
           </DialogFooter>

@@ -86,6 +86,31 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
+- **2026-08-25 — Portal distributor: Terima Pengajuan sekaligus JUAL (dropship).** Untuk barang
+  yang Line Art kirim **langsung ke lokasi client** (mis. kertas ke Rob Peetoom Seminyak; tak
+  pernah di gudang). Dialog **Terima** (`distributor-orders/orders-client.tsx`) dapat toggle
+  **"Langsung jual ke client (dropship)"** (default MATI = perilaku lama, pembelian saja). Saat
+  aktif: pemilik isi **client** (dipetakan dari teks tujuan), **brand** (default **Cetak Ide**),
+  **metode** (default **Invoice bulanan**, bisa Tunai/Transfer+wallet), **periode**, harga jual
+  & garansi, plus toggle **Aset**/**Aktif** per baris. RPC baru
+  `accept_distributor_order_dropship` (migrasi `20260825_distributor_order_dropship.sql`,
+  owner-scoped `SECURITY DEFINER`) menjalankan `create_purchase(is_credit=true)` **lalu**
+  `create_sale` dalam **satu transaksi** — persis pola `create_quick_deal` (audit 3.1); qty beli
+  = qty jual → **stok bersih 0**; gagal jual → pembelian **rollback**.
+  - **Toggle Aset/Aktif = setelan KATALOG produk** (`products.track_as_asset`/`is_active`),
+    **sama seperti menu Stok Barang** — diterapkan ke produk (baru/lama) **sebelum** `create_sale`
+    (agar cabang aset benar). Berlaku utk penjualan berikutnya; **nota terjual terkunci**. Produk
+    lama diberi tanda "· produk lama" + pra-isi nilai saat ini (fetch `v_product_stock`).
+  - **Kolom `distributor_orders.sale_id`** (nullable) = **jejak telusur saja**; TAK memicu status
+    portal (kunci portal tetap **hutang**, lepas dari invoice client — Prinsip #9 di docs).
+  - **Laporan/audit aman:** mekanika = gabungan RPC teruji → hutang, HPP terkunci, invoice/
+    piutang, kas konsisten. **Pemeriksaan Data tetap 23 cek, "Data sehat".** Batal Terima
+    terkunci setelah terjual (guard `delete_purchase`) → reversal manual (balik penjualan dulu).
+  - **Verifikasi:** smoke rollback DB (beli 130rb hutang + jual 210rb cetak_ide → `CTK/2026/08/001`,
+    stok net 0, aset dibuat hanya utk `track_as_asset=true`, order accepted + purchase_id + sale_id);
+    E2E 3/3 (`/distributor-orders` render + "Data sehat"); `tsc` bersih. Detail & aturan lengkap:
+    `docs/PORTAL-DISTRIBUTOR.md` (Log Revisi 2026-08-25 + Prinsip #9).
+
 - **2026-08-22 — E2E smoke test (Playwright) — audit tampilan semua menu.** Menutup celah
   yang membuat bug "daftar Pembelian kosong" lolos: tak ada yang membuka halaman sambil login.
   `@playwright/test` (devDep) + `playwright.config.ts` (webServer `npm run dev -- --port 3100`,

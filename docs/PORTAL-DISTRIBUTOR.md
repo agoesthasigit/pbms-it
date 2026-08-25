@@ -69,6 +69,19 @@ client via **invoice bulanan** — semua di dalam PBMS, rapi dan berjejak.
    **disalin & digabung** ke `purchases.notes` (`Tujuan: X | <catatan pemilik>`), sehingga
    muncul di menu Pembelian & Hutang tanpa layar baru, dan **tampil di bukti pelunasan**.
 
+9. **Terima boleh sekaligus MENJUAL (dropship) — opsional.** Untuk barang yang dikirim
+   Line Art langsung ke lokasi client (tak pernah mengendap di gudang), pemilik bisa memilih
+   "Langsung jual (dropship)" saat Terima: `create_purchase` (hutang) **lalu** `create_sale`
+   dalam satu transaksi (pola `create_quick_deal`), qty beli = qty jual → **stok bersih 0**.
+   Aturan yang menjaga prinsip: (a) entri portal **tetap berjangkar pada pembelian/hutang**
+   (Aliran 1) — kunci portal tetap pelunasan hutang, **tak pernah** melihat status invoice
+   client (Aliran 2); (b) `distributor_orders.sale_id` hanya **jejak telusur**, tak pernah
+   memicu status portal; (c) **default = pembelian saja** (dropship harus dicentang), jadi
+   perilaku lama tak berubah; (d) pemetaan tujuan→client dilakukan **pemilik** saat Terima
+   (Line Art tetap tak lihat daftar client). Konsekuensi Batal Terima: begitu barang terjual,
+   `delete_purchase` menolak → Batal Terima terkunci sampai penjualannya dibalik dulu
+   (reversal manual & eksplisit; portal sengaja tak menyentuh Aliran 2).
+
 ---
 
 ## 3. Siklus hidup entri (state machine)
@@ -265,6 +278,33 @@ Bila menambah distributor portal baru, ulangi hanya ini (inti tak berubah):
 ---
 
 ## 8. Log Revisi Aturan (WAJIB diperbarui tiap ada perubahan)
+
+- **2026-08-25 — Terima Pengajuan sekaligus JUAL (dropship).** Permintaan pemilik. Kasus:
+  Line Art kirim barang (mis. kertas) **langsung ke lokasi client** (Rob Peetoom Seminyak) —
+  barang tak pernah di gudang pemilik. Kini dialog **Terima** punya toggle **"Langsung jual ke
+  client (dropship)"** (default MATI = perilaku lama, pembelian saja). Saat aktif: pemilik isi
+  **client** (dipetakan dari teks tujuan), **brand** (default **Cetak Ide**, bisa Athaya),
+  **metode** (default **Invoice bulanan**, bisa Tunai/Transfer + wallet), **periode** (bila
+  bulanan), harga jual & garansi per baris, plus toggle **Aset** & **Aktif** per baris.
+  - **RPC `accept_distributor_order_dropship`** (migrasi `20260825_distributor_order_dropship.sql`,
+    `SECURITY DEFINER`, owner-scoped): `create_purchase(is_credit=true)` **lalu** `create_sale`
+    dalam satu transaksi (pola `create_quick_deal`, audit 3.1). Qty beli = qty jual → **stok
+    bersih 0**. Kalau `create_sale` gagal (mis. client kosong), pembelian ikut **rollback**.
+  - **Toggle Aset/Aktif = setelan KATALOG produk** (`products.track_as_asset`/`is_active`) —
+    sama seperti menu Stok Barang; diterapkan ke produk (baru/lama) **sebelum** `create_sale`
+    (agar `create_sale` membaca `track_as_asset` yang benar). Berlaku untuk penjualan
+    berikutnya; **nota terjual tetap terkunci**. Baris produk lama diberi tanda "· produk lama"
+    + pra-isi nilai saat ini.
+  - **Kolom baru `distributor_orders.sale_id`** (nullable, ref `sales`) = **jejak telusur saja**;
+    **tak pernah** memicu status portal (kunci portal tetap hutang). Prinsip #9 di §2.
+  - **Kesesuaian laporan/audit:** mekanika = gabungan `create_purchase`+`create_sale` yang
+    sudah teruji → hutang (Aliran 1), HPP terkunci, invoice/piutang, kas semua konsisten.
+    **Pemeriksaan Data tetap 23 cek, "Data sehat".** Batal Terima terkunci setelah terjual
+    (guard `delete_purchase`) — reversal manual (balik penjualan dulu).
+  - **Verifikasi:** smoke rollback DB (beli 130rb hutang + jual 210rb brand cetak_ide →
+    `CTK/2026/08/001`, stok net 0, aset dibuat hanya utk barang `track_as_asset=true`,
+    order accepted + purchase_id + sale_id). E2E 3/3 (`/distributor-orders` render + Data sehat).
+    `tsc` bersih.
 
 - **2026-08-23 — Hapus pengajuan DITOLAK dari Arsip.** Agar tak jadi data gantung, distributor
   boleh menghapus pengajuannya yang **rejected** (per-baris, permanen). `portal_delete_order`
