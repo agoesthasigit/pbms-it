@@ -86,6 +86,31 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
+- **2026-08-27 — Jatuh tempo maintenance ikut BULAN PERIODE (bukan bulan berikutnya).**
+  Gejala nyata: invoice maintenance Rob Peetoom **Canggu** Agustus 2026 (INV/2026/08/006)
+  jatuh tempo **30 September**, sedangkan Seminyak/Ubud/Sanur (kontrak & `due_day` identik,
+  semua `due_day=0` "Akhir bulan") jatuh tempo **31 Agustus**. Sebab: **dua jalur** membuat
+  invoice bulanan dengan rumus jatuh tempo **berbeda** — jalur Penjualan
+  (`find_or_create_invoice`, dipakai form Penjualan; default `endOfMonth(period)`) memakai
+  **akhir bulan periode**, sedangkan `issue_maintenance_charges` memakai **akhir bulan
+  BERIKUTNYA** (`v_period + 1 bulan`). Client yang beli barang bulan itu invoicenya dibuat
+  DULU oleh jalur Penjualan (due 31 Agu) lalu maintenance cuma **digabung** (cabang merge
+  tak menyentuh `due_date`) → tetap 31 Agu. **Canggu tak beli barang apa pun** → tak ada
+  draft → `issue_maintenance_charges` bikin invoice sendiri pakai rumus bulan-berikutnya →
+  30 Sep. **Fix (migrasi `20260827_maintenance_due_period_month.sql`, CREATE OR REPLACE,
+  tanda tangan sama):** cabang buat-invoice-baru kini hitung jatuh tempo di **bulan periode**
+  — `due_day=0` → akhir bulan periode; `due_day=N` → `least(period + (N-1) hari, akhir bulan
+  periode)`. Cabang merge tetap tak menyentuh `due_date`. **Hanya jalur maintenance yang
+  berubah**; jalur Penjualan sudah benar. Diterapkan via `scripts/apply-migration.mjs` (pola `pg` npm).
+  **Verifikasi (rollback smoke test):** terbitkan Canggu periode Sep→`INV/2026/09/001` due
+  **2026-09-30** (akhir bulan periode) ✓, invoice Agustus tak berubah, di-rollback.
+  - **Koreksi data satu kali (bukan migrasi):** invoice Canggu Agustus yang terlanjur terbit
+    (`INV/2026/08/006`) di-`update` `due_date` 30 Sep→**31 Agu 2026**. `due_date` **murni
+    informasi tampilan** (hanya dipakai label "overdue" di `v_monthly_invoices`; TIDAK dipakai
+    `mark_invoice_paid`/`finance_summary`/`dashboard_counts`/laporan) → **nol dampak keuangan**;
+    status tetap `sent`, total tetap 850rb. Email lama ke client masih memuat jatuh tempo 30 Sep
+    (tak dikirim ulang otomatis).
+
 - **2026-08-25 — Portal distributor: Terima Pengajuan sekaligus JUAL (dropship).** Untuk barang
   yang Line Art kirim **langsung ke lokasi client** (mis. kertas ke Rob Peetoom Seminyak; tak
   pernah di gudang). Dialog **Terima** (`distributor-orders/orders-client.tsx`) dapat toggle
