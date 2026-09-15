@@ -16,16 +16,17 @@ import {
 import { formatIDR } from "@/lib/utils/currency";
 import { todayISO } from "@/lib/utils/date";
 import { toNumber } from "@/lib/utils/number";
-import type { Client, WalletWithBalance } from "@/types/db";
+import type { Client, WalletWithBalance, Category } from "@/types/db";
 import {
   type RabProject, type RabItem, type RabPayment, type RabStatus,
   type RabItemType, RAB_STATUS_LABELS,
 } from "@/types/phase7";
+import { rabCategoryRecap } from "@/lib/rab/category-recap";
 import { saveRab } from "./actions";
 
 // ============ TIPE BARIS ============
 type BudgetRow = { item_name: string; qty: string; price: string };
-type ExpenseRow = BudgetRow & { paid_date: string; paid_wallet_id: string };
+type ExpenseRow = BudgetRow & { paid_date: string; paid_wallet_id: string; category_id: string };
 type PaymentRow = {
   payment_date: string; description: string; amount: string; wallet_id: string;
 };
@@ -33,6 +34,7 @@ type PaymentRow = {
 const newBudget = (): BudgetRow => ({ item_name: "", qty: "1", price: "" });
 const newExpense = (): ExpenseRow => ({
   item_name: "", qty: "1", price: "", paid_date: todayISO(), paid_wallet_id: "",
+  category_id: "",
 });
 const newPayment = (): PaymentRow => ({
   payment_date: todayISO(), description: "", amount: "", wallet_id: "",
@@ -119,14 +121,29 @@ function BudgetTable({
 
 // ============ TABEL 2: PENGELUARAN (+ wallet & tanggal) ============
 function ExpenseTable({
-  rows, onChange, walletItems, readOnly = false,
+  rows, onChange, walletItems, categoryItems, readOnly = false,
 }: {
   rows: ExpenseRow[];
   onChange: (rows: ExpenseRow[]) => void;
   walletItems: WalletItem[];
+  categoryItems: WalletItem[];
   readOnly?: boolean;
 }) {
   const total = sumRows(rows);
+  const categoryNames = useMemo(
+    () => Object.fromEntries(categoryItems.map((it) => [it.value, it.label])),
+    [categoryItems]
+  );
+  const recap = useMemo(
+    () => rabCategoryRecap(
+      rows.map((r) => ({
+        category_id: r.category_id || null,
+        amount: toNumber(r.qty) * toNumber(r.price),
+      })),
+      categoryNames
+    ),
+    [rows, categoryNames]
+  );
   const update = (i: number, patch: Partial<ExpenseRow>) =>
     onChange(rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
   const add = () => onChange([...rows, newExpense()]);
@@ -181,7 +198,20 @@ function ExpenseTable({
               )}
             </div>
             <div className="grid grid-cols-12 items-center gap-2">
-              <div className="col-span-12 sm:col-span-5">
+              <div className="col-span-12 sm:col-span-4">
+                <Select items={categoryItems} value={r.category_id || null} disabled={readOnly}
+                  onValueChange={(v) => update(i, { category_id: v ?? "" })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Kategori (opsional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categoryItems.map((it) => (
+                      <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-12 sm:col-span-4">
                 <Select items={walletItems} value={r.paid_wallet_id || null} disabled={readOnly}
                   onValueChange={(v) => update(i, { paid_wallet_id: v ?? "" })}>
                   <SelectTrigger>
@@ -194,15 +224,15 @@ function ExpenseTable({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="col-span-8 sm:col-span-4">
+              <div className="col-span-8 sm:col-span-3">
                 <Input type="date" value={r.paid_date} disabled={readOnly}
                   onChange={(e) => update(i, { paid_date: e.target.value })} />
               </div>
-              <div className="col-span-4 sm:col-span-3 text-right text-xs">
+              <div className="col-span-4 sm:col-span-1 text-right text-xs">
                 {r.paid_wallet_id ? (
-                  <span className="font-medium text-emerald-600">✓ Keluar dari wallet</span>
+                  <span className="font-medium text-emerald-600" title="Keluar dari wallet">✓</span>
                 ) : (
-                  <span className="text-muted-foreground">Belum dibayar</span>
+                  <span className="text-muted-foreground" title="Belum dibayar">—</span>
                 )}
               </div>
             </div>
@@ -212,6 +242,37 @@ function ExpenseTable({
           <span className="font-medium">Grand Total Pengeluaran</span>
           <span className="text-lg font-bold">{formatIDR(total)}</span>
         </div>
+
+        {/* Rekap per kategori — urut dari terbesar */}
+        {recap.length > 0 && (
+          <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold">Rekap per Kategori</p>
+              <p className="text-xs text-muted-foreground">Terbesar → terkecil</p>
+            </div>
+            <ul className="space-y-1.5">
+              {recap.map((row) => (
+                <li key={row.key || "_none"} className="space-y-1">
+                  <div className="flex items-center justify-between gap-2 text-sm">
+                    <span className={row.key ? "font-medium" : "text-muted-foreground italic"}>
+                      {row.name}
+                    </span>
+                    <span className="tabular-nums font-medium">
+                      {formatIDR(row.total)}
+                      <span className="ml-1.5 text-xs text-muted-foreground">
+                        {row.pct.toFixed(0)}%
+                      </span>
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                    <div className="h-full rounded-full bg-amber-500/70"
+                      style={{ width: `${Math.max(row.pct, 2)}%` }} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -327,10 +388,11 @@ function PaymentTable({
 
 // ============ EDITOR UTAMA ============
 export function RabEditor({
-  clients, wallets, existing, existingItems, existingPayments,
+  clients, wallets, categories, existing, existingItems, existingPayments,
 }: {
   clients: Client[];
   wallets: WalletWithBalance[];
+  categories: Category[];
   existing?: RabProject | null;
   existingItems?: RabItem[];
   existingPayments?: RabPayment[];
@@ -366,6 +428,7 @@ export function RabEditor({
       item_name: i.item_name, qty: String(i.qty), price: String(i.price),
       paid_date: i.paid_date ?? todayISO(),
       paid_wallet_id: i.paid_wallet_id ?? "",
+      category_id: i.category_id ?? "",
     }));
   const initPayments = (existingPayments ?? []).map((p) => ({
     payment_date: p.payment_date, description: p.description,
@@ -389,6 +452,10 @@ export function RabEditor({
       .map((w) => ({ value: w.id, label: `${w.name} · ${formatIDR(Number(w.balance))}` })),
     [wallets]
   );
+  const categoryItems = useMemo(
+    () => categories.filter((c) => c.is_active).map((c) => ({ value: c.id, label: c.name })),
+    [categories]
+  );
   const statusItems = (Object.keys(RAB_STATUS_LABELS) as RabStatus[])
     .map((s) => ({ value: s, label: RAB_STATUS_LABELS[s] }));
 
@@ -411,6 +478,7 @@ export function RabEditor({
           qty: toNumber(r.qty), price: toNumber(r.price), sort_order: idx,
           paid_date: r.paid_wallet_id ? r.paid_date : null,
           paid_wallet_id: r.paid_wallet_id || null,
+          category_id: r.category_id || null,
         })),
       ];
       const pays = payments.map((p, idx) => ({
@@ -509,7 +577,8 @@ export function RabEditor({
       </Card>
 
       <BudgetTable rows={budget} onChange={setBudget} readOnly={locked} />
-      <ExpenseTable rows={expense} onChange={setExpense} walletItems={walletItems} readOnly={locked} />
+      <ExpenseTable rows={expense} onChange={setExpense} walletItems={walletItems}
+        categoryItems={categoryItems} readOnly={locked} />
       <PaymentTable rows={payments} onChange={setPayments}
         walletItems={walletItems} projectValue={grandRab} readOnly={locked} />
 

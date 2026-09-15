@@ -29,6 +29,7 @@ export type RabItem = {
   sort_order: number;
   paid_date: string | null;        // hanya untuk item_type 'expense'
   paid_wallet_id: string | null;   // hanya untuk item_type 'expense'
+  category_id: string | null;      // hanya untuk item_type 'expense' (opsional)
 };
 
 export type RabPayment = {

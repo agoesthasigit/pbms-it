@@ -8,6 +8,7 @@ import {
   type RabProject, type RabItem, type RabPayment, type RabStatus,
   RAB_STATUS_LABELS,
 } from "@/types/phase7";
+import { rabCategoryRecap } from "@/lib/rab/category-recap";
 
 const idr = (n: number) =>
   "Rp " + new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(n);
@@ -71,9 +72,18 @@ const s = StyleSheet.create({
   bPrice: { width: 80, textAlign: "right" }, bTotal: { width: 85, textAlign: "right" },
 
   // kolom tabel pengeluaran & termin
-  eNo: { width: 18 }, eName: { flex: 1 }, eDate: { width: 66 },
-  eWallet: { width: 92, flexDirection: "row", alignItems: "center" },
-  eTotal: { width: 85, textAlign: "right" },
+  eNo: { width: 18 }, eName: { flex: 1 }, eDate: { width: 60 },
+  eCat: { width: 74 },
+  eWallet: { width: 80, flexDirection: "row", alignItems: "center" },
+  eTotal: { width: 78, textAlign: "right" },
+
+  // rekap per kategori
+  recapWrap: { marginTop: 10, borderWidth: 0.8, borderColor: C.line, borderRadius: 4, padding: 8 },
+  recapTitle: { fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 5 },
+  recapRow: { flexDirection: "row", alignItems: "center", paddingVertical: 2.5 },
+  recapName: { flex: 1, fontSize: 8.5 },
+  recapPct: { width: 34, textAlign: "right", fontSize: 7.5, color: C.muted },
+  recapVal: { width: 90, textAlign: "right", fontSize: 8.5, fontFamily: "Helvetica-Bold" },
 
   walletText: { color: C.green, fontSize: 8.5 },
   walletEmpty: { color: C.muted, fontSize: 8 },
@@ -106,13 +116,14 @@ function Check() {
 }
 
 export function RabPdf({
-  project, budget, expense, payments, walletNames,
+  project, budget, expense, payments, walletNames, categoryNames = {},
 }: {
   project: RabProject;
   budget: RabItem[];
   expense: RabItem[];
   payments: RabPayment[];
   walletNames: Record<string, string>;
+  categoryNames?: Record<string, string>;
 }) {
   const B = BUSINESS_IDENTITY;
   const grandRab = budget.reduce((a, b) => a + Number(b.total), 0);
@@ -121,6 +132,11 @@ export function RabPdf({
   const totalPaid = payments.reduce((a, p) => a + Number(p.amount), 0);
   const remaining = grandRab - totalPaid;
   const lunas = grandRab > 0 && remaining <= 0;
+
+  const recap = rabCategoryRecap(
+    expense.map((e) => ({ category_id: e.category_id, amount: Number(e.total) })),
+    categoryNames
+  );
 
   const st = (project.status ?? "draft") as RabStatus;
   const stColor = STATUS_COLOR[st];
@@ -192,6 +208,7 @@ export function RabPdf({
         <View style={[s.th, { backgroundColor: C.amber }]}>
           <Text style={s.eNo}>No</Text>
           <Text style={s.eName}>Nama Barang</Text>
+          <Text style={s.eCat}>Kategori</Text>
           <Text style={s.eDate}>Tanggal</Text>
           <Text style={s.eWallet}>Wallet</Text>
           <Text style={s.eTotal}>Total</Text>
@@ -200,6 +217,9 @@ export function RabPdf({
           <View style={s.tr} key={it.id}>
             <Text style={s.eNo}>{i + 1}</Text>
             <Text style={s.eName}>{it.item_name}</Text>
+            <Text style={s.eCat}>
+              {it.category_id ? (categoryNames[it.category_id] ?? "-") : "-"}
+            </Text>
             <Text style={s.eDate}>{it.paid_date ? tglPendek(it.paid_date) : "-"}</Text>
             <View style={s.eWallet}>
               {it.paid_wallet_id ? (
@@ -220,6 +240,20 @@ export function RabPdf({
           <Text>Grand Total Pengeluaran</Text>
           <Text>{idr(grandExpense)}</Text>
         </View>
+
+        {/* Rekap pengeluaran per kategori — urut terbesar */}
+        {recap.length > 0 && (
+          <View style={s.recapWrap}>
+            <Text style={s.recapTitle}>Rekap Pengeluaran per Kategori (terbesar → terkecil)</Text>
+            {recap.map((row) => (
+              <View style={s.recapRow} key={row.key || "_none"}>
+                <Text style={s.recapName}>{row.name}</Text>
+                <Text style={s.recapPct}>{row.pct.toFixed(0)}%</Text>
+                <Text style={s.recapVal}>{idr(row.total)}</Text>
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* ===== 3. TERMIN ===== */}
         <Text style={s.sectionTitle}>3. Termin Pembayaran</Text>

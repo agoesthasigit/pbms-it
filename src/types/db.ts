@@ -4,7 +4,8 @@ export type CategoryType =
   | "product"
   | "operational_expense"
   | "personal_expense"
-  | "income_source";
+  | "income_source"
+  | "rab_expense";
 
 export type Category = {
   id: string;
@@ -27,6 +28,7 @@ export const CATEGORY_TYPE_LABELS: Record<CategoryType, string> = {
   operational_expense: "Pengeluaran Operasional",
   personal_expense: "Pengeluaran Pribadi",
   income_source: "Sumber Pemasukan",
+  rab_expense: "Kategori Pengeluaran RAB",
 };
 
 // ---------- Wallet ----------

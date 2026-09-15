@@ -86,6 +86,38 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
+- **2026-09-15 — RAB: kategori pengeluaran + rekap per kategori (layar & PDF).** Menu RAB →
+  *2. Detail Pengeluaran (Realisasi)*. Tujuan: melihat kategori pengeluaran terbesar (mis.
+  CCTV vs TRANSPORT vs TUKANG). Tiap baris pengeluaran dapat **dropdown Kategori (opsional)**;
+  di bawah tabel muncul **Rekap per Kategori** urut **terbesar → terkecil** (total + % + bar) —
+  sama di layar (`rab-editor.tsx`) & PDF (`rab-pdf.tsx`), dihitung oleh helper bersama
+  `src/lib/rab/category-recap.ts` (`rabCategoryRecap`) supaya angka identik. Baris tanpa
+  kategori digabung ke **"Lain-lain"**.
+  - **Prinsip:** kategori MURNI label + pengelompokan tampilan — **nol dampak** ke wallet, laba,
+    HPP, piutang, laporan keuangan, & Pemeriksaan Data (pola sama fitur brand). Hanya baris
+    `expense` yang berkategori; baris `budget` selalu null.
+  - **Master list** memakai tabel `categories` yang sudah ada, **tipe enum baru `rab_expense`**,
+    dikelola di **Pengaturan → Kategori** (panel & dropdown muncul otomatis begitu
+    `CATEGORY_TYPE_LABELS` di `types/db.ts` ditambah — `category-manager.tsx` generik per type).
+  - **Migrasi (2 file, sengaja dipisah):** PostgreSQL melarang MEMAKAI nilai enum baru pada
+    transaksi yang sama dengan `ALTER TYPE ... ADD VALUE`. Jadi
+    `20260915_rab_expense_category_enum.sql` (hanya ADD VALUE, terapkan **autocommit/no-tx**
+    lebih dulu) lalu `20260915_rab_item_category.sql` (kolom `rab_items.category_id uuid null`
+    FK→categories `on delete set null` + `save_rab` di-CREATE OR REPLACE menambah `v_category`/
+    kolom category_id + **seed 11 kategori** utk tiap pemilik data, idempoten). Terapkan via
+    `scripts/apply-migration.mjs` (pakai `pg` npm; psql korup). Seed set `user_id` **eksplisit**
+    (koneksi langsung → `auth.uid()` null). Kategori awal: CCTV, AUDIO, NETWORK, TRANSPORT,
+    KOMPUTER, LISTRIK, ABSENSI, MAKAN, LAIN-LAIN, TUKANG, TARIK KABEL.
+  - **File:** `types/db.ts` (+`rab_expense` di CategoryType & LABELS), `types/phase7.ts`
+    (`RabItem.category_id`), `rab/actions.ts` (`RabItemInput.category_id`), `rab/rab-editor.tsx`
+    (ExpenseRow +category_id, Select kategori, panel rekap), `rab/new/page.tsx` &
+    `rab/[id]/page.tsx` (fetch categories type=rab_expense), `api/rab/[id]/pdf/route.ts`
+    (map categoryNames) & `pdf/rab-pdf.tsx` (kolom Kategori + blok rekap).
+  - **Verifikasi:** smoke DB (rollback) — `save_rab` simpan category_id utk expense (budget &
+    expense tanpa kategori tetap null) ✓; 11 kategori ter-seed ✓; `tsc --noEmit` bersih.
+    Verifikasi visual tak bisa (di balik login; worktree tanpa node_modules → dev server tak
+    jalan, Turbopack tolak junction ke luar root).
+
 - **2026-08-25 — Portal distributor: Terima Pengajuan sekaligus JUAL (dropship).** Untuk barang
   yang Line Art kirim **langsung ke lokasi client** (mis. kertas ke Rob Peetoom Seminyak; tak
   pernah di gudang). Dialog **Terima** (`distributor-orders/orders-client.tsx`) dapat toggle

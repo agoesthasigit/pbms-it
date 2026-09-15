@@ -18,15 +18,20 @@ export async function GET(
     .from("v_rab_summary").select("*").eq("id", id).single();
   if (!project) return new NextResponse("RAB tidak ditemukan", { status: 404 });
 
-  const [{ data: items }, { data: payments }, { data: wallets }] = await Promise.all([
+  const [{ data: items }, { data: payments }, { data: wallets }, { data: categories }] = await Promise.all([
     supabase.from("rab_items").select("*").eq("rab_id", id).order("sort_order"),
     supabase.from("rab_payments").select("*").eq("rab_id", id).order("payment_date"),
     supabase.from("wallets").select("id, name"),
+    supabase.from("categories").select("id, name").eq("type", "rab_expense"),
   ]);
 
   const walletNames: Record<string, string> = {};
   for (const w of (wallets ?? []) as { id: string; name: string }[]) {
     walletNames[w.id] = w.name;
+  }
+  const categoryNames: Record<string, string> = {};
+  for (const c of (categories ?? []) as { id: string; name: string }[]) {
+    categoryNames[c.id] = c.name;
   }
 
   const all = (items ?? []) as RabItem[];
@@ -37,7 +42,7 @@ export async function GET(
     RabPdf({
       project, budget, expense,
       payments: (payments ?? []) as RabPayment[],
-      walletNames,
+      walletNames, categoryNames,
     }) as React.ReactElement<DocumentProps>
   );
 

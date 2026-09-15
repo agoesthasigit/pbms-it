@@ -14,6 +14,7 @@ export type RabItemInput = {
   sort_order: number;
   paid_date?: string | null;
   paid_wallet_id?: string | null;
+  category_id?: string | null;
 };
 
 export type RabPaymentInput = {

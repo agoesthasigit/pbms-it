@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/page-header";
 import { RabEditor } from "../rab-editor";
 import { RabDeleteButton } from "./rab-delete-button";
-import type { Client, WalletWithBalance } from "@/types/db";
+import type { Client, WalletWithBalance, Category } from "@/types/db";
 import {
   type RabProject, type RabItem, type RabPayment, type RabStatus,
   RAB_STATUS_LABELS, RAB_STATUS_STYLE,
@@ -28,13 +28,14 @@ export default async function RabDetailPage({
     .from("v_rab_summary").select("*").eq("id", id).single();
   if (!project) notFound();
 
-  const [{ data: items }, { data: payments }, { data: clients }, { data: balances }, { data: rawWallets }] =
+  const [{ data: items }, { data: payments }, { data: clients }, { data: balances }, { data: rawWallets }, { data: categories }] =
     await Promise.all([
       supabase.from("rab_items").select("*").eq("rab_id", id).order("sort_order"),
       supabase.from("rab_payments").select("*").eq("rab_id", id).order("payment_date"),
       supabase.from("clients").select("*").eq("status", "active").order("company_name"),
       supabase.from("v_wallet_balances").select("*"),
       supabase.from("wallets").select("*").order("created_at"),
+      supabase.from("categories").select("*").eq("type", "rab_expense").order("name"),
     ]);
 
   const wallets: WalletWithBalance[] = (rawWallets ?? []).map((w) => ({
@@ -79,6 +80,7 @@ export default async function RabDetailPage({
       <RabEditor
         clients={(clients ?? []) as Client[]}
         wallets={wallets}
+        categories={(categories ?? []) as Category[]}
         existing={proj}
         existingItems={(items ?? []) as RabItem[]}
         existingPayments={(payments ?? []) as RabPayment[]}

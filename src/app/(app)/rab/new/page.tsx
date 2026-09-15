@@ -4,17 +4,18 @@ import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
 import { RabEditor } from "../rab-editor";
-import type { Client, WalletWithBalance } from "@/types/db";
+import type { Client, WalletWithBalance, Category } from "@/types/db";
 
 export const metadata = { title: "RAB Baru" };
 
 export default async function NewRabPage() {
   const supabase = await createClient();
 
-  const [{ data: clients }, { data: balances }, { data: rawWallets }] = await Promise.all([
+  const [{ data: clients }, { data: balances }, { data: rawWallets }, { data: categories }] = await Promise.all([
     supabase.from("clients").select("*").eq("status", "active").order("company_name"),
     supabase.from("v_wallet_balances").select("*"),
     supabase.from("wallets").select("*").order("created_at"),
+    supabase.from("categories").select("*").eq("type", "rab_expense").order("name"),
   ]);
 
   const wallets: WalletWithBalance[] = (rawWallets ?? []).map((w) => ({
@@ -30,7 +31,8 @@ export default async function NewRabPage() {
           <ArrowLeft className="h-4 w-4" /> Kembali
         </Button>
       </PageHeader>
-      <RabEditor clients={(clients ?? []) as Client[]} wallets={wallets} />
+      <RabEditor clients={(clients ?? []) as Client[]} wallets={wallets}
+        categories={(categories ?? []) as Category[]} />
     </div>
   );
 }
