@@ -188,7 +188,7 @@ export function SaleForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="ma-dialog-full flex max-h-[92vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
+      <DialogContent className="flex max-h-[92dvh] w-[calc(100%-1rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
         <DialogHeader className="border-b px-5 py-4">
           <DialogTitle>Penjualan Baru (Barang / Jasa)</DialogTitle>
         </DialogHeader>
