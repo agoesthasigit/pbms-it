@@ -165,6 +165,7 @@ export function ContractManager({
               description="Buat kontrak untuk client yang membayar biaya maintenance rutin tiap bulan." />
           ) : (
             <>
+            <div className="hidden lg:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -212,6 +213,46 @@ export function ContractManager({
                 ))}
               </TableBody>
             </Table>
+            </div>
+
+            {/* Mobile: daftar kartu */}
+            <ul className="ma-list lg:hidden">
+              {pg.paged.map((c) => (
+                <li key={c.id} className="border-b border-border px-4 py-3 last:border-b-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{c.company_name ?? "-"}</p>
+                      <p className="line-clamp-2 text-xs text-muted-foreground">{c.service_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Tempo {dueDayLabel(c.due_day)} · mulai {formatDate(c.start_date)}
+                      </p>
+                      <div className="mt-1">
+                        {c.is_active ? (
+                          <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-400 dark:hover:bg-emerald-500/15">Aktif</Badge>
+                        ) : (
+                          <Badge variant="outline">Berhenti</Badge>
+                        )}
+                      </div>
+                    </div>
+                    <p className="ma-num shrink-0 font-bold">
+                      {formatIDR(Number(c.monthly_amount))}
+                      <span className="text-xs font-normal text-muted-foreground">/bln</span>
+                    </p>
+                  </div>
+                  <div className="mt-2 flex justify-end gap-1">
+                    <Button variant="ghost" size="icon" title="Ubah" onClick={() => openEdit(c)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" title="Hapus"
+                      className="text-muted-foreground hover:text-destructive"
+                      onClick={() => handleDelete(c)} disabled={pending}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
             <PaginationBar page={pg.page} totalPages={pg.totalPages}
               from={pg.from} to={pg.to} total={pg.total}
               onPageChange={pg.setPage} unit="kontrak" />

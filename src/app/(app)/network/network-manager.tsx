@@ -147,6 +147,7 @@ export function NetworkManager({
               description="Simpan data WiFi client: SSID + password WiFi, dan username + password perangkat." />
           ) : (
             <>
+            <div className="hidden lg:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -197,6 +198,54 @@ export function NetworkManager({
                 })}
               </TableBody>
             </Table>
+            </div>
+
+            {/* Mobile: daftar kartu */}
+            <ul className="ma-list lg:hidden">
+              {pg.paged.map((n) => {
+                const logCount = repairLogsByTarget[n.id]?.length ?? 0;
+                return (
+                  <li key={n.id} className="border-b border-border px-4 py-3 last:border-b-0">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{n.ssid}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {n.device_name ?? "-"}{n.company_name ? ` · ${n.company_name}` : ""}
+                      </p>
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs text-muted-foreground">Password WiFi</span>
+                        <PasswordCell kind="wifi" id={n.id} hasPassword={n.has_wifi_password} />
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs text-muted-foreground">User perangkat</span>
+                        <span className="text-sm">{n.username ?? "-"}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs text-muted-foreground">Pass perangkat</span>
+                        <PasswordCell kind="network" id={n.id} hasPassword={n.has_password} />
+                      </div>
+                    </div>
+                    <div className="mt-2 flex justify-end gap-1">
+                      <Button variant="ghost" size="icon" title="Log perbaikan" onClick={() => openRepair(n)}>
+                        <Wrench className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" title="Riwayat perbaikan" onClick={() => openHistory(n)}>
+                        <span className="text-xs font-semibold">{logCount}</span>
+                      </Button>
+                      <Button variant="ghost" size="icon" title="Ubah" onClick={() => openEdit(n)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" title="Hapus"
+                        className="text-muted-foreground hover:text-destructive" onClick={() => handleDelete(n)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
             <PaginationBar page={pg.page} totalPages={pg.totalPages}
               from={pg.from} to={pg.to} total={pg.total}
               onPageChange={pg.setPage} unit="WiFi" />

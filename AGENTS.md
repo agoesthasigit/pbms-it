@@ -86,7 +86,7 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
-- **2026-09-16 — Redesign MOBILE "PBMS Saku" (fintech premium, light+dark) — Fase 1–4.**
+- **2026-09-16 — Redesign MOBILE "PBMS Saku" (fintech premium, light+dark) — Fase 1–5.**
   Tampilan mobile dibangun ulang jadi seperti aplikasi finansial terpasang (bukan web yang
   dikecilkan), **tanpa mengubah desktop**. Dokumen kerja + checkpoint lengkap (fase, pola,
   cara verifikasi, sisa pekerjaan) di **`docs/MOBILE-REDESIGN.md`** — baca itu sebelum
@@ -135,6 +135,13 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
     riwayat/ubah/hapus. Aset (`assets/asset-manager.tsx`): kartu thumbnail foto + status
     garansi + repair/riwayat/ubah/hapus. Client (`clients/client-manager.tsx`): kartu +
     360/ubah/hapus. Distributor (`distributors/distributor-manager.tsx`): kartu + ubah/hapus.
+  - **Fase 5 — Layanan client (Invoice/Maintenance/Network/CCTV/RAB):** semua list pakai
+    tabel → Tier A, pola sama. Invoice (`invoices/invoice-list.tsx`): kartu brand+status +
+    Lihat/Hapus. Maintenance (`maintenance/contract-manager.tsx`): kartu biaya/bln+tempo+
+    status. Network (`network/network-manager.tsx`) & CCTV (`cctv/cctv-manager.tsx`): kartu +
+    `PasswordCell` (kredensial WiFi/perangkat/DVR) + repair/riwayat/ubah/hapus. RAB
+    (`rab/rab-list.tsx`): kartu nilai/diterima/sisa/laba + Lihat/Hapus. **Belum:**
+    `invoices/[id]/invoice-lines.tsx` & `rab/rab-editor.tsx` (detail/editor → Fase 7).
   - **Verifikasi:** `tsc --noEmit` bersih di tiap fase; verifikasi visual **via login E2E**
     (akun test `E2E_TEST_*` di `.env.local`) + Playwright screenshot viewport 390px (light &
     dark) — semua render benar, tanpa page-error. Worktree tak punya node_modules → disambung
@@ -142,9 +149,9 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
     (`npm run dev -- --webpack --port 3100`; config `preview-webpack` di `.claude/launch.json`).
     Catatan: akun test kosong → daftar kartu terverifikasi struktur (tsc + tanpa error), belum
     dengan data nyata.
-  - **BELUM (lihat docs):** Fase 5 (layanan: Invoice/Maintenance/Network/CCTV/RAB),
-    Fase 6 (Piutang&Hutang/Cek Data/Pengaturan/Pengajuan), Fase 7 (form full-screen
-    mobile, toolbar→FilterSheet, poles header).
+  - **BELUM (lihat docs):** Fase 6 (Piutang&Hutang/Cek Data/Pengaturan/Pengajuan),
+    Fase 7 (form full-screen mobile, invoice-lines & rab-editor, toolbar→FilterSheet,
+    poles header).
 
 - **2026-09-15 — RAB: kategori pengeluaran + rekap per kategori (layar & PDF).** Menu RAB →
   *2. Detail Pengeluaran (Realisasi)*. Tujuan: melihat kategori pengeluaran terbesar (mis.

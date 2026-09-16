@@ -154,6 +154,7 @@ export function CctvManager({
               description="Simpan data NVR/DVR client: merk, jumlah channel, dan kredensial (terenkripsi)." />
           ) : (
             <>
+            <div className="hidden lg:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -204,6 +205,53 @@ export function CctvManager({
                 })}
               </TableBody>
             </Table>
+            </div>
+
+            {/* Mobile: daftar kartu */}
+            <ul className="ma-list lg:hidden">
+              {pg.paged.map((c) => {
+                const logCount = repairLogsByTarget[c.id]?.length ?? 0;
+                return (
+                  <li key={c.id} className="border-b border-border px-4 py-3 last:border-b-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{c.nvr_brand}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {c.company_name ?? "-"}{c.location ? ` · ${c.location}` : ""}
+                        </p>
+                      </div>
+                      <Badge variant="secondary" className="shrink-0">{c.channel_count} CH</Badge>
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs text-muted-foreground">Username</span>
+                        <span className="text-sm">{c.username ?? "-"}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs text-muted-foreground">Password</span>
+                        <PasswordCell kind="cctv" id={c.id} hasPassword={c.has_password} />
+                      </div>
+                    </div>
+                    <div className="mt-2 flex justify-end gap-1">
+                      <Button variant="ghost" size="icon" title="Log perbaikan" onClick={() => openRepair(c)}>
+                        <Wrench className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" title="Riwayat perbaikan" onClick={() => openHistory(c)}>
+                        <span className="text-xs font-semibold">{logCount}</span>
+                      </Button>
+                      <Button variant="ghost" size="icon" title="Ubah" onClick={() => openEdit(c)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" title="Hapus"
+                        className="text-muted-foreground hover:text-destructive" onClick={() => handleDelete(c)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
             <PaginationBar page={pg.page} totalPages={pg.totalPages}
               from={pg.from} to={pg.to} total={pg.total}
               onPageChange={pg.setPage} unit="CCTV" />

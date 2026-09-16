@@ -94,9 +94,16 @@ Keempatnya ternyata pakai tabel → semua Tier A (pola sama Fase 3).
 - [x] Distributor (`distributors/distributor-manager.tsx`) — kartu + ubah/hapus
 - [x] Verifikasi E2E (tanpa error) + tsc bersih
 
-### Fase 5 — Layanan client ⬜
-- [ ] Invoice Bulanan (Tier A) · Kontrak Maintenance (Tier B) · Network (Tier B) ·
-      CCTV (Tier B) · RAB (Tier B/list Tier A)
+### Fase 5 — Layanan client ✅
+Semua list pakai tabel → Tier A (pola sama Fase 3/4).
+- [x] Invoice Bulanan (`invoices/invoice-list.tsx`) — kartu (brand+status badge, total) + Lihat/Hapus
+- [x] Kontrak Maintenance (`maintenance/contract-manager.tsx`) — kartu (biaya/bln, tempo, status) + ubah/hapus
+- [x] Network (`network/network-manager.tsx`) — kartu + `PasswordCell` (WiFi & perangkat) + repair/riwayat/ubah/hapus
+- [x] CCTV (`cctv/cctv-manager.tsx`) — kartu (channel, user, `PasswordCell`) + repair/riwayat/ubah/hapus
+- [x] RAB (`rab/rab-list.tsx`) — kartu (nilai/diterima/sisa/laba, status) + Lihat/Hapus
+- [x] Verifikasi E2E (tanpa error) + tsc bersih
+- **Belum (Fase 7):** `invoices/[id]/invoice-lines.tsx` (rincian baris invoice, masih tabel)
+  & `rab/rab-editor.tsx` (form editor RAB panjang) — halaman detail/editor.
 
 ### Fase 6 — Analisa & sistem ⬜
 - [ ] Piutang & Hutang (Tier A) · Pemeriksaan Data (Tier B) · Pengaturan (Tier B) ·
@@ -109,17 +116,17 @@ Keempatnya ternyata pakai tabel → semua Tier A (pola sama Fase 3).
 
 ## Checkpoint terakhir
 
-> **Terakhir diperbarui:** Fase 1, 2, 3, 4 SELESAI & terverifikasi (E2E + tsc bersih).
-> Semua 4 tab bottom-nav + FAB sheet + list transaksi (Beli/Jual/Pengeluaran) +
-> master data (Stok/Aset/Client/Distributor) sudah mobile-native (tabel→kartu).
+> **Terakhir diperbarui:** Fase 1–5 SELESAI & terverifikasi (E2E + tsc bersih).
+> Plus **FIX bug font** (Times New Roman → Plus Jakarta Sans + Sora display).
+> Semua tab bottom-nav + list transaksi + master data + layanan client sudah
+> mobile-native (tabel→kartu).
 >
-> **Berikutnya: Fase 5 — Layanan client.** Cek dulu tiap komponen pakai tabel atau
-> tidak (`grep -c "<Table" <file>`); yang tabel → pola Fase 3/4 (bungkus tabel
-> `hidden lg:block`, tambah `<ul className="ma-list lg:hidden">`).
-> - **Invoice Bulanan** (`invoices/…`) — kemungkinan tabel → kartu (aksi PDF/email/bayar).
-> - **Kontrak Maintenance** (`maintenance/…`), **Network** (`network/…`),
->   **CCTV** (`cctv/…`) — cek tabel/tidak.
-> - **RAB** (`rab/…`) — list Tier A; editor RAB kemungkinan Tier B (form panjang).
+> **Berikutnya: Fase 6 — Analisa & sistem.** Cek dulu tiap komponen pakai tabel
+> (`grep -c "<Table" <file>`); yang tabel → pola Fase 3/4.
+> - **Piutang & Hutang** (`piutang/…`) — kemungkinan tabel + tab (piutang/hutang/riwayat) → kartu.
+> - **Pemeriksaan Data** (`data-check/…`) — Tier B (kartu hasil cek), verifikasi.
+> - **Pengaturan** (`settings/…`) — Tier B (tab + form), verifikasi.
+> - **Pengajuan Distributor** (`distributor-orders/…`) — kemungkinan tabel → kartu.
 >
 > **Cara melanjutkan:** jalankan dev (`npm run dev -- --webpack --port 3100`), baca
 > komponen target, terapkan pola Fase 3, `tsc --noEmit`, lalu verifikasi E2E (login
