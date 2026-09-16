@@ -186,8 +186,23 @@ export function ExpensesManager({
 
   return (
     <div className="space-y-4">
-      {/* Ringkasan bulan berjalan — total + rincian per jenis */}
-      <div className="grid gap-4 lg:grid-cols-3">
+      {/* Ringkasan kompak (mobile) */}
+      <div className="grid grid-cols-2 gap-2 lg:hidden">
+        <div className="ma-card p-3.5">
+          <p className="text-[11px] font-medium text-muted-foreground">Total Bulan Ini</p>
+          <p className="ma-num mt-1 text-lg font-bold text-[var(--m-neg)]">{formatIDR(summary.total)}</p>
+        </div>
+        <div className="ma-card p-3.5">
+          <p className="text-[11px] font-medium text-muted-foreground">Ops / Pribadi</p>
+          <p className="ma-num mt-1 text-sm font-bold">
+            {formatIDR(summary.op)}
+          </p>
+          <p className="ma-num text-[11px] text-muted-foreground">{formatIDR(summary.pr)} pribadi</p>
+        </div>
+      </div>
+
+      {/* Ringkasan bulan berjalan — total + rincian per jenis (desktop) */}
+      <div className="hidden gap-4 lg:grid lg:grid-cols-3">
         <SummaryCard
           title="Total Pengeluaran Bulan Ini"
           value={summary.total}
@@ -243,7 +258,7 @@ export function ExpensesManager({
             <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={resetFilter} title="Kembali ke bulan ini, semua jenis">
             <RotateCcw className="h-4 w-4" /> Reset
           </Button>
@@ -263,6 +278,7 @@ export function ExpensesManager({
                 : "Tidak ada pengeluaran pada filter ini. Ubah filter atau klik Reset."} />
           ) : (
             <>
+            <div className="hidden lg:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -311,6 +327,38 @@ export function ExpensesManager({
                 ))}
               </TableBody>
             </Table>
+            </div>
+
+            {/* Mobile: daftar kartu */}
+            <ul className="ma-list lg:hidden">
+              {pg.paged.map((e) => (
+                <li key={`${e.kind}-${e.id}`} className="ma-row">
+                  <span className={"ma-row-ic " + (e.kind === "operational" ? "teal" : "amber")}>
+                    {e.kind === "operational"
+                      ? <Briefcase className="h-[19px] w-[19px]" />
+                      : <PiggyBank className="h-[19px] w-[19px]" />}
+                  </span>
+                  <span className="ma-row-main">
+                    <b>{e.category?.name ?? e.description ?? KIND_LABEL[e.kind]}</b>
+                    <span>
+                      {formatDate(e.expense_date)} · {KIND_LABEL[e.kind]}
+                      {e.wallet?.name ? ` · ${e.wallet.name}` : ""}
+                    </span>
+                  </span>
+                  <span className="flex flex-col items-end gap-1">
+                    <span className="ma-num text-sm font-bold text-[var(--m-neg)]">
+                      {formatIDR(Number(e.amount))}
+                    </span>
+                    <button type="button" disabled={pending}
+                      onClick={() => handleDelete(e)}
+                      className="text-muted-foreground hover:text-destructive" aria-label="Hapus pengeluaran">
+                      {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+
             <PaginationBar page={pg.page} totalPages={pg.totalPages}
               from={pg.from} to={pg.to} total={pg.total}
               onPageChange={pg.setPage} unit="pengeluaran" />

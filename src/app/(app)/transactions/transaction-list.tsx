@@ -24,6 +24,7 @@ import { SOFT_TONES } from "@/lib/utils/soft-tone";
 import { usePagination } from "@/components/shared/use-pagination";
 import { PaginationBar } from "@/components/shared/pagination-bar";
 import { ReportDownload } from "@/components/shared/report-download";
+import { TransactionListMobile } from "./transaction-list-mobile";
 import { type TxRow, TX_SOURCE_LABEL } from "@/types/reports";
 
 // Tipe & label baris dipindah ke types/reports.ts agar dipakai bersama
@@ -109,7 +110,17 @@ export function TransactionList({
   const filterActive = categoryId !== "all" || labelId !== "all";
 
   return (
-    <div className="space-y-4">
+    <>
+    {/* Mobile: kartu + filter dalam sheet */}
+    <TransactionListMobile
+      rows={rows}
+      wallets={wallets}
+      categories={categories}
+      labels={labels}
+    />
+
+    {/* Desktop: tabel + filter lengkap (tak berubah) */}
+    <div className="hidden space-y-4 lg:block">
       {/* Unduhan mengikuti rentang tanggal yang sedang dipilih */}
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
@@ -272,5 +283,6 @@ export function TransactionList({
         </CardContent>
       </Card>
     </div>
+    </>
   );
 }

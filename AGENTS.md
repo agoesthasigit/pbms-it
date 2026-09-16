@@ -86,6 +86,51 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
+- **2026-09-16 — Redesign MOBILE "PBMS Saku" (fintech premium, light+dark) — Fase 1–3.**
+  Tampilan mobile dibangun ulang jadi seperti aplikasi finansial terpasang (bukan web yang
+  dikecilkan), **tanpa mengubah desktop**. Dokumen kerja + checkpoint lengkap (fase, pola,
+  cara verifikasi, sisa pekerjaan) di **`docs/MOBILE-REDESIGN.md`** — baca itu sebelum
+  melanjutkan.
+  - **Prinsip:** *adaptive*, bukan responsive murni. Data/RPC/server action/PDF **dipakai
+    bersama** desktop — **nol tabel baru, nol beban DB/storage**. Cabang tampilan: list yang
+    fetch di server render **sekali** lalu tampil dua versi via CSS (`hidden lg:block` desktop /
+    `lg:hidden` mobile); yang fetch di klien (dashboard) render dua komponen dari state sama.
+    Hal yang tak boleh mount di mobile (grafik Recharts saat `display:none` → error width(0))
+    dijaga hook `useIsMobile()` (`src/components/shared/use-is-mobile.ts`).
+  - **Design system** `ma-*` + token `--m-*` di `globals.css` (bagian "DESIGN SYSTEM MOBILE"):
+    permukaan pakai token app (ikut tema), aksen **teal (Athaya) + oranye (Cetak Ide)**.
+    `formatIDRShort` ditambah di `lib/utils/currency.ts`.
+  - **Fase 1 — Fondasi + Beranda:** bottom-nav 4 tab (Beranda/Transaksi/Laporan/Menu) + FAB
+    tengah → bottom-sheet "Catat Baru" (Beli→Jual→Pengeluaran→Invoice→Transfer);
+    `bottom-nav.tsx` ditulis ulang (disembunyikan di lg via media query `.ma-bnav`, BUKAN
+    `lg:hidden` Tailwind karena `.ma-*` di luar @layer selalu menang). Halaman **Menu**
+    (`menu/page.tsx`) = hub semua fitur dari `NAV_GROUPS` (tak ada menu terpotong).
+    **Dashboard mobile** (`dashboard/dashboard-mobile.tsx`): hero Laba Bersih, aksi cepat,
+    KPI Piutang/Hutang, sparkline tren, ringkasan, invoice tertunda, garansi. `dashboard-client.tsx`
+    render mobile+desktop dari satu fetch; `dashboard/page.tsx` disederhanakan (header+search
+    pindah ke cabang desktop). `layout.tsx` padding bawah dinaikkan ke 6rem (ruang FAB).
+  - **Fase 2 — Tab inti:** **Riwayat Transaksi** komponen mobile terpisah
+    (`transactions/transaction-list-mobile.tsx`): ringkasan Masuk/Keluar/Net, search +
+    **`FilterSheet`** (komponen reusable baru `src/components/mobile/filter-sheet.tsx` = filter
+    dalam bottom-sheet), kartu per transaksi. **Laporan** = Tier B (sudah kartu+chart responsif,
+    diverifikasi). PageHeader desktop disembunyikan di mobile untuk halaman ber-judul-mobile-sendiri.
+  - **Fase 3 — List transaksi (Pembelian/Penjualan/Pengeluaran):** pola *in-place* (satu
+    komponen, handler & dialog dipakai bersama) — tabel dibungkus `hidden lg:block`, tambah
+    daftar **kartu `lg:hidden`** + **ringkasan kompak** `lg:hidden` (desktop `hidden lg:grid`)
+    + tombol toolbar diberi `flex-wrap` (fix meluber). Penjualan: kartu + expand item + aksi
+    NOTA/Email/Lunas/Hapus + badge brand/status. File: `purchases/purchase-list.tsx`,
+    `sales/sale-list.tsx`, `shared/expenses-manager.tsx`.
+  - **Verifikasi:** `tsc --noEmit` bersih di tiap fase; verifikasi visual **via login E2E**
+    (akun test `E2E_TEST_*` di `.env.local`) + Playwright screenshot viewport 390px (light &
+    dark) — semua render benar, tanpa page-error. Worktree tak punya node_modules → disambung
+    junction ke checkout utama; `next dev` Turbopack menolak junction, jadi pakai **webpack**
+    (`npm run dev -- --webpack --port 3100`; config `preview-webpack` di `.claude/launch.json`).
+    Catatan: akun test kosong → daftar kartu terverifikasi struktur (tsc + tanpa error), belum
+    dengan data nyata.
+  - **BELUM (lihat docs):** Fase 4 (master data: Stok/Aset/Client/Distributor), Fase 5 (layanan:
+    Invoice/Maintenance/Network/CCTV/RAB), Fase 6 (Piutang&Hutang/Cek Data/Pengaturan/Pengajuan),
+    Fase 7 (form full-screen mobile, toolbar→FilterSheet, poles header).
+
 - **2026-09-15 — RAB: kategori pengeluaran + rekap per kategori (layar & PDF).** Menu RAB →
   *2. Detail Pengeluaran (Realisasi)*. Tujuan: melihat kategori pengeluaran terbesar (mis.
   CCTV vs TRANSPORT vs TUKANG). Tiap baris pengeluaran dapat **dropdown Kategori (opsional)**;

@@ -138,3 +138,164 @@
     @apply font-sans;
   }
 }
+
+/* =====================================================================
+   DESIGN SYSTEM MOBILE — "PBMS Saku" (fintech premium, light + dark)
+   ---------------------------------------------------------------------
+   Kelas berprefiks `ma-` dipakai HANYA oleh komponen mobile
+   (src/components/mobile/*). Tidak menyentuh tampilan desktop sama
+   sekali. Permukaan (kartu/latar/garis) memakai token app yang sudah
+   ada supaya otomatis ikut tema terang/gelap & konsisten dengan desktop
+   dark; hanya AKSEN (teal/oranye/positif/negatif + gradien hero) yang
+   ditambah lewat token `--m-*` agar tema terang pun terasa "fintech".
+   ===================================================================== */
+:root {
+  --m-teal: #0d9488;
+  --m-teal-deep: #0f766e;
+  --m-teal-soft: #d6f0ea;
+  --m-teal-ink: #0b4f48;
+  --m-amber: #e58e06;
+  --m-amber-soft: #fbeccb;
+  --m-pos: #0e9f6e;
+  --m-pos-soft: #d7f2e6;
+  --m-neg: #dd3a3a;
+  --m-neg-soft: #fbe0e0;
+  --m-hero-grad: linear-gradient(140deg, #0f766e 0%, #0d9488 52%, #14b8a6 100%);
+  --m-hero-ink: #eafaf6;
+  --m-hero-dim: #bfeae1;
+  --m-shadow-card: 0 1px 2px rgba(11, 26, 24, 0.04), 0 8px 24px -14px rgba(11, 26, 24, 0.16);
+  --m-shadow-hero: 0 16px 34px -18px rgba(13, 148, 136, 0.55);
+  --m-nav-bg: rgba(255, 255, 255, 0.82);
+}
+.dark {
+  --m-teal: #2dd4bf;
+  --m-teal-deep: #5eead4;
+  --m-teal-soft: #0f312d;
+  --m-teal-ink: #8ff0e2;
+  --m-amber: #fbbf24;
+  --m-amber-soft: #3a2e11;
+  --m-pos: #34d399;
+  --m-pos-soft: #0f2e24;
+  --m-neg: #f87171;
+  --m-neg-soft: #3a1a1a;
+  --m-hero-grad: linear-gradient(140deg, #0b3d39 0%, #0f766e 55%, #0d9488 100%);
+  --m-hero-ink: #effcf8;
+  --m-hero-dim: #a7ded4;
+  --m-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px -18px rgba(0, 0, 0, 0.7);
+  --m-shadow-hero: 0 16px 40px -20px rgba(13, 148, 136, 0.5);
+  --m-nav-bg: color-mix(in oklch, var(--card) 82%, transparent);
+}
+
+.ma-num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+/* --- Hero saldo --- */
+.ma-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  padding: 20px 20px 16px;
+  color: var(--m-hero-ink);
+  background: var(--m-hero-grad);
+  box-shadow: var(--m-shadow-hero);
+}
+.ma-hero::before {
+  content: "";
+  position: absolute;
+  right: -40px;
+  top: -54px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.22), transparent 70%);
+}
+.ma-hero > * { position: relative; }
+.ma-hero-top { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; font-weight: 600; color: var(--m-hero-dim); }
+.ma-hero-bal { font-size: 31px; font-weight: 800; letter-spacing: -0.02em; margin: 9px 0 4px; }
+.ma-hero-sub { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--m-hero-dim); }
+.ma-hero-pills { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+.ma-hpill { border-radius: 15px; padding: 11px 13px; background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.16); }
+.ma-hpill .l { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: var(--m-hero-dim); }
+.ma-hpill .v { margin-top: 3px; font-size: 16px; font-weight: 700; }
+
+/* --- Aksi cepat --- */
+.ma-qa-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; }
+.ma-qa { display: flex; flex-direction: column; align-items: center; gap: 7px; background: 0; border: 0; cursor: pointer; font: inherit; text-decoration: none; }
+.ma-qa-ic { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 17px; background: var(--card); border: 1px solid var(--border); color: var(--m-teal-deep); box-shadow: var(--m-shadow-card); }
+.ma-qa.amber .ma-qa-ic { color: var(--m-amber); }
+.ma-qa-lbl { font-size: 11.5px; font-weight: 600; color: var(--foreground); }
+
+/* --- Header seksi --- */
+.ma-sec { display: flex; align-items: center; justify-content: space-between; margin: 4px 2px 10px; }
+.ma-sec h3 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+.ma-sec a { display: flex; align-items: center; gap: 2px; font-size: 12.5px; font-weight: 600; color: var(--m-teal-deep); text-decoration: none; }
+
+/* --- Kartu umum --- */
+.ma-card { background: var(--card); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--m-shadow-card); }
+
+/* --- Kartu grafik --- */
+.ma-chartcard { padding: 15px 15px 8px; }
+.ma-cc-top { display: flex; align-items: baseline; justify-content: space-between; }
+.ma-cc-l { font-size: 12px; font-weight: 600; color: var(--muted-foreground); }
+.ma-cc-v { font-size: 18px; font-weight: 700; }
+.ma-cc-x { display: flex; justify-content: space-between; padding: 2px 2px 4px; font-size: 10px; font-weight: 600; color: var(--muted-foreground); }
+
+/* --- Daftar transaksi/baris --- */
+.ma-list { list-style: none; margin: 0; padding: 0; overflow: hidden; }
+.ma-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; text-decoration: none; color: inherit; }
+.ma-row + .ma-row { border-top: 1px solid var(--border); }
+.ma-row-ic { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 13px; flex: none; }
+.ma-row-ic.pos { background: var(--m-pos-soft); color: var(--m-pos); }
+.ma-row-ic.neg { background: var(--m-neg-soft); color: var(--m-neg); }
+.ma-row-ic.teal { background: var(--m-teal-soft); color: var(--m-teal-deep); }
+.ma-row-ic.amber { background: var(--m-amber-soft); color: var(--m-amber); }
+.ma-row-main { flex: 1; min-width: 0; }
+.ma-row-main b { display: block; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ma-row-main span { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--muted-foreground); }
+.ma-row-amt { flex: none; font-size: 14px; font-weight: 700; }
+.ma-row-amt.pos { color: var(--m-pos); }
+.ma-row-amt.neg { color: var(--foreground); }
+
+/* --- Badge kecil --- */
+.ma-badge { font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px; letter-spacing: 0.02em; }
+.ma-badge.teal { background: var(--m-teal-soft); color: var(--m-teal-ink); }
+.ma-badge.amber { background: var(--m-amber-soft); color: var(--m-amber); }
+.ma-badge.neg { background: var(--m-neg-soft); color: var(--m-neg); }
+
+/* --- KPI --- */
+.ma-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ma-kpi { padding: 14px; }
+.ma-kpi .l { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; color: var(--muted-foreground); }
+.ma-kpi .v { margin-top: 6px; font-size: 20px; font-weight: 800; letter-spacing: -0.01em; }
+.ma-kpi .d { margin-top: 3px; font-size: 11px; font-weight: 600; }
+.ma-kpi .d.pos { color: var(--m-pos); }
+.ma-kpi .d.neg { color: var(--m-neg); }
+
+/* --- Judul halaman mobile --- */
+.ma-h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+
+/* --- Menu hub --- */
+.ma-grouplabel { margin: 18px 4px 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted-foreground); }
+.ma-menugrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.ma-mtile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 13px 6px 11px; text-decoration: none; }
+.ma-mtile .mi { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--m-teal-soft); color: var(--m-teal-deep); }
+.ma-mtile.a .mi { background: var(--m-amber-soft); color: var(--m-amber); }
+.ma-mtile span { font-size: 10.5px; font-weight: 600; line-height: 1.2; text-align: center; color: var(--foreground); }
+.ma-mtile .nbadge { position: absolute; top: 6px; right: 10px; display: grid; place-items: center; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px; background: var(--m-neg); color: #fff; font-size: 9.5px; font-weight: 700; }
+
+/* --- Bottom nav + FAB --- */
+.ma-bnav { position: fixed; inset-inline: 0; bottom: 0; z-index: 30; display: flex; align-items: flex-start; justify-content: space-around; height: calc(66px + env(safe-area-inset-bottom)); padding: 9px 10px env(safe-area-inset-bottom); background: var(--m-nav-bg); backdrop-filter: blur(14px); border-top: 1px solid var(--border); }
+.ma-bn { display: flex; flex: 1; flex-direction: column; align-items: center; gap: 3px; padding: 0; background: 0; border: 0; font-size: 10.5px; font-weight: 600; color: var(--muted-foreground); text-decoration: none; }
+.ma-bn.on { color: var(--m-teal-deep); }
+.ma-fabwrap { display: flex; flex: 1; justify-content: center; }
+.ma-fab { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 19px; transform: translateY(-16px); background: var(--m-hero-grad); color: #fff; border: 0; cursor: pointer; box-shadow: var(--m-shadow-hero); }
+/* Sembunyikan bottom-nav di desktop. Pakai media query (bukan `lg:hidden`
+   Tailwind) karena `.ma-bnav` tak berada dalam @layer sehingga selalu
+   mengalahkan utilitas Tailwind yang di-layer. */
+@media (min-width: 1024px) { .ma-bnav { display: none; } }
+
+/* --- Bottom sheet "Catat Baru" --- */
+.ma-opt { display: flex; align-items: center; gap: 13px; padding: 13px; border-radius: 16px; border: 1px solid var(--border); background: var(--card); text-decoration: none; color: inherit; }
+.ma-opt .oi { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 13px; flex: none; }
+.ma-opt .ot { flex: 1; }
+.ma-opt .ot b { display: block; font-size: 14.5px; font-weight: 700; }
+.ma-opt .ot span { font-size: 11.5px; color: var(--muted-foreground); }

@@ -1,19 +1,10 @@
-import { PageHeader } from "@/components/shared/page-header";
 import { DashboardClient } from "./dashboard-client";
-import { GlobalSearch } from "@/components/shared/global-search";
 
 export const metadata = { title: "Dashboard" };
 
+// Header + pencarian global kini berada DI DALAM DashboardClient (khusus
+// cabang desktop), supaya tampilan mobile bisa 180° berbeda tanpa header
+// desktop ikut muncul.
 export default function DashboardPage() {
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Dashboard"
-        description="Ringkasan keuangan dan operasional bisnis Anda secara real-time."
-      />
-      {/* Pencarian global cepat ke semua menu/halaman */}
-      <GlobalSearch />
-      <DashboardClient />
-    </div>
-  );
+  return <DashboardClient />;
 }

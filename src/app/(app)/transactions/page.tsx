@@ -26,10 +26,13 @@ export default async function TransactionsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Riwayat Transaksi"
-        description="Semua transaksi uang (penjualan, pembelian, pengeluaran operasional & pribadi, pelunasan invoice, termin & biaya proyek selesai) dalam satu halaman. Baris merah = piutang yang belum diterima."
-      />
+      {/* Judul desktop; mobile punya judul sendiri di dalam list */}
+      <div className="hidden lg:block">
+        <PageHeader
+          title="Riwayat Transaksi"
+          description="Semua transaksi uang (penjualan, pembelian, pengeluaran operasional & pribadi, pelunasan invoice, termin & biaya proyek selesai) dalam satu halaman. Baris merah = piutang yang belum diterima."
+        />
+      </div>
       <TransactionList
         rows={rows}
         wallets={walletOpts}
