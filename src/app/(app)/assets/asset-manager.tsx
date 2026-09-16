@@ -302,6 +302,7 @@ export function AssetManager({
                 : "Tidak ada hasil untuk filter ini."} />
           ) : (
             <>
+            <div className="hidden lg:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -378,6 +379,66 @@ export function AssetManager({
                 })}
               </TableBody>
             </Table>
+            </div>
+
+            {/* Mobile: daftar kartu */}
+            <ul className="ma-list lg:hidden">
+              {pg.paged.map((a) => {
+                const st = (a.warranty_status ?? "active") as WarrantyStatus;
+                const logCount = repairLogsByAsset[a.id]?.length ?? 0;
+                const pb = photoBrief[a.id];
+                return (
+                  <li key={a.id} className="border-b border-border px-4 py-3 last:border-b-0">
+                    <div className="flex gap-3">
+                      {pb && pb.first_url ? (
+                        <div className="h-14 w-16 shrink-0 overflow-hidden rounded border bg-muted">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={pb.first_url} alt="" className="h-full w-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="flex h-14 w-16 shrink-0 items-center justify-center rounded border bg-muted text-muted-foreground">
+                          <ImageIcon className="h-5 w-5" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium">{a.product_name}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {a.company_name ?? "-"}
+                          {a.serial_number ? ` · ${a.serial_number}` : ""}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Garansi s/d {formatDate(a.warranty_end)}
+                        </p>
+                        <div className="mt-1 flex items-center gap-1.5">
+                          <Badge className={WARRANTY_STATUS_STYLE[st]}>
+                            {WARRANTY_STATUS_LABELS[st]}
+                          </Badge>
+                          {st !== "expired" && typeof a.days_left === "number" && (
+                            <span className="text-xs text-muted-foreground">({a.days_left} hari)</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-2 flex justify-end gap-1">
+                      <Button variant="ghost" size="icon" title="Log perbaikan" onClick={() => openRepair(a)}>
+                        <Wrench className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" title="Riwayat perbaikan" onClick={() => openHistory(a)}>
+                        <span className="text-xs font-semibold">{logCount}</span>
+                      </Button>
+                      <Button variant="ghost" size="icon" title="Ubah" onClick={() => openEdit(a)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" title="Hapus"
+                        className="text-muted-foreground hover:text-destructive" onClick={() => handleDelete(a)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
             <PaginationBar page={pg.page} totalPages={pg.totalPages}
               from={pg.from} to={pg.to} total={pg.total}
               onPageChange={pg.setPage} unit="aset" />

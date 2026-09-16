@@ -21,6 +21,7 @@ import { usePagination } from "@/components/shared/use-pagination";
 import { PaginationBar } from "@/components/shared/pagination-bar";
 import type { ProductWithStock, Distributor, WalletWithBalance, Client } from "@/types/db";
 import type { PurchaseRow } from "@/types/phase3";
+import { FilterSheet } from "@/components/mobile/filter-sheet";
 import { PurchaseForm } from "./purchase-form";
 import { QuickDealForm } from "./quick-deal-form";
 import { deletePurchase } from "./actions";
@@ -145,8 +146,23 @@ export function PurchaseList({
 
   return (
     <div className="space-y-4">
-      {/* Baris ringkasan — semuanya ikut filter tanggal */}
-      <div className="grid gap-4 lg:grid-cols-3">
+      {/* Ringkasan kompak (mobile) */}
+      <div className="grid grid-cols-2 gap-2 lg:hidden">
+        <div className="ma-card p-3.5">
+          <p className="text-[11px] font-medium text-muted-foreground">
+            {showingAll ? "Total (Semua)" : "Total Pembelian"}
+          </p>
+          <p className="ma-num mt-1 text-lg font-bold">{formatIDR(totalPeriod)}</p>
+        </div>
+        <div className="ma-card p-3.5">
+          <p className="text-[11px] font-medium text-muted-foreground">Jumlah Nota</p>
+          <p className="ma-num mt-1 text-lg font-bold">{notaCount}</p>
+          <p className="text-[11px] text-muted-foreground">{unitCount} unit masuk</p>
+        </div>
+      </div>
+
+      {/* Baris ringkasan — semuanya ikut filter tanggal (desktop) */}
+      <div className="hidden gap-4 lg:grid lg:grid-cols-3">
         <SummaryCard
           title={showingAll ? "Total Pembelian (Semua)" : isThisMonth ? "Total Pembelian Bulan Ini" : "Total Pembelian (Periode Dipilih)"}
           value={totalPeriod}
@@ -177,23 +193,39 @@ export function PurchaseList({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div className="grid flex-1 gap-3 sm:grid-cols-2 lg:max-w-2xl lg:grid-cols-3">
           <div className="space-y-1 sm:col-span-2 lg:col-span-1">
-            <Label className="text-xs">Cari</Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input className="pl-9" placeholder="Barang / distributor / nota..."
-                value={q} onChange={(e) => setQ(e.target.value)} />
+            <Label className="hidden text-xs lg:block">Cari</Label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input className="pl-9" placeholder="Barang / distributor / nota..."
+                  value={q} onChange={(e) => setQ(e.target.value)} />
+              </div>
+              {/* Mobile: tanggal di dalam FilterSheet */}
+              <div className="lg:hidden">
+                <FilterSheet activeCount={showingAll || !isThisMonth ? 1 : 0} onReset={resetRange}>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Dari Tanggal</Label>
+                    <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Sampai Tanggal</Label>
+                    <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+                  </div>
+                </FilterSheet>
+              </div>
             </div>
           </div>
-          <div className="space-y-1">
+          {/* Tanggal inline: desktop */}
+          <div className="hidden space-y-1 lg:block">
             <Label className="text-xs">Dari Tanggal</Label>
             <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
           </div>
-          <div className="space-y-1">
+          <div className="hidden space-y-1 lg:block">
             <Label className="text-xs">Sampai Tanggal</Label>
             <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant={showingAll ? "default" : "outline"} onClick={showAll}
             title="Tampilkan semua pembelian (tanpa batas tanggal)">
             <CalendarRange className="h-4 w-4" /> Semua
@@ -218,6 +250,7 @@ export function PurchaseList({
               description="Tidak ada pembelian pada rentang tanggal ini. Ubah filter atau catat pembelian baru." />
           ) : (
             <>
+            <div className="hidden lg:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -299,6 +332,58 @@ export function PurchaseList({
                 })}
               </TableBody>
             </Table>
+            </div>
+
+            {/* Mobile: daftar kartu */}
+            <ul className="ma-list lg:hidden">
+              {pg.paged.map((p) => {
+                const isOpen = expanded.has(p.id);
+                const items = itemsOf(p);
+                return (
+                  <li key={p.id} className="border-b border-border last:border-b-0">
+                    <div className="ma-row cursor-pointer" onClick={() => toggleExpand(p.id)}>
+                      <span className="ma-row-ic neg">
+                        <ShoppingCart className="h-[19px] w-[19px]" />
+                      </span>
+                      <span className="ma-row-main">
+                        <b>{p.distributor?.name ?? "-"}</b>
+                        <span>
+                          {formatDate(p.purchase_date)} · {totalQty(p)} unit
+                          {p.invoice_no ? ` · ${p.invoice_no}` : ""}
+                        </span>
+                      </span>
+                      <span className="flex flex-col items-end gap-1">
+                        <span className="ma-num text-sm font-bold">{formatIDR(Number(p.total))}</span>
+                        <button type="button" disabled={pending}
+                          onClick={(e) => { e.stopPropagation(); handleDelete(p); }}
+                          className="text-muted-foreground hover:text-destructive" aria-label="Hapus pembelian">
+                          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        </button>
+                      </span>
+                    </div>
+                    {isOpen && (
+                      <div className="px-4 pb-3">
+                        {items.length === 0 ? (
+                          <p className="text-xs text-muted-foreground">Tidak ada rincian item.</p>
+                        ) : (
+                          <ul className="divide-y rounded-lg border text-sm">
+                            {items.map((it, i) => (
+                              <li key={i} className="flex items-center justify-between gap-2 px-3 py-1.5">
+                                <span className="min-w-0 truncate">{it.product?.name ?? "?"}</span>
+                                <span className="ma-num shrink-0 text-muted-foreground">
+                                  {it.qty} × {formatIDR(Number(it.price))}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+
             <PaginationBar page={pg.page} totalPages={pg.totalPages}
               from={pg.from} to={pg.to} total={pg.total}
               onPageChange={pg.setPage} unit="nota" />

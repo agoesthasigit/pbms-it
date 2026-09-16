@@ -80,6 +80,7 @@ export function InvoiceList({ invoices }: { invoices: MonthlyInvoice[] }) {
               description="Invoice terbentuk otomatis saat Anda menyimpan penjualan metode Invoice Bulanan." />
           ) : (
             <>
+            <div className="hidden lg:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -135,6 +136,49 @@ export function InvoiceList({ invoices }: { invoices: MonthlyInvoice[] }) {
                 })}
               </TableBody>
             </Table>
+            </div>
+
+            {/* Mobile: daftar kartu */}
+            <ul className="ma-list lg:hidden">
+              {pg.paged.map((inv) => {
+                const st = (inv.effective_status ?? inv.status) as InvoiceStatus;
+                const periode = new Date(inv.period_month).toLocaleDateString("id-ID", {
+                  month: "long", year: "numeric",
+                });
+                return (
+                  <li key={inv.id} className="border-b border-border px-4 py-3 last:border-b-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-medium">{inv.invoice_no}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {inv.company_name ?? "-"} · {periode}
+                          {inv.due_date ? ` · tempo ${formatDate(inv.due_date)}` : ""}
+                        </p>
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                          <Badge className={SOFT_TONES[BRAND_TONE[toBrand(inv.brand)]]}>
+                            {BRAND_LABELS[toBrand(inv.brand)]}
+                          </Badge>
+                          <Badge className={STATUS_STYLE[st]}>{INVOICE_STATUS_LABELS[st]}</Badge>
+                        </div>
+                      </div>
+                      <p className="ma-num shrink-0 font-bold">{formatIDR(Number(inv.total))}</p>
+                    </div>
+                    <div className="mt-2 flex justify-end gap-1">
+                      <Button variant="outline" size="sm" nativeButton={false}
+                        title="Lihat invoice" render={<Link href={`/invoices/${inv.id}`} />}>
+                        <Eye className="h-3.5 w-3.5" /> Lihat
+                      </Button>
+                      <Button variant="ghost" size="icon" title="Hapus"
+                        className="text-muted-foreground hover:text-destructive"
+                        onClick={() => handleDelete(inv)} disabled={pending}>
+                        {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
             <PaginationBar page={pg.page} totalPages={pg.totalPages}
               from={pg.from} to={pg.to} total={pg.total}
               onPageChange={pg.setPage} unit="invoice" />

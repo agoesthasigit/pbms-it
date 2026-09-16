@@ -32,6 +32,7 @@ import { BRAND_LABELS, BRAND_TONE, toBrand } from "@/types/phase4";
 import { SendEmailDialog } from "@/components/shared/send-email-dialog";
 import { useConfirm } from "@/components/shared/confirm-dialog";
 import { SaleForm } from "./sale-form";
+import { FilterSheet } from "@/components/mobile/filter-sheet";
 import { deleteSale, paySale, sendSaleEmail } from "./actions";
 
 /** Baris penjualan yang boleh dikirim NOTA-nya (sama dgn syarat unduh NOTA). */
@@ -179,8 +180,23 @@ export function SaleList({
 
   return (
     <div className="space-y-4">
-      {/* Baris ringkasan — semuanya ikut filter tanggal */}
-      <div className="grid gap-4 lg:grid-cols-3">
+      {/* Ringkasan kompak (mobile) */}
+      <div className="grid grid-cols-2 gap-2 lg:hidden">
+        <div className="ma-card p-3.5">
+          <p className="text-[11px] font-medium text-muted-foreground">
+            {isThisMonth ? "Total Bulan Ini" : "Total Periode"}
+          </p>
+          <p className="ma-num mt-1 text-lg font-bold text-[var(--m-pos)]">{formatIDR(totalPeriod)}</p>
+        </div>
+        <div className="ma-card p-3.5">
+          <p className="text-[11px] font-medium text-muted-foreground">Transaksi</p>
+          <p className="ma-num mt-1 text-lg font-bold">{trxCount}</p>
+          <p className="text-[11px] text-muted-foreground">{clientCount} client</p>
+        </div>
+      </div>
+
+      {/* Baris ringkasan — semuanya ikut filter tanggal (desktop) */}
+      <div className="hidden gap-4 lg:grid lg:grid-cols-3">
         <SummaryCard
           title={isThisMonth ? "Total Penjualan Bulan Ini" : "Total Penjualan (Periode Dipilih)"}
           value={totalPeriod}
@@ -210,23 +226,37 @@ export function SaleList({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div className="grid flex-1 gap-3 sm:grid-cols-2 lg:max-w-2xl lg:grid-cols-3">
           <div className="space-y-1 sm:col-span-2 lg:col-span-1">
-            <Label className="text-xs">Cari</Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input className="pl-9" placeholder="Client / barang / metode..."
-                value={q} onChange={(e) => setQ(e.target.value)} />
+            <Label className="hidden text-xs lg:block">Cari</Label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input className="pl-9" placeholder="Client / barang / metode..."
+                  value={q} onChange={(e) => setQ(e.target.value)} />
+              </div>
+              <div className="lg:hidden">
+                <FilterSheet activeCount={isThisMonth ? 0 : 1} onReset={resetRange}>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Dari Tanggal</Label>
+                    <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Sampai Tanggal</Label>
+                    <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+                  </div>
+                </FilterSheet>
+              </div>
             </div>
           </div>
-          <div className="space-y-1">
+          <div className="hidden space-y-1 lg:block">
             <Label className="text-xs">Dari Tanggal</Label>
             <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
           </div>
-          <div className="space-y-1">
+          <div className="hidden space-y-1 lg:block">
             <Label className="text-xs">Sampai Tanggal</Label>
             <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={resetRange} title="Kembali ke bulan ini">
             <RotateCcw className="h-4 w-4" /> Bulan Ini
           </Button>
@@ -243,6 +273,7 @@ export function SaleList({
               description="Tidak ada penjualan pada rentang tanggal ini. Ubah filter atau catat penjualan baru." />
           ) : (
             <>
+            <div className="hidden lg:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -365,6 +396,89 @@ export function SaleList({
                 })}
               </TableBody>
             </Table>
+            </div>
+
+            {/* Mobile: daftar kartu */}
+            <ul className="ma-list lg:hidden">
+              {pg.paged.map((s) => {
+                const isOpen = expanded.has(s.id);
+                const items = s.items ?? [];
+                const lunas =
+                  s.payment_method === "cash" ||
+                  s.payment_method === "transfer" ||
+                  (s.payment_method === "terhutang" && !!s.paid_date);
+                return (
+                  <li key={s.id} className="border-b border-border last:border-b-0">
+                    <div className="ma-row cursor-pointer" onClick={() => toggleExpand(s.id)}>
+                      <span className="ma-row-ic pos">
+                        <ReceiptText className="h-[19px] w-[19px]" />
+                      </span>
+                      <span className="ma-row-main">
+                        <b>{s.client?.company_name ?? "-"}</b>
+                        <span>
+                          {formatDate(s.sale_date)} · {PAYMENT_METHOD_LABELS[s.payment_method]}
+                        </span>
+                      </span>
+                      <span className="flex flex-col items-end gap-1">
+                        <span className="ma-num text-sm font-bold">{formatIDR(Number(s.total))}</span>
+                        {s.payment_method === "monthly_invoice" ? (
+                          <span className="ma-badge teal">Invoice</span>
+                        ) : lunas ? (
+                          <span className="ma-badge teal">Lunas</span>
+                        ) : (
+                          <span className="ma-badge amber">Terhutang</span>
+                        )}
+                      </span>
+                    </div>
+                    {isOpen && (
+                      <div className="space-y-2.5 px-4 pb-3">
+                        <span className={`ma-badge ${toBrand(s.brand) === "athaya" ? "teal" : "amber"}`}>
+                          {BRAND_LABELS[toBrand(s.brand)]}
+                        </span>
+                        {items.length > 0 && (
+                          <ul className="divide-y rounded-lg border text-sm">
+                            {items.map((it, i) => (
+                              <li key={i} className="flex items-center justify-between gap-2 px-3 py-1.5">
+                                <span className="flex min-w-0 items-center gap-1.5">
+                                  {isServiceItem(it) && <Wrench className="h-3.5 w-3.5 shrink-0 text-sky-600" />}
+                                  <span className="truncate">{itemLabel(it)}</span>
+                                </span>
+                                <span className="ma-num shrink-0 text-muted-foreground">
+                                  {it.qty} × {formatIDR(Number(it.price))}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        <div className="flex flex-wrap gap-2">
+                          {canSendNota(s) && (
+                            <Button variant="outline" size="sm" nativeButton={false}
+                              render={<a href={`/api/sales/${s.id}/pdf`} target="_blank" rel="noopener noreferrer" />}>
+                              <FileDown className="h-4 w-4" /> NOTA
+                            </Button>
+                          )}
+                          {canSendNota(s) && (
+                            <Button variant="outline" size="sm" onClick={() => setEmailRow(s)}>
+                              <Mail className="h-4 w-4" /> Email
+                            </Button>
+                          )}
+                          {s.payment_method === "terhutang" && !s.paid_date && (
+                            <Button variant="outline" size="sm" onClick={() => openPay(s)} disabled={pending}>
+                              <CheckCircle2 className="h-4 w-4" /> Lunas
+                            </Button>
+                          )}
+                          <Button variant="outline" size="sm" onClick={() => handleDelete(s)} disabled={pending}
+                            className="text-destructive">
+                            {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />} Hapus
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+
             <PaginationBar page={pg.page} totalPages={pg.totalPages}
               from={pg.from} to={pg.to} total={pg.total}
               onPageChange={pg.setPage} unit="transaksi" />

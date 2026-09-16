@@ -184,6 +184,7 @@ export function ProductManager({
                 : "Semua barang stoknya habis. Aktifkan 'Tampilkan stok habis' atau catat pembelian baru."} />
           ) : (
             <>
+            <div className="hidden lg:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -254,6 +255,57 @@ export function ProductManager({
                 })}
               </TableBody>
             </Table>
+            </div>
+
+            {/* Mobile: daftar kartu */}
+            <ul className="ma-list lg:hidden">
+              {pg.paged.map((p) => {
+                const low = p.current_stock <= p.min_stock;
+                const empty = p.current_stock <= 0;
+                return (
+                  <li key={p.id}
+                    className={"border-b border-border px-4 py-3 last:border-b-0 " + (!p.is_active || empty ? "opacity-60" : "")}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{p.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {p.sku ?? "Tanpa SKU"}
+                          {!p.track_as_asset && " · Habis pakai"}
+                          {empty && " · Stok habis"}
+                          {!p.is_active && " · Nonaktif"}
+                        </p>
+                      </div>
+                      <Badge variant={low ? "destructive" : "outline"}
+                        className={low ? "shrink-0" : "shrink-0 border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-400"}>
+                        {p.current_stock} {p.unit}
+                      </Badge>
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                      <Badge variant="secondary">{catName(p.category_id)}</Badge>
+                      <span className="ma-num">Jual {formatIDR(Number(p.default_selling_price))}</span>
+                      <span>· {p.default_warranty_months} bln</span>
+                    </div>
+                    <div className="mt-2 flex justify-end gap-1">
+                      <Button variant="ghost" size="icon" title="Sesuaikan stok" onClick={() => openAdjust(p)}>
+                        <SlidersHorizontal className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" nativeButton={false}
+                        title="Riwayat stok" render={<Link href={`/products/${p.id}`} />}>
+                        <History className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" title="Ubah data barang" onClick={() => openEdit(p)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" title="Hapus"
+                        className="text-muted-foreground hover:text-destructive" onClick={() => handleDelete(p)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
             <PaginationBar page={pg.page} totalPages={pg.totalPages}
               from={pg.from} to={pg.to} total={pg.total}
               onPageChange={pg.setPage} unit="barang" />

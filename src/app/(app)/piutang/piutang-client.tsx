@@ -94,6 +94,7 @@ export function PiutangClient({
                 placeholder="Cari client / nomor…" className="pl-8" />
             </div>
           </div>
+          <div className="hidden lg:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -144,6 +145,40 @@ export function PiutangClient({
               })}
             </TableBody>
           </Table>
+          </div>
+
+          {/* Mobile: daftar kartu */}
+          <ul className="ma-list lg:hidden">
+            {filtered.map((r) => {
+              const od = daysOverdue(r.dueDate);
+              return (
+                <li key={r.id} className="border-b border-border px-4 py-3 last:border-b-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{r.client}</p>
+                      <p className="text-xs text-muted-foreground">{r.ref} · {formatDate(r.tanggal)}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        <Badge variant="outline"
+                          className={r.jenis === "Invoice" ? SOFT_TONES.sky : SOFT_TONES.amber}>
+                          {r.jenis}
+                        </Badge>
+                        {r.dueDate && od !== null && (
+                          od > 0 ? (
+                            <span className="text-xs font-medium text-destructive">Lewat {od} hari</span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">
+                              {od === 0 ? "Jatuh tempo hari ini" : `${-od} hari lagi`}
+                            </span>
+                          )
+                        )}
+                      </div>
+                    </div>
+                    <p className="ma-num shrink-0 font-bold">{formatIDR(r.amount)}</p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         </CardContent>
       </Card>
     </div>

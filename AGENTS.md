@@ -86,6 +86,90 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
+- **2026-09-16 — Redesign MOBILE "PBMS Saku" (fintech premium, light+dark) — Fase 1–7.**
+  Tampilan mobile dibangun ulang jadi seperti aplikasi finansial terpasang (bukan web yang
+  dikecilkan), **tanpa mengubah desktop**. Dokumen kerja + checkpoint lengkap (fase, pola,
+  cara verifikasi, sisa pekerjaan) di **`docs/MOBILE-REDESIGN.md`** — baca itu sebelum
+  melanjutkan.
+  - **Prinsip:** *adaptive*, bukan responsive murni. Data/RPC/server action/PDF **dipakai
+    bersama** desktop — **nol tabel baru, nol beban DB/storage**. Cabang tampilan: list yang
+    fetch di server render **sekali** lalu tampil dua versi via CSS (`hidden lg:block` desktop /
+    `lg:hidden` mobile); yang fetch di klien (dashboard) render dua komponen dari state sama.
+    Hal yang tak boleh mount di mobile (grafik Recharts saat `display:none` → error width(0))
+    dijaga hook `useIsMobile()` (`src/components/shared/use-is-mobile.ts`).
+  - **Design system** `ma-*` + token `--m-*` di `globals.css` (bagian "DESIGN SYSTEM MOBILE"):
+    permukaan pakai token app (ikut tema), aksen **teal (Athaya) + oranye (Cetak Ide)**.
+    `formatIDRShort` ditambah di `lib/utils/currency.ts`.
+  - **FIX BUG FONT (seluruh app, desktop+mobile):** app ternyata render **Times New
+    Roman** (serif) karena `@theme inline { --font-sans: var(--font-sans) }` di
+    `globals.css` **sirkular** → kosong → fallback serif; Plus Jakarta Sans di-load
+    next/font tapi tak pernah dipakai. Diperbaiki: `--font-sans` → `var(--font-jakarta)`
+    + fallback (mono juga diberi fallback). Ditambah **Sora** (`--font-sora` di
+    `layout.tsx`) sebagai font **display** (`--font-display`) untuk angka & judul besar
+    mobile — diterapkan ke `.ma-num`, `.ma-h1`, `.ma-sec h3` (hero saldo, KPI, nominal,
+    judul). Terverifikasi computed `font-family` body = "Plus Jakarta Sans" (bukan lagi
+    Times New Roman). Catatan: `next/font` mengunduh font saat build — butuh jaringan.
+  - **Fase 1 — Fondasi + Beranda:** bottom-nav 4 tab (Beranda/Transaksi/Laporan/Menu) + FAB
+    tengah → bottom-sheet "Catat Baru" (Beli→Jual→Pengeluaran→Invoice→Transfer);
+    `bottom-nav.tsx` ditulis ulang (disembunyikan di lg via media query `.ma-bnav`, BUKAN
+    `lg:hidden` Tailwind karena `.ma-*` di luar @layer selalu menang). Halaman **Menu**
+    (`menu/page.tsx`) = hub semua fitur dari `NAV_GROUPS` (tak ada menu terpotong).
+    **Dashboard mobile** (`dashboard/dashboard-mobile.tsx`): hero Laba Bersih, aksi cepat,
+    KPI Piutang/Hutang, sparkline tren, ringkasan, invoice tertunda, garansi. `dashboard-client.tsx`
+    render mobile+desktop dari satu fetch; `dashboard/page.tsx` disederhanakan (header+search
+    pindah ke cabang desktop). `layout.tsx` padding bawah dinaikkan ke 6rem (ruang FAB).
+  - **Fase 2 — Tab inti:** **Riwayat Transaksi** komponen mobile terpisah
+    (`transactions/transaction-list-mobile.tsx`): ringkasan Masuk/Keluar/Net, search +
+    **`FilterSheet`** (komponen reusable baru `src/components/mobile/filter-sheet.tsx` = filter
+    dalam bottom-sheet), kartu per transaksi. **Laporan** = Tier B (sudah kartu+chart responsif,
+    diverifikasi). PageHeader desktop disembunyikan di mobile untuk halaman ber-judul-mobile-sendiri.
+  - **Fase 3 — List transaksi (Pembelian/Penjualan/Pengeluaran):** pola *in-place* (satu
+    komponen, handler & dialog dipakai bersama) — tabel dibungkus `hidden lg:block`, tambah
+    daftar **kartu `lg:hidden`** + **ringkasan kompak** `lg:hidden` (desktop `hidden lg:grid`)
+    + tombol toolbar diberi `flex-wrap` (fix meluber). Penjualan: kartu + expand item + aksi
+    NOTA/Email/Lunas/Hapus + badge brand/status. File: `purchases/purchase-list.tsx`,
+    `sales/sale-list.tsx`, `shared/expenses-manager.tsx`.
+  - **Fase 4 — Master data (Stok/Aset/Client/Distributor):** keempatnya pakai tabel →
+    Tier A, pola sama Fase 3 (tabel `hidden lg:block` + kartu `lg:hidden`). Stok Barang
+    (`products/product-manager.tsx`): kartu badge stok/harga/garansi + aksi sesuaikan/
+    riwayat/ubah/hapus. Aset (`assets/asset-manager.tsx`): kartu thumbnail foto + status
+    garansi + repair/riwayat/ubah/hapus. Client (`clients/client-manager.tsx`): kartu +
+    360/ubah/hapus. Distributor (`distributors/distributor-manager.tsx`): kartu + ubah/hapus.
+  - **Fase 5 — Layanan client (Invoice/Maintenance/Network/CCTV/RAB):** semua list pakai
+    tabel → Tier A, pola sama. Invoice (`invoices/invoice-list.tsx`): kartu brand+status +
+    Lihat/Hapus. Maintenance (`maintenance/contract-manager.tsx`): kartu biaya/bln+tempo+
+    status. Network (`network/network-manager.tsx`) & CCTV (`cctv/cctv-manager.tsx`): kartu +
+    `PasswordCell` (kredensial WiFi/perangkat/DVR) + repair/riwayat/ubah/hapus. RAB
+    (`rab/rab-list.tsx`): kartu nilai/diterima/sisa/laba + Lihat/Hapus. **Belum:**
+    `invoices/[id]/invoice-lines.tsx` & `rab/rab-editor.tsx` (detail/editor → Fase 7).
+  - **Fase 6 — Analisa & sistem:** Piutang & Hutang (Tier A) — `piutang/piutang-client.tsx`
+    (kartu + info overdue) & `piutang/hutang-client.tsx` (kartu per nota + checkbox pilih +
+    dialog bayar); `riwayat-bayar-client.tsx` sudah kartu. Pemeriksaan Data, Pengaturan
+    (tab+form), Pengajuan Distributor (kartu+segmented tab) = Tier B, sudah kartu/responsif,
+    diverifikasi OK.
+  - **Fase 7 — Form full-screen & invoice-lines:** kelas `.ma-dialog-full` (globals.css)
+    membuat DialogContent form **full-screen di mobile** (<640px), terpusat di desktop —
+    dipakai `sales/sale-form.tsx`, `purchases/purchase-form.tsx`, `purchases/quick-deal-form.tsx`.
+    **Gotcha Tailwind v4:** `-translate-x/y-1/2` memakai properti CSS `translate` (bukan
+    `transform`) → reset WAJIB `translate: none !important` (kalau cuma `transform:none`,
+    dialog tetap tergeser -50% & terpotong). Diverifikasi dialog box = {0,0,390,844}.
+    `invoices/[id]/invoice-lines.tsx` rincian baris tabel→kartu + Grand Total mobile.
+  - **Fase 7 (poles):** toolbar list → **FilterSheet** di mobile (Pembelian/Penjualan/
+    Pengeluaran): cari + tombol Filter (sheet berisi tanggal/jenis), field tanggal inline
+    `hidden lg:block`, tanpa duplikasi tombol aksi. **Header mobile** (`app-header.tsx`):
+    hamburger dihapus (redundan dgn tab Menu) → brand teal "PBMS-IT" di kiri. rab-editor
+    sudah responsif (tak diubah). **Sisa opsional (fungsional, bukan bug):** portal
+    distributor `/portal` & dialog pendek expense/product/asset full-screen.
+  - **Verifikasi:** `tsc --noEmit` bersih di tiap fase; verifikasi visual **via login E2E**
+    (akun test `E2E_TEST_*` di `.env.local`) + Playwright screenshot viewport 390px (light &
+    dark) — semua render benar, tanpa page-error. Worktree tak punya node_modules → disambung
+    junction ke checkout utama; `next dev` Turbopack menolak junction, jadi pakai **webpack**
+    (`npm run dev -- --webpack --port 3100`; config `preview-webpack` di `.claude/launch.json`).
+    Catatan: akun test kosong → daftar kartu terverifikasi struktur (tsc + tanpa error), belum
+    dengan data nyata.
+  - **OPSIONAL tersisa (lihat docs, bukan bug):** portal distributor `/portal` (login
+    terpisah) & dialog pendek (expense/product/asset) full-screen. Sisanya sudah selesai.
+
 - **2026-09-16 — RAB: tombol Unduh Excel (detail RAB, workbook editable).** Menu RAB → Detail RAB.
   User ingin mengedit RAB di Excel bila ada yang kurang. Tombol **Unduh Excel** (`FileSpreadsheet`)
   di header `rab/[id]/page.tsx`, di samping Unduh PDF → route baru

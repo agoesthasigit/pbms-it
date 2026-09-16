@@ -44,7 +44,7 @@ export default async function AppLayout({
         {/* Padding samping mengikuti safe-area supaya konten tidak tertutup
             notch. Padding bawah di mobile memberi ruang untuk bottom-nav +
             safe-area home indicator; di lg di-reset karena bar disembunyikan. */}
-        <main className="flex-1 p-4 pb-[calc(4.5rem+env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] lg:p-8 lg:pb-8">
+        <main className="flex-1 p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] lg:p-8 lg:pb-8">
           {children}
         </main>
       </div>

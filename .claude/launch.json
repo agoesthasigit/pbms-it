@@ -7,6 +7,13 @@
       "runtimeArgs": ["run", "dev"],
       "env": { "NODE_OPTIONS": "--use-system-ca" },
       "port": 3000
+    },
+    {
+      "name": "preview-webpack",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--webpack", "--port", "3100"],
+      "env": { "NODE_OPTIONS": "--use-system-ca" },
+      "port": 3100
     }
   ]
 }

@@ -67,6 +67,7 @@ export function RabList({ projects }: { projects: RabProject[] }) {
               description="Buat rencana anggaran biaya proyek pertama Anda." />
           ) : (
             <>
+            <div className="hidden lg:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -133,6 +134,61 @@ export function RabList({ projects }: { projects: RabProject[] }) {
                 })}
               </TableBody>
             </Table>
+            </div>
+
+            {/* Mobile: daftar kartu */}
+            <ul className="ma-list lg:hidden">
+              {pg.paged.map((p) => {
+                const profit = Number(p.net_profit ?? 0);
+                const value = Number(p.grand_total_rab ?? 0);
+                const paid = Number(p.total_paid ?? 0);
+                const remaining = Number(p.remaining ?? 0);
+                const lunas = value > 0 && remaining <= 0;
+                return (
+                  <li key={p.id} className="border-b border-border px-4 py-3 last:border-b-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{p.project_name}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {p.company_name ?? "-"} · {formatDate(p.project_date)}
+                        </p>
+                        <div className="mt-1">
+                          <Badge className={RAB_STATUS_STYLE[p.status as RabStatus]}>
+                            {RAB_STATUS_LABELS[p.status as RabStatus]}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p className="ma-num font-bold">{formatIDR(value)}</p>
+                        <p className={"ma-num text-xs font-semibold " + (profit >= 0 ? "text-emerald-600" : "text-destructive")}>
+                          Laba {formatIDR(profit)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Diterima <span className="ma-num text-emerald-600">{formatIDR(paid)}</span></span>
+                      {lunas ? (
+                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-400 dark:hover:bg-emerald-500/15">Lunas</Badge>
+                      ) : (
+                        <span className="ma-num font-medium text-amber-600">Sisa {formatIDR(Math.max(remaining, 0))}</span>
+                      )}
+                    </div>
+                    <div className="mt-2 flex justify-end gap-1">
+                      <Button variant="outline" size="sm" nativeButton={false}
+                        title="Lihat RAB" render={<Link href={`/rab/${p.id}`} />}>
+                        <Eye className="h-3.5 w-3.5" /> Lihat
+                      </Button>
+                      <Button variant="ghost" size="icon" title="Hapus"
+                        className="text-muted-foreground hover:text-destructive"
+                        onClick={() => handleDelete(p)} disabled={pending}>
+                        {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
             <PaginationBar page={pg.page} totalPages={pg.totalPages}
               from={pg.from} to={pg.to} total={pg.total}
               onPageChange={pg.setPage} unit="RAB" />

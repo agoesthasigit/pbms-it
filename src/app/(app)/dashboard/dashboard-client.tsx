@@ -27,21 +27,21 @@ import type {
 } from "@/types/phase8";
 import type { ProfitLoss, ProfitTrendPoint } from "@/types/reports";
 import { getProfitLoss, getProfitLossTrend } from "../reports/actions";
-
-type PendingInvoice = {
-  id: string; invoice_no: string; company_name: string;
-  total: number; due_date: string | null; effective_status: string;
-};
-type ExpiringAsset = {
-  id: string; product_name: string; company_name: string;
-  warranty_end: string; days_left: number;
-};
+import { PageHeader } from "@/components/shared/page-header";
+import { GlobalSearch } from "@/components/shared/global-search";
+import { useIsMobile } from "@/components/shared/use-is-mobile";
+import {
+  DashboardMobile,
+  type PendingInvoice,
+  type ExpiringAsset,
+} from "./dashboard-mobile";
 
 const shortMonth = (iso: string) =>
   new Date(iso).toLocaleDateString("id-ID", { month: "short" });
 
 export function DashboardClient() {
   const supabase = useMemo(() => createClient(), []);
+  const isMobile = useIsMobile();
   const [period, setPeriod] = useState<Period>(presetThisMonth());
   const [loading, setLoading] = useState(true);
 
@@ -96,8 +96,30 @@ export function DashboardClient() {
   }));
 
   return (
-    <div className="space-y-6">
-      <PeriodPicker period={period} onChange={setPeriod} />
+    <>
+      {/* Mobile: tampilan aplikasi finansial (hero + aksi cepat + daftar). */}
+      <div className="lg:hidden">
+        <DashboardMobile
+          loading={loading}
+          period={period}
+          onPeriodChange={setPeriod}
+          summary={summary}
+          pl={pl}
+          counts={counts}
+          profitTrend={profitTrend}
+          pendingInvoices={pendingInvoices}
+          expiringAssets={expiringAssets}
+        />
+      </div>
+
+      {/* Desktop: dashboard kartu + tabel seperti sebelumnya (tak berubah). */}
+      <div className="hidden space-y-6 lg:block">
+        <PageHeader
+          title="Dashboard"
+          description="Ringkasan keuangan dan operasional bisnis Anda secara real-time."
+        />
+        <GlobalSearch />
+        <PeriodPicker period={period} onChange={setPeriod} />
 
       {/* Kartu ringkasan keuangan — aturan laba baru */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -142,6 +164,9 @@ export function DashboardClient() {
         <CardHeader><CardTitle className="text-base">Tren Keuangan (12 Bulan)</CardTitle></CardHeader>
         <CardContent>
           <div className="h-72 w-full">
+            {/* Hanya render di desktop: kontainer ini display:none di mobile,
+                Recharts akan error width(0)/height(0) bila tetap di-mount. */}
+            {isMobile === false && (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -163,6 +188,7 @@ export function DashboardClient() {
                 <Line type="monotone" dataKey="Laba" stroke="#0ea5e9" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -234,6 +260,7 @@ export function DashboardClient() {
           </CardContent>
         </Card>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

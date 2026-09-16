@@ -1,15 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Menu, LogOut, UserCircle2 } from "lucide-react";
+import { LogOut, UserCircle2, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,40 +10,31 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Brand } from "./brand";
-import { SidebarNav } from "./sidebar-nav";
 import { ThemeToggle } from "./theme-toggle";
 import { logout } from "@/app/(auth)/login/actions";
 
+// Header aplikasi. Di mobile menampilkan brand di kiri (menu lengkap sudah lewat
+// tab "Menu" di bottom-nav — hamburger dihapus agar tak redundan). Di desktop
+// kiri dibiarkan kosong karena brand & navigasi sudah ada di sidebar.
 export function AppHeader({
   email,
-  badges,
 }: {
   email: string;
+  /** Dipertahankan agar kompatibel dgn pemanggil; lencana kini di sidebar & tab Menu. */
   badges?: Record<string, number>;
 }) {
-  const [open, setOpen] = useState(false);
-
   return (
     // `min-h-14`, bukan `h-14`: tinggi tetap + padding-top safe-area akan
     // menggencet isi header karena box-sizing border-box.
     <header className="sticky top-0 z-20 flex min-h-14 items-center gap-3 border-b bg-background/95 px-4 pt-[env(safe-area-inset-top)] backdrop-blur lg:px-8">
-      {/* Menu mobile */}
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger
-          render={<Button variant="ghost" size="icon" className="lg:hidden" />}
-        >
-          <Menu className="h-5 w-5" />
-          <span className="sr-only">Buka menu</span>
-        </SheetTrigger>
-        <SheetContent side="left" className="flex w-72 flex-col p-0">
-          <SheetHeader className="sr-only">
-            <SheetTitle>Menu navigasi</SheetTitle>
-          </SheetHeader>
-          <Brand />
-          <SidebarNav onNavigate={() => setOpen(false)} badges={badges} />
-        </SheetContent>
-      </Sheet>
+      {/* Brand — mobile saja */}
+      <div className="flex items-center gap-2 lg:hidden">
+        <span className="grid h-8 w-8 place-items-center rounded-lg text-white shadow-sm"
+          style={{ background: "var(--m-hero-grad)" }}>
+          <Wallet className="h-4 w-4" />
+        </span>
+        <span className="font-heading text-base font-bold tracking-tight">PBMS-IT</span>
+      </div>
 
       <div className="flex-1" />
 
