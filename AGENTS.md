@@ -100,6 +100,15 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
   - **Design system** `ma-*` + token `--m-*` di `globals.css` (bagian "DESIGN SYSTEM MOBILE"):
     permukaan pakai token app (ikut tema), aksen **teal (Athaya) + oranye (Cetak Ide)**.
     `formatIDRShort` ditambah di `lib/utils/currency.ts`.
+  - **FIX BUG FONT (seluruh app, desktop+mobile):** app ternyata render **Times New
+    Roman** (serif) karena `@theme inline { --font-sans: var(--font-sans) }` di
+    `globals.css` **sirkular** → kosong → fallback serif; Plus Jakarta Sans di-load
+    next/font tapi tak pernah dipakai. Diperbaiki: `--font-sans` → `var(--font-jakarta)`
+    + fallback (mono juga diberi fallback). Ditambah **Sora** (`--font-sora` di
+    `layout.tsx`) sebagai font **display** (`--font-display`) untuk angka & judul besar
+    mobile — diterapkan ke `.ma-num`, `.ma-h1`, `.ma-sec h3` (hero saldo, KPI, nominal,
+    judul). Terverifikasi computed `font-family` body = "Plus Jakarta Sans" (bukan lagi
+    Times New Roman). Catatan: `next/font` mengunduh font saat build — butuh jaringan.
   - **Fase 1 — Fondasi + Beranda:** bottom-nav 4 tab (Beranda/Transaksi/Laporan/Menu) + FAB
     tengah → bottom-sheet "Catat Baru" (Beli→Jual→Pengeluaran→Invoice→Transfer);
     `bottom-nav.tsx` ditulis ulang (disembunyikan di lg via media query `.ma-bnav`, BUKAN
