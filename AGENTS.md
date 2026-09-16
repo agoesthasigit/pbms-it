@@ -86,6 +86,26 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
+- **2026-09-16 — RAB: tombol Unduh Excel (detail RAB, workbook editable).** Menu RAB → Detail RAB.
+  User ingin mengedit RAB di Excel bila ada yang kurang. Tombol **Unduh Excel** (`FileSpreadsheet`)
+  di header `rab/[id]/page.tsx`, di samping Unduh PDF → route baru
+  **`src/app/api/rab/[id]/excel/route.ts`** (exceljs, `runtime=nodejs`, cek `auth.getUser`).
+  Satu sheet "RAB" berisi keempat bagian: 1. Penawaran, 2. Pengeluaran (+kolom Kategori),
+  Rekap per Kategori, 3. Termin, Ringkasan.
+  - **Editable = pakai RUMUS** (pola sama route reports): Total per baris = `Qty*Harga`,
+    Grand Total = `SUM(...)`, Laba = `RAB−Pengeluaran`, Sisa = `MAX(RAB−Diterima,0)`. **Rekap
+    per kategori pakai `SUMIF`** atas kolom Kategori (C) & Total (F) tabel pengeluaran → ikut
+    berubah saat user mengedit qty/harga. % = `IFERROR(total/grandExpense)`. Baris tanpa kategori
+    ditulis literal **"Lain-lain"** di kolom Kategori agar SUMIF-nya cocok.
+  - Kolom seragam sepanjang sheet: 1 No · 2 Nama · 3 Kategori · 4 Qty · 5 Harga · 6 Total/Nominal
+    · 7 Tanggal · 8 Wallet. `moneyFmt` di kolom 5 & 6. Pakai helper bersama
+    `lib/reports/export-helpers.ts` (`styleTitle/styleTableHeader/styleTotal/moneyFmt/xlsxResponse`)
+    + `sectionRow` lokal (latar teal/amber selebar tabel). Rekap memakai `rabCategoryRecap` untuk
+    urutan/daftar kategori.
+  - **Verifikasi:** `tsc` bersih; generate `.xlsx` dari data RAB **nyata** di DB lalu **dibuka
+    ulang** exceljs → valid (26 baris, semua rumus F well-formed: `D*E`, `SUM`, `F8-F13`,
+    `MAX(...)`, rekap `E/F13`). Verifikasi visual di app tak bisa (di balik login).
+
 - **2026-09-15 — RAB: kategori pengeluaran + rekap per kategori (layar & PDF).** Menu RAB →
   *2. Detail Pengeluaran (Realisasi)*. Tujuan: melihat kategori pengeluaran terbesar (mis.
   CCTV vs TRANSPORT vs TUKANG). Tiap baris pengeluaran dapat **dropdown Kategori (opsional)**;

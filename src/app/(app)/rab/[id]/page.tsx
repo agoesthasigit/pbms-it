@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Download, Lock } from "lucide-react";
+import { ArrowLeft, Download, FileSpreadsheet, Lock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -69,6 +69,10 @@ export default async function RabDetailPage({
           <Button variant="outline" nativeButton={false}
             render={<a href={`/api/rab/${id}/pdf`} target="_blank" rel="noopener noreferrer" />}>
             <Download className="h-4 w-4" /> Unduh PDF
+          </Button>
+          <Button variant="outline" nativeButton={false}
+            render={<a href={`/api/rab/${id}/excel`} />}>
+            <FileSpreadsheet className="h-4 w-4" /> Unduh Excel
           </Button>
           <RabDeleteButton id={id} projectName={proj.project_name} />
           <Button variant="outline" nativeButton={false} render={<Link href="/rab" />}>
