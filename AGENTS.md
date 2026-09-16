@@ -154,8 +154,12 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
     `transform`) → reset WAJIB `translate: none !important` (kalau cuma `transform:none`,
     dialog tetap tergeser -50% & terpotong). Diverifikasi dialog box = {0,0,390,844}.
     `invoices/[id]/invoice-lines.tsx` rincian baris tabel→kartu + Grand Total mobile.
-    **Sisa OPSIONAL (fungsional, bukan bug):** toolbar list→FilterSheet, rab-editor,
-    poles header, portal.
+  - **Fase 7 (poles):** toolbar list → **FilterSheet** di mobile (Pembelian/Penjualan/
+    Pengeluaran): cari + tombol Filter (sheet berisi tanggal/jenis), field tanggal inline
+    `hidden lg:block`, tanpa duplikasi tombol aksi. **Header mobile** (`app-header.tsx`):
+    hamburger dihapus (redundan dgn tab Menu) → brand teal "PBMS-IT" di kiri. rab-editor
+    sudah responsif (tak diubah). **Sisa opsional (fungsional, bukan bug):** portal
+    distributor `/portal` & dialog pendek expense/product/asset full-screen.
   - **Verifikasi:** `tsc --noEmit` bersih di tiap fase; verifikasi visual **via login E2E**
     (akun test `E2E_TEST_*` di `.env.local`) + Playwright screenshot viewport 390px (light &
     dark) — semua render benar, tanpa page-error. Worktree tak punya node_modules → disambung
@@ -163,8 +167,8 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
     (`npm run dev -- --webpack --port 3100`; config `preview-webpack` di `.claude/launch.json`).
     Catatan: akun test kosong → daftar kartu terverifikasi struktur (tsc + tanpa error), belum
     dengan data nyata.
-  - **OPSIONAL (lihat docs, bukan bug):** toolbar list→FilterSheet, rab-editor responsif,
-    poles header mobile (sapaan/avatar, buang hamburger), dialog pendek full-screen, portal.
+  - **OPSIONAL tersisa (lihat docs, bukan bug):** portal distributor `/portal` (login
+    terpisah) & dialog pendek (expense/product/asset) full-screen. Sisanya sudah selesai.
 
 - **2026-09-15 — RAB: kategori pengeluaran + rekap per kategori (layar & PDF).** Menu RAB →
   *2. Detail Pengeluaran (Realisasi)*. Tujuan: melihat kategori pengeluaran terbesar (mis.

@@ -21,6 +21,7 @@ import { usePagination } from "@/components/shared/use-pagination";
 import { PaginationBar } from "@/components/shared/pagination-bar";
 import type { ProductWithStock, Distributor, WalletWithBalance, Client } from "@/types/db";
 import type { PurchaseRow } from "@/types/phase3";
+import { FilterSheet } from "@/components/mobile/filter-sheet";
 import { PurchaseForm } from "./purchase-form";
 import { QuickDealForm } from "./quick-deal-form";
 import { deletePurchase } from "./actions";
@@ -192,18 +193,34 @@ export function PurchaseList({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div className="grid flex-1 gap-3 sm:grid-cols-2 lg:max-w-2xl lg:grid-cols-3">
           <div className="space-y-1 sm:col-span-2 lg:col-span-1">
-            <Label className="text-xs">Cari</Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input className="pl-9" placeholder="Barang / distributor / nota..."
-                value={q} onChange={(e) => setQ(e.target.value)} />
+            <Label className="hidden text-xs lg:block">Cari</Label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input className="pl-9" placeholder="Barang / distributor / nota..."
+                  value={q} onChange={(e) => setQ(e.target.value)} />
+              </div>
+              {/* Mobile: tanggal di dalam FilterSheet */}
+              <div className="lg:hidden">
+                <FilterSheet activeCount={showingAll || !isThisMonth ? 1 : 0} onReset={resetRange}>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Dari Tanggal</Label>
+                    <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Sampai Tanggal</Label>
+                    <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+                  </div>
+                </FilterSheet>
+              </div>
             </div>
           </div>
-          <div className="space-y-1">
+          {/* Tanggal inline: desktop */}
+          <div className="hidden space-y-1 lg:block">
             <Label className="text-xs">Dari Tanggal</Label>
             <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
           </div>
-          <div className="space-y-1">
+          <div className="hidden space-y-1 lg:block">
             <Label className="text-xs">Sampai Tanggal</Label>
             <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
           </div>

@@ -35,6 +35,7 @@ import { PaginationBar } from "@/components/shared/pagination-bar";
 import type { WalletWithBalance, Category, Label as LabelType } from "@/types/db";
 import type { ExpenseRow } from "@/types/phase3";
 import { createExpense, deleteExpense } from "./expense-actions";
+import { FilterSheet } from "@/components/mobile/filter-sheet";
 
 type Kind = "operational" | "personal";
 export type MergedExpenseRow = ExpenseRow & { kind: Kind };
@@ -229,7 +230,8 @@ export function ExpensesManager({
       {/* Toolbar: jenis + cari + rentang tanggal */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div className="grid flex-1 gap-3 sm:grid-cols-2 lg:max-w-3xl lg:grid-cols-4">
-          <div className="space-y-1">
+          {/* Jenis: desktop inline */}
+          <div className="hidden space-y-1 lg:block">
             <Label className="text-xs">Jenis</Label>
             <Select items={kindFilterItems} value={kindFilter}
               onValueChange={(v) => setKindFilter((v as "all" | Kind) ?? "all")}>
@@ -241,19 +243,47 @@ export function ExpensesManager({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Cari</Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input className="pl-9" placeholder="Keterangan / kategori / wallet..."
-                value={q} onChange={(e) => setQ(e.target.value)} />
+          {/* Cari + Filter (mobile) */}
+          <div className="space-y-1 sm:col-span-2 lg:col-span-1">
+            <Label className="hidden text-xs lg:block">Cari</Label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input className="pl-9" placeholder="Keterangan / kategori / wallet..."
+                  value={q} onChange={(e) => setQ(e.target.value)} />
+              </div>
+              <div className="lg:hidden">
+                <FilterSheet activeCount={kindFilter !== "all" ? 1 : 0} onReset={resetFilter}>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Jenis</Label>
+                    <Select items={kindFilterItems} value={kindFilter}
+                      onValueChange={(v) => setKindFilter((v as "all" | Kind) ?? "all")}>
+                      <SelectTrigger><SelectValue placeholder="Semua Jenis" /></SelectTrigger>
+                      <SelectContent>
+                        {kindFilterItems.map((it) => (
+                          <SelectItem key={it.value} value={it.value}>{it.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Dari Tanggal</Label>
+                    <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Sampai Tanggal</Label>
+                    <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+                  </div>
+                </FilterSheet>
+              </div>
             </div>
           </div>
-          <div className="space-y-1">
+          {/* Tanggal: desktop inline */}
+          <div className="hidden space-y-1 lg:block">
             <Label className="text-xs">Dari Tanggal</Label>
             <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
           </div>
-          <div className="space-y-1">
+          <div className="hidden space-y-1 lg:block">
             <Label className="text-xs">Sampai Tanggal</Label>
             <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
           </div>

@@ -32,6 +32,7 @@ import { BRAND_LABELS, BRAND_TONE, toBrand } from "@/types/phase4";
 import { SendEmailDialog } from "@/components/shared/send-email-dialog";
 import { useConfirm } from "@/components/shared/confirm-dialog";
 import { SaleForm } from "./sale-form";
+import { FilterSheet } from "@/components/mobile/filter-sheet";
 import { deleteSale, paySale, sendSaleEmail } from "./actions";
 
 /** Baris penjualan yang boleh dikirim NOTA-nya (sama dgn syarat unduh NOTA). */
@@ -225,18 +226,32 @@ export function SaleList({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div className="grid flex-1 gap-3 sm:grid-cols-2 lg:max-w-2xl lg:grid-cols-3">
           <div className="space-y-1 sm:col-span-2 lg:col-span-1">
-            <Label className="text-xs">Cari</Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input className="pl-9" placeholder="Client / barang / metode..."
-                value={q} onChange={(e) => setQ(e.target.value)} />
+            <Label className="hidden text-xs lg:block">Cari</Label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input className="pl-9" placeholder="Client / barang / metode..."
+                  value={q} onChange={(e) => setQ(e.target.value)} />
+              </div>
+              <div className="lg:hidden">
+                <FilterSheet activeCount={isThisMonth ? 0 : 1} onReset={resetRange}>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Dari Tanggal</Label>
+                    <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Sampai Tanggal</Label>
+                    <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+                  </div>
+                </FilterSheet>
+              </div>
             </div>
           </div>
-          <div className="space-y-1">
+          <div className="hidden space-y-1 lg:block">
             <Label className="text-xs">Dari Tanggal</Label>
             <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
           </div>
-          <div className="space-y-1">
+          <div className="hidden space-y-1 lg:block">
             <Label className="text-xs">Sampai Tanggal</Label>
             <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
           </div>

@@ -114,7 +114,7 @@ Semua list pakai tabel → Tier A (pola sama Fase 3/4).
 - [x] Pengajuan Distributor (Tier B) — sudah kartu + segmented tab (bukan tabel), verifikasi OK.
 - [x] Verifikasi E2E (tanpa error) + tsc bersih.
 
-### Fase 7 — Form & poles akhir 🔶
+### Fase 7 — Form & poles akhir ✅
 - [x] **Form full-screen di mobile** — kelas `.ma-dialog-full` (globals.css) dipakai di
       `sales/sale-form.tsx`, `purchases/purchase-form.tsx`, `purchases/quick-deal-form.tsx`
       (DialogContent). Full-screen < 640px, modal terpusat di desktop.
@@ -123,14 +123,16 @@ Semua list pakai tabel → Tier A (pola sama Fase 3/4).
       `transform`). Diverifikasi: dialog box = {0,0,390,844} (full-screen).
 - [x] **invoice-lines** (`invoices/[id]/invoice-lines.tsx`) — rincian baris tabel→kartu
       + baris Grand Total mobile.
-- [ ] **Toolbar list → FilterSheet** (opsional): cari+tanggal di Pembelian/Penjualan/
-      Pengeluaran/Stok masih stack (fungsional, agak panjang) — bisa dipindah ke
-      `FilterSheet` seperti Transaksi.
-- [ ] **rab-editor** (`rab/rab-editor.tsx`) — form editor panjang, tak pakai tabel;
-      cek responsif bila dipakai intens di mobile.
-- [ ] **Poles header mobile** (opsional): sapaan+avatar; hilangkan hamburger (redundan
-      dgn tab Menu). Dialog pendek (expense/product/asset) bisa full-screen juga bila mau.
-- [ ] **Portal distributor** (mobile) — aplikasi login terpisah `/portal`, di luar app pemilik.
+- [x] **Toolbar list → FilterSheet** — Pembelian/Penjualan/Pengeluaran: di mobile
+      cari + tombol **Filter** (bottom-sheet berisi tanggal/jenis), field tanggal inline
+      disembunyikan (`hidden lg:block`); tanpa duplikasi tombol aksi. Stok dilewati
+      (toolbarnya sudah pendek: search + switch).
+- [x] **rab-editor** — dikonfirmasi **sudah responsif** (grid `col-span-12 sm:col-span-*`,
+      nama full-width lalu qty/harga kompak) — tak perlu diubah.
+- [x] **Poles header mobile** — hamburger dihapus (redundan dgn tab Menu), diganti brand
+      teal "PBMS-IT" di kiri (`app-header.tsx`). Desktop tak berubah (brand di sidebar).
+- [ ] **Portal distributor** (mobile) — aplikasi login terpisah `/portal`, di luar app pemilik. (belum)
+- [ ] Dialog pendek (expense/product/asset) full-screen — opsional, belum (modal terpusat masih OK).
 
 ## Checkpoint terakhir
 
@@ -139,11 +141,11 @@ Semua list pakai tabel → Tier A (pola sama Fase 3/4).
 > (Times New Roman → Plus Jakarta Sans + Sora display). **Seluruh redesign mobile
 > fungsional lengkap di semua menu.**
 >
-> **Sisa = polish OPSIONAL (bukan bug, halaman sudah fungsional):**
-> - Toolbar list (cari+tanggal) Pembelian/Penjualan/Pengeluaran/Stok → `FilterSheet`.
-> - `rab/rab-editor.tsx` cek responsif bila dipakai intens di mobile.
-> - Header mobile (sapaan+avatar, buang hamburger redundan); dialog pendek full-screen.
-> - Portal distributor `/portal` (aplikasi login terpisah).
+> **Fase 7 lengkap** (form full-screen, invoice-lines, toolbar→FilterSheet, header
+> brand mobile). rab-editor sudah responsif.
+>
+> **Sisa OPSIONAL kecil (bukan bug):** Portal distributor `/portal` (login terpisah)
+> & dialog pendek (expense/product/asset) full-screen. Keduanya masih fungsional apa adanya.
 >
 > **Cara melanjutkan:** jalankan dev (`npm run dev -- --webpack --port 3100`), baca
 > komponen target, terapkan pola, `tsc --noEmit`, verifikasi E2E. Untuk verifikasi
