@@ -86,7 +86,7 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
-- **2026-09-16 — Redesign MOBILE "PBMS Saku" (fintech premium, light+dark) — Fase 1–6.**
+- **2026-09-16 — Redesign MOBILE "PBMS Saku" (fintech premium, light+dark) — Fase 1–7.**
   Tampilan mobile dibangun ulang jadi seperti aplikasi finansial terpasang (bukan web yang
   dikecilkan), **tanpa mengubah desktop**. Dokumen kerja + checkpoint lengkap (fase, pola,
   cara verifikasi, sisa pekerjaan) di **`docs/MOBILE-REDESIGN.md`** — baca itu sebelum
@@ -147,6 +147,15 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
     dialog bayar); `riwayat-bayar-client.tsx` sudah kartu. Pemeriksaan Data, Pengaturan
     (tab+form), Pengajuan Distributor (kartu+segmented tab) = Tier B, sudah kartu/responsif,
     diverifikasi OK.
+  - **Fase 7 — Form full-screen & invoice-lines:** kelas `.ma-dialog-full` (globals.css)
+    membuat DialogContent form **full-screen di mobile** (<640px), terpusat di desktop —
+    dipakai `sales/sale-form.tsx`, `purchases/purchase-form.tsx`, `purchases/quick-deal-form.tsx`.
+    **Gotcha Tailwind v4:** `-translate-x/y-1/2` memakai properti CSS `translate` (bukan
+    `transform`) → reset WAJIB `translate: none !important` (kalau cuma `transform:none`,
+    dialog tetap tergeser -50% & terpotong). Diverifikasi dialog box = {0,0,390,844}.
+    `invoices/[id]/invoice-lines.tsx` rincian baris tabel→kartu + Grand Total mobile.
+    **Sisa OPSIONAL (fungsional, bukan bug):** toolbar list→FilterSheet, rab-editor,
+    poles header, portal.
   - **Verifikasi:** `tsc --noEmit` bersih di tiap fase; verifikasi visual **via login E2E**
     (akun test `E2E_TEST_*` di `.env.local`) + Playwright screenshot viewport 390px (light &
     dark) — semua render benar, tanpa page-error. Worktree tak punya node_modules → disambung
@@ -154,8 +163,8 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
     (`npm run dev -- --webpack --port 3100`; config `preview-webpack` di `.claude/launch.json`).
     Catatan: akun test kosong → daftar kartu terverifikasi struktur (tsc + tanpa error), belum
     dengan data nyata.
-  - **BELUM (lihat docs):** Fase 7 (form penjualan/pembelian/pengeluaran full-screen
-    mobile, invoice-lines & rab-editor, toolbar list→FilterSheet, poles header).
+  - **OPSIONAL (lihat docs, bukan bug):** toolbar list→FilterSheet, rab-editor responsif,
+    poles header mobile (sapaan/avatar, buang hamburger), dialog pendek full-screen, portal.
 
 - **2026-09-15 — RAB: kategori pengeluaran + rekap per kategori (layar & PDF).** Menu RAB →
   *2. Detail Pengeluaran (Realisasi)*. Tujuan: melihat kategori pengeluaran terbesar (mis.

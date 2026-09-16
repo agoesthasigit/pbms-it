@@ -298,6 +298,25 @@
    mengalahkan utilitas Tailwind yang di-layer. */
 @media (min-width: 1024px) { .ma-bnav { display: none; } }
 
+/* --- Form panjang: full-screen di mobile ---
+   Dipakai pada DialogContent form penjualan/pembelian/quick-deal yang sudah
+   berstruktur flex-col (header sticky + area tengah scroll + footer sticky).
+   Hanya aktif < 640px; desktop tetap modal terpusat. */
+@media (max-width: 639px) {
+  .ma-dialog-full {
+    inset: 0 !important;
+    /* Tailwind v4 memakai properti `translate` (bukan `transform`) untuk
+       -translate-x/y-1/2, jadi WAJIB di-reset via `translate`. */
+    translate: none !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    border-radius: 0 !important;
+  }
+}
+
 /* --- Bottom sheet "Catat Baru" --- */
 .ma-opt { display: flex; align-items: center; gap: 13px; padding: 13px; border-radius: 16px; border: 1px solid var(--border); background: var(--card); text-decoration: none; color: inherit; }
 .ma-opt .oi { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 13px; flex: none; }

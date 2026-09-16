@@ -114,33 +114,41 @@ Semua list pakai tabel → Tier A (pola sama Fase 3/4).
 - [x] Pengajuan Distributor (Tier B) — sudah kartu + segmented tab (bukan tabel), verifikasi OK.
 - [x] Verifikasi E2E (tanpa error) + tsc bersih.
 
-### Fase 7 — Form & poles akhir ⬜
-- [ ] Form Penjualan/Pembelian/Pengeluaran → full-screen mobile-friendly
-- [ ] Poles header mobile (opsi: sapaan + avatar), hilangkan redundansi hamburger vs tab Menu
-- [ ] Portal distributor (mobile)
+### Fase 7 — Form & poles akhir 🔶
+- [x] **Form full-screen di mobile** — kelas `.ma-dialog-full` (globals.css) dipakai di
+      `sales/sale-form.tsx`, `purchases/purchase-form.tsx`, `purchases/quick-deal-form.tsx`
+      (DialogContent). Full-screen < 640px, modal terpusat di desktop.
+      **Gotcha Tailwind v4:** `-translate-x/y-1/2` memakai properti CSS `translate`
+      (bukan `transform`) → reset WAJIB `translate: none !important` (bukan cuma
+      `transform`). Diverifikasi: dialog box = {0,0,390,844} (full-screen).
+- [x] **invoice-lines** (`invoices/[id]/invoice-lines.tsx`) — rincian baris tabel→kartu
+      + baris Grand Total mobile.
+- [ ] **Toolbar list → FilterSheet** (opsional): cari+tanggal di Pembelian/Penjualan/
+      Pengeluaran/Stok masih stack (fungsional, agak panjang) — bisa dipindah ke
+      `FilterSheet` seperti Transaksi.
+- [ ] **rab-editor** (`rab/rab-editor.tsx`) — form editor panjang, tak pakai tabel;
+      cek responsif bila dipakai intens di mobile.
+- [ ] **Poles header mobile** (opsional): sapaan+avatar; hilangkan hamburger (redundan
+      dgn tab Menu). Dialog pendek (expense/product/asset) bisa full-screen juga bila mau.
+- [ ] **Portal distributor** (mobile) — aplikasi login terpisah `/portal`, di luar app pemilik.
 
 ## Checkpoint terakhir
 
-> **Terakhir diperbarui:** Fase 1–6 SELESAI & terverifikasi (E2E + tsc bersih).
-> Plus **FIX bug font** (Times New Roman → Plus Jakarta Sans + Sora display).
-> **Semua menu utama sudah mobile-native.** Sisa hanya Fase 7 (form & poles).
+> **Terakhir diperbarui:** Fase 1–6 SELESAI + Fase 7 inti (form full-screen &
+> invoice-lines) SELESAI & terverifikasi (E2E + tsc bersih). Plus **FIX bug font**
+> (Times New Roman → Plus Jakarta Sans + Sora display). **Seluruh redesign mobile
+> fungsional lengkap di semua menu.**
 >
-> **Berikutnya: Fase 7 — Form & poles akhir:**
-> - **Form dialog → full-screen mobile:** `sales/sale-form.tsx`,
->   `purchases/purchase-form.tsx`, dan expense dialog di `shared/expenses-manager.tsx`.
->   `DialogContent` di mobile bisa dibuat full-screen (`inset-0`/`h-full`) agar form
->   panjang enak diisi. (Base UI Dialog — lihat konvensi `render`/`items` di atas.)
-> - **Detail/editor sisa:** `invoices/[id]/invoice-lines.tsx` (rincian baris invoice,
->   masih tabel → kartu) & `rab/rab-editor.tsx` (form editor RAB panjang).
-> - **Toolbar list → FilterSheet:** cari+tanggal di Pembelian/Penjualan/Pengeluaran/
->   Stok masih memanjang di mobile — pindahkan ke `FilterSheet` (pola Transaksi).
-> - **Poles header mobile (opsional):** sapaan+avatar; pertimbangkan hilangkan
->   hamburger (redundan dgn tab Menu).
+> **Sisa = polish OPSIONAL (bukan bug, halaman sudah fungsional):**
+> - Toolbar list (cari+tanggal) Pembelian/Penjualan/Pengeluaran/Stok → `FilterSheet`.
+> - `rab/rab-editor.tsx` cek responsif bila dipakai intens di mobile.
+> - Header mobile (sapaan+avatar, buang hamburger redundan); dialog pendek full-screen.
+> - Portal distributor `/portal` (aplikasi login terpisah).
 >
 > **Cara melanjutkan:** jalankan dev (`npm run dev -- --webpack --port 3100`), baca
-> komponen target, terapkan pola, `tsc --noEmit`, lalu verifikasi E2E (login
-> otomatis akun test) sebelum lanjut halaman berikutnya. Perbarui checkbox di atas +
-> blok ini setiap fase selesai.
+> komponen target, terapkan pola, `tsc --noEmit`, verifikasi E2E. Untuk verifikasi
+> cepat tanpa login lambat: pakai `storageState:"e2e/.auth/state.json"` di context
+> Playwright (sesi akun test tersimpan; gitignored). Perbarui checkbox setiap selesai.
 >
 > **Polish tertunda (Fase 7):** toolbar list (search+tanggal) masih memanjang di
 > mobile — bisa dipindah ke `FilterSheet` seperti Transaksi; form (penjualan/

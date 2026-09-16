@@ -197,6 +197,7 @@ export function InvoiceLines({
           </div>
         )}
 
+        <div className="hidden lg:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -251,6 +252,48 @@ export function InvoiceLines({
             </TableRow>
           </TableBody>
         </Table>
+        </div>
+
+        {/* Mobile: daftar kartu */}
+        <ul className="ma-list lg:hidden">
+          {rows.map((r) => (
+            <li key={r.saleItemId} className="border-b border-border px-4 py-3 last:border-b-0">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-medium">
+                    {r.name}
+                    {r.isMaintenance && (
+                      <span className="ml-2 rounded bg-sky-100 px-1.5 py-0.5 text-xs text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">
+                        maintenance
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {r.dateLabel} · {r.qty} × {formatIDR(r.price)}
+                  </p>
+                </div>
+                <p className="ma-num shrink-0 font-medium">{formatIDR(r.subtotal)}</p>
+              </div>
+              {editable && !r.isMaintenance && (
+                <div className="mt-2 flex justify-end gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8"
+                    onClick={() => openEdit(r)} disabled={pending}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    onClick={() => setDelRow(r)} disabled={pending}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+        <div className="flex items-center justify-between border-t-2 px-4 py-3 lg:hidden">
+          <span className="font-bold">Grand Total</span>
+          <span className="ma-num text-lg font-bold">{formatIDR(total)}</span>
+        </div>
       </CardContent>
 
       {/* Dialog Tambah baris */}
