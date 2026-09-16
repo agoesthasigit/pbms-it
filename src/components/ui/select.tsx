@@ -63,7 +63,11 @@ function SelectContent({
   sideOffset = 4,
   align = "center",
   alignOffset = 0,
-  alignItemWithTrigger = true,
+  // Default FALSE: dropdown biasa (anchored di bawah/atas trigger, flip bila
+  // sempit). Base UI default `true` = item terpilih menimpa trigger (ala native)
+  // → di mobile/dialog full-screen popup bisa meluber ke atas layar & salah
+  // posisi. `false` konsisten & aman di semua layar.
+  alignItemWithTrigger = false,
   ...props
 }: SelectPrimitive.Popup.Props &
   Pick<
