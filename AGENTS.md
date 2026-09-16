@@ -160,6 +160,13 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
     hamburger dihapus (redundan dgn tab Menu) → brand teal "PBMS-IT" di kiri. rab-editor
     sudah responsif (tak diubah). **Sisa opsional (fungsional, bukan bug):** portal
     distributor `/portal` & dialog pendek expense/product/asset full-screen.
+  - **FIX — `<Select>` salah posisi (popup nongol di pojok ATAS layar HP).** Base UI Select
+    default `alignItemWithTrigger=true` (item terpilih ditempatkan MENIMPA trigger, ala native)
+    → di dialog full-screen/mobile, bila item terpilih bukan pertama / banyak item / trigger
+    dekat atas, popup meluber ke atas layar & salah posisi. Diperbaiki: default
+    `alignItemWithTrigger={false}` di `components/ui/select.tsx` → dropdown biasa (anchored di
+    BAWAH trigger, flip ke atas hanya bila sempit). Global (semua Select, desktop+mobile),
+    lebih konsisten. Diverifikasi: dropdown Metode Bayar kini muncul tepat di bawah trigger.
   - **Verifikasi:** `tsc --noEmit` bersih di tiap fase; verifikasi visual **via login E2E**
     (akun test `E2E_TEST_*` di `.env.local`) + Playwright screenshot viewport 390px (light &
     dark) — semua render benar, tanpa page-error. Worktree tak punya node_modules → disambung
