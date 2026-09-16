@@ -128,6 +128,7 @@ export function HutangClient({
                 </label>
                 <span className="text-sm font-semibold">{formatIDR(subtotal)}</span>
               </div>
+              <div className="hidden lg:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -170,6 +171,32 @@ export function HutangClient({
                   })}
                 </TableBody>
               </Table>
+              </div>
+
+              {/* Mobile: daftar kartu per nota */}
+              <ul className="lg:hidden">
+                {rows.map((r) => {
+                  const od = daysOverdue(r.due_date);
+                  return (
+                    <li key={r.id} className="flex items-center gap-3 border-b border-border px-4 py-3 last:border-b-0">
+                      <input type="checkbox" className="h-4 w-4 shrink-0 accent-primary"
+                        checked={selected.has(r.id)} onChange={() => toggle(r.id)} />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{r.invoice_no || "Tanpa nota"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDate(r.purchase_date)}
+                          {r.due_date && od !== null && (
+                            od > 0
+                              ? <span className="text-destructive"> · Lewat {od} hari</span>
+                              : <span> · {od === 0 ? "tempo hari ini" : `${-od} hari lagi`}</span>
+                          )}
+                        </p>
+                      </div>
+                      <p className="ma-num shrink-0 text-sm font-medium">{formatIDR(r.total)}</p>
+                    </li>
+                  );
+                })}
+              </ul>
             </CardContent>
           </Card>
         );

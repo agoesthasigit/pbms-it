@@ -86,7 +86,7 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
-- **2026-09-16 — Redesign MOBILE "PBMS Saku" (fintech premium, light+dark) — Fase 1–5.**
+- **2026-09-16 — Redesign MOBILE "PBMS Saku" (fintech premium, light+dark) — Fase 1–6.**
   Tampilan mobile dibangun ulang jadi seperti aplikasi finansial terpasang (bukan web yang
   dikecilkan), **tanpa mengubah desktop**. Dokumen kerja + checkpoint lengkap (fase, pola,
   cara verifikasi, sisa pekerjaan) di **`docs/MOBILE-REDESIGN.md`** — baca itu sebelum
@@ -142,6 +142,11 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
     `PasswordCell` (kredensial WiFi/perangkat/DVR) + repair/riwayat/ubah/hapus. RAB
     (`rab/rab-list.tsx`): kartu nilai/diterima/sisa/laba + Lihat/Hapus. **Belum:**
     `invoices/[id]/invoice-lines.tsx` & `rab/rab-editor.tsx` (detail/editor → Fase 7).
+  - **Fase 6 — Analisa & sistem:** Piutang & Hutang (Tier A) — `piutang/piutang-client.tsx`
+    (kartu + info overdue) & `piutang/hutang-client.tsx` (kartu per nota + checkbox pilih +
+    dialog bayar); `riwayat-bayar-client.tsx` sudah kartu. Pemeriksaan Data, Pengaturan
+    (tab+form), Pengajuan Distributor (kartu+segmented tab) = Tier B, sudah kartu/responsif,
+    diverifikasi OK.
   - **Verifikasi:** `tsc --noEmit` bersih di tiap fase; verifikasi visual **via login E2E**
     (akun test `E2E_TEST_*` di `.env.local`) + Playwright screenshot viewport 390px (light &
     dark) — semua render benar, tanpa page-error. Worktree tak punya node_modules → disambung
@@ -149,9 +154,8 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
     (`npm run dev -- --webpack --port 3100`; config `preview-webpack` di `.claude/launch.json`).
     Catatan: akun test kosong → daftar kartu terverifikasi struktur (tsc + tanpa error), belum
     dengan data nyata.
-  - **BELUM (lihat docs):** Fase 6 (Piutang&Hutang/Cek Data/Pengaturan/Pengajuan),
-    Fase 7 (form full-screen mobile, invoice-lines & rab-editor, toolbar→FilterSheet,
-    poles header).
+  - **BELUM (lihat docs):** Fase 7 (form penjualan/pembelian/pengeluaran full-screen
+    mobile, invoice-lines & rab-editor, toolbar list→FilterSheet, poles header).
 
 - **2026-09-15 — RAB: kategori pengeluaran + rekap per kategori (layar & PDF).** Menu RAB →
   *2. Detail Pengeluaran (Realisasi)*. Tujuan: melihat kategori pengeluaran terbesar (mis.

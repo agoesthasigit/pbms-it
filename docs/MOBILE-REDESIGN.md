@@ -105,9 +105,14 @@ Semua list pakai tabel → Tier A (pola sama Fase 3/4).
 - **Belum (Fase 7):** `invoices/[id]/invoice-lines.tsx` (rincian baris invoice, masih tabel)
   & `rab/rab-editor.tsx` (form editor RAB panjang) — halaman detail/editor.
 
-### Fase 6 — Analisa & sistem ⬜
-- [ ] Piutang & Hutang (Tier A) · Pemeriksaan Data (Tier B) · Pengaturan (Tier B) ·
-      Pengajuan Distributor (Tier A)
+### Fase 6 — Analisa & sistem ✅
+- [x] Piutang & Hutang (Tier A) — `piutang/piutang-client.tsx` (kartu + overdue) &
+      `piutang/hutang-client.tsx` (kartu per nota + checkbox pilih, dialog bayar);
+      `riwayat-bayar-client.tsx` sudah kartu responsif (tak diubah).
+- [x] Pemeriksaan Data (Tier B) — sudah kartu hasil cek, verifikasi OK.
+- [x] Pengaturan (Tier B) — tab (Kategori/Label/Email/Backup) + form + list kartu, verifikasi OK.
+- [x] Pengajuan Distributor (Tier B) — sudah kartu + segmented tab (bukan tabel), verifikasi OK.
+- [x] Verifikasi E2E (tanpa error) + tsc bersih.
 
 ### Fase 7 — Form & poles akhir ⬜
 - [ ] Form Penjualan/Pembelian/Pengeluaran → full-screen mobile-friendly
@@ -116,20 +121,24 @@ Semua list pakai tabel → Tier A (pola sama Fase 3/4).
 
 ## Checkpoint terakhir
 
-> **Terakhir diperbarui:** Fase 1–5 SELESAI & terverifikasi (E2E + tsc bersih).
+> **Terakhir diperbarui:** Fase 1–6 SELESAI & terverifikasi (E2E + tsc bersih).
 > Plus **FIX bug font** (Times New Roman → Plus Jakarta Sans + Sora display).
-> Semua tab bottom-nav + list transaksi + master data + layanan client sudah
-> mobile-native (tabel→kartu).
+> **Semua menu utama sudah mobile-native.** Sisa hanya Fase 7 (form & poles).
 >
-> **Berikutnya: Fase 6 — Analisa & sistem.** Cek dulu tiap komponen pakai tabel
-> (`grep -c "<Table" <file>`); yang tabel → pola Fase 3/4.
-> - **Piutang & Hutang** (`piutang/…`) — kemungkinan tabel + tab (piutang/hutang/riwayat) → kartu.
-> - **Pemeriksaan Data** (`data-check/…`) — Tier B (kartu hasil cek), verifikasi.
-> - **Pengaturan** (`settings/…`) — Tier B (tab + form), verifikasi.
-> - **Pengajuan Distributor** (`distributor-orders/…`) — kemungkinan tabel → kartu.
+> **Berikutnya: Fase 7 — Form & poles akhir:**
+> - **Form dialog → full-screen mobile:** `sales/sale-form.tsx`,
+>   `purchases/purchase-form.tsx`, dan expense dialog di `shared/expenses-manager.tsx`.
+>   `DialogContent` di mobile bisa dibuat full-screen (`inset-0`/`h-full`) agar form
+>   panjang enak diisi. (Base UI Dialog — lihat konvensi `render`/`items` di atas.)
+> - **Detail/editor sisa:** `invoices/[id]/invoice-lines.tsx` (rincian baris invoice,
+>   masih tabel → kartu) & `rab/rab-editor.tsx` (form editor RAB panjang).
+> - **Toolbar list → FilterSheet:** cari+tanggal di Pembelian/Penjualan/Pengeluaran/
+>   Stok masih memanjang di mobile — pindahkan ke `FilterSheet` (pola Transaksi).
+> - **Poles header mobile (opsional):** sapaan+avatar; pertimbangkan hilangkan
+>   hamburger (redundan dgn tab Menu).
 >
 > **Cara melanjutkan:** jalankan dev (`npm run dev -- --webpack --port 3100`), baca
-> komponen target, terapkan pola Fase 3, `tsc --noEmit`, lalu verifikasi E2E (login
+> komponen target, terapkan pola, `tsc --noEmit`, lalu verifikasi E2E (login
 > otomatis akun test) sebelum lanjut halaman berikutnya. Perbarui checkbox di atas +
 > blok ini setiap fase selesai.
 >
