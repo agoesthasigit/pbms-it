@@ -86,7 +86,7 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
-- **2026-09-16 — Redesign MOBILE "PBMS Saku" (fintech premium, light+dark) — Fase 1–3.**
+- **2026-09-16 — Redesign MOBILE "PBMS Saku" (fintech premium, light+dark) — Fase 1–4.**
   Tampilan mobile dibangun ulang jadi seperti aplikasi finansial terpasang (bukan web yang
   dikecilkan), **tanpa mengubah desktop**. Dokumen kerja + checkpoint lengkap (fase, pola,
   cara verifikasi, sisa pekerjaan) di **`docs/MOBILE-REDESIGN.md`** — baca itu sebelum
@@ -120,6 +120,12 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
     + tombol toolbar diberi `flex-wrap` (fix meluber). Penjualan: kartu + expand item + aksi
     NOTA/Email/Lunas/Hapus + badge brand/status. File: `purchases/purchase-list.tsx`,
     `sales/sale-list.tsx`, `shared/expenses-manager.tsx`.
+  - **Fase 4 — Master data (Stok/Aset/Client/Distributor):** keempatnya pakai tabel →
+    Tier A, pola sama Fase 3 (tabel `hidden lg:block` + kartu `lg:hidden`). Stok Barang
+    (`products/product-manager.tsx`): kartu badge stok/harga/garansi + aksi sesuaikan/
+    riwayat/ubah/hapus. Aset (`assets/asset-manager.tsx`): kartu thumbnail foto + status
+    garansi + repair/riwayat/ubah/hapus. Client (`clients/client-manager.tsx`): kartu +
+    360/ubah/hapus. Distributor (`distributors/distributor-manager.tsx`): kartu + ubah/hapus.
   - **Verifikasi:** `tsc --noEmit` bersih di tiap fase; verifikasi visual **via login E2E**
     (akun test `E2E_TEST_*` di `.env.local`) + Playwright screenshot viewport 390px (light &
     dark) — semua render benar, tanpa page-error. Worktree tak punya node_modules → disambung
@@ -127,9 +133,9 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
     (`npm run dev -- --webpack --port 3100`; config `preview-webpack` di `.claude/launch.json`).
     Catatan: akun test kosong → daftar kartu terverifikasi struktur (tsc + tanpa error), belum
     dengan data nyata.
-  - **BELUM (lihat docs):** Fase 4 (master data: Stok/Aset/Client/Distributor), Fase 5 (layanan:
-    Invoice/Maintenance/Network/CCTV/RAB), Fase 6 (Piutang&Hutang/Cek Data/Pengaturan/Pengajuan),
-    Fase 7 (form full-screen mobile, toolbar→FilterSheet, poles header).
+  - **BELUM (lihat docs):** Fase 5 (layanan: Invoice/Maintenance/Network/CCTV/RAB),
+    Fase 6 (Piutang&Hutang/Cek Data/Pengaturan/Pengajuan), Fase 7 (form full-screen
+    mobile, toolbar→FilterSheet, poles header).
 
 - **2026-09-15 — RAB: kategori pengeluaran + rekap per kategori (layar & PDF).** Menu RAB →
   *2. Detail Pengeluaran (Realisasi)*. Tujuan: melihat kategori pengeluaran terbesar (mis.

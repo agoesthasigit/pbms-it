@@ -156,6 +156,7 @@ export function ClientManager({
                 ? "Tambahkan client pertama Anda." : "Tidak ada hasil untuk filter/pencarian ini."} />
           ) : (
             <>
+            <div className="hidden lg:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -197,6 +198,43 @@ export function ClientManager({
                 ))}
               </TableBody>
             </Table>
+            </div>
+
+            {/* Mobile: daftar kartu */}
+            <ul className="ma-list lg:hidden">
+              {pg.paged.map((c) => (
+                <li key={c.id} className="border-b border-border px-4 py-3 last:border-b-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{c.company_name}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {c.contact_name ?? "-"}{c.phone ? ` · ${c.phone}` : ""}
+                      </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        <Badge variant="secondary">{catName(c.category_id)}</Badge>
+                        {c.status === "active"
+                          ? <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-400 dark:hover:bg-emerald-500/15">Aktif</Badge>
+                          : <Badge variant="outline">Nonaktif</Badge>}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-2 flex justify-end gap-1">
+                    <Button variant="outline" size="sm" nativeButton={false}
+                      title="Client 360" render={<Link href={`/clients/${c.id}`} />}>
+                      <LayoutDashboard className="h-3.5 w-3.5" /> 360
+                    </Button>
+                    <Button variant="ghost" size="icon" title="Ubah" onClick={() => openEdit(c)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" title="Hapus"
+                      className="text-muted-foreground hover:text-destructive" onClick={() => handleDelete(c)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
             <PaginationBar page={pg.page} totalPages={pg.totalPages}
               from={pg.from} to={pg.to} total={pg.total}
               onPageChange={pg.setPage} unit="client" />

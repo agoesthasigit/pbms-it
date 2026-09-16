@@ -86,8 +86,13 @@ tombol toolbar diberi `flex-wrap`.
       daftar kartu ter-verifikasi secara struktur (tsc + tanpa runtime error), belum
       dengan data nyata.
 
-### Fase 4 — Master data ⬜
-- [ ] Stok Barang (Tier A) · Client (Tier B) · Distributor (Tier B) · Aset Client (Tier A)
+### Fase 4 — Master data ✅
+Keempatnya ternyata pakai tabel → semua Tier A (pola sama Fase 3).
+- [x] Stok Barang (`products/product-manager.tsx`) — kartu (badge stok, harga, garansi) + aksi sesuaikan/riwayat/ubah/hapus
+- [x] Aset Client (`assets/asset-manager.tsx`) — kartu (thumbnail foto + status garansi) + aksi repair/riwayat/ubah/hapus
+- [x] Client (`clients/client-manager.tsx`) — kartu + tombol 360/ubah/hapus
+- [x] Distributor (`distributors/distributor-manager.tsx`) — kartu + ubah/hapus
+- [x] Verifikasi E2E (tanpa error) + tsc bersih
 
 ### Fase 5 — Layanan client ⬜
 - [ ] Invoice Bulanan (Tier A) · Kontrak Maintenance (Tier B) · Network (Tier B) ·
@@ -104,15 +109,17 @@ tombol toolbar diberi `flex-wrap`.
 
 ## Checkpoint terakhir
 
-> **Terakhir diperbarui:** Fase 1, 2, 3 SELESAI & terverifikasi (E2E + tsc bersih).
-> Semua 4 tab bottom-nav (Beranda, Transaksi, Laporan, Menu) + FAB sheet + 3 list
-> transaksi (Beli/Jual/Pengeluaran) sudah mobile-native.
+> **Terakhir diperbarui:** Fase 1, 2, 3, 4 SELESAI & terverifikasi (E2E + tsc bersih).
+> Semua 4 tab bottom-nav + FAB sheet + list transaksi (Beli/Jual/Pengeluaran) +
+> master data (Stok/Aset/Client/Distributor) sudah mobile-native (tabel→kartu).
 >
-> **Berikutnya: Fase 4 — Master data.**
-> - **Stok Barang** (`products/product-manager.tsx`) — Tier A: tabel → kartu (pola sama
->   Fase 3: bungkus tabel `hidden lg:block`, tambah `<ul className="ma-list lg:hidden">`).
-> - **Aset Client** (`assets/…`) — Tier A: kemungkinan tabel → kartu.
-> - **Client** & **Distributor** — Tier B: cek responsif, poles bila perlu.
+> **Berikutnya: Fase 5 — Layanan client.** Cek dulu tiap komponen pakai tabel atau
+> tidak (`grep -c "<Table" <file>`); yang tabel → pola Fase 3/4 (bungkus tabel
+> `hidden lg:block`, tambah `<ul className="ma-list lg:hidden">`).
+> - **Invoice Bulanan** (`invoices/…`) — kemungkinan tabel → kartu (aksi PDF/email/bayar).
+> - **Kontrak Maintenance** (`maintenance/…`), **Network** (`network/…`),
+>   **CCTV** (`cctv/…`) — cek tabel/tidak.
+> - **RAB** (`rab/…`) — list Tier A; editor RAB kemungkinan Tier B (form panjang).
 >
 > **Cara melanjutkan:** jalankan dev (`npm run dev -- --webpack --port 3100`), baca
 > komponen target, terapkan pola Fase 3, `tsc --noEmit`, lalu verifikasi E2E (login

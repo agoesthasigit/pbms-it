@@ -102,6 +102,7 @@ export function DistributorManager({ distributors }: { distributors: Distributor
               description="Tambahkan tempat Anda biasa membeli barang." />
           ) : (
             <>
+            <div className="hidden lg:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -135,6 +136,35 @@ export function DistributorManager({ distributors }: { distributors: Distributor
                 ))}
               </TableBody>
             </Table>
+            </div>
+
+            {/* Mobile: daftar kartu */}
+            <ul className="ma-list lg:hidden">
+              {pg.paged.map((d) => (
+                <li key={d.id} className="border-b border-border px-4 py-3 last:border-b-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{d.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {d.contact_name ?? "-"}{d.phone ? ` · ${d.phone}` : ""}
+                      </p>
+                      {d.email && <p className="truncate text-xs text-muted-foreground">{d.email}</p>}
+                      {d.address && <p className="truncate text-xs text-muted-foreground">{d.address}</p>}
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      <Button variant="ghost" size="icon" title="Ubah" onClick={() => openEdit(d)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" title="Hapus"
+                        className="text-muted-foreground hover:text-destructive" onClick={() => handleDelete(d)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
             <PaginationBar page={pg.page} totalPages={pg.totalPages}
               from={pg.from} to={pg.to} total={pg.total}
               onPageChange={pg.setPage} unit="distributor" />
