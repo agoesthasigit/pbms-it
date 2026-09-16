@@ -167,6 +167,15 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
     `alignItemWithTrigger={false}` di `components/ui/select.tsx` → dropdown biasa (anchored di
     BAWAH trigger, flip ke atas hanya bila sempit). Global (semua Select, desktop+mobile),
     lebih konsisten. Diverifikasi: dropdown Metode Bayar kini muncul tepat di bawah trigger.
+  - **FIX — form full-screen mobile MALAH rusak di Safari iOS (dialog tergeser & terpotong).**
+    Kelas `.ma-dialog-full` (override `inset`/`translate`/`width` via `!important` + media query)
+    LOLOS di Chromium tapi **tidak diterapkan Safari iOS** → dialog form penjualan tergeser
+    separuh keluar layar (dites via incognito iOS = bukan cache). **Solusi: buang full-screen**,
+    kembalikan form Penjualan/Pembelian/quick-deal ke **modal terpusat bawaan**
+    (`w-[calc(100%-1rem)] max-h-[92dvh] sm:max-w-*`, memakai centering `-translate-x/y-1/2`
+    BAWAAN yang TERBUKTI jalan di iOS — dialog lain memang normal). Kelas `.ma-dialog-full`
+    dihapus dari `globals.css` + 3 form. **Pelajaran:** jangan override positioning Base UI
+    Dialog dgn unlayered `!important`; iOS Safari bisa mengabaikannya (Chromium tidak).
   - **Verifikasi:** `tsc --noEmit` bersih di tiap fase; verifikasi visual **via login E2E**
     (akun test `E2E_TEST_*` di `.env.local`) + Playwright screenshot viewport 390px (light &
     dark) — semua render benar, tanpa page-error. Worktree tak punya node_modules → disambung
