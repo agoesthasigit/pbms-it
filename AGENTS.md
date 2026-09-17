@@ -86,6 +86,23 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
+- **2026-09-17 — Hero dashboard mobile 2×2 + badge "Email terkirim" invoice.** Dua revisi
+  digabung satu batch (kurangi email deploy Vercel):
+  - **Hero dashboard mobile jadi grid 2×2** (`dashboard/dashboard-mobile.tsx` + `globals.css`).
+    Dulu hero cuma menampilkan **Laba Bersih · periode ini** (+2 pill). Kini di bawah angka
+    laba ada label **"Aktivitas periode"** lalu **4 metrik** dalam grid 2×2: **Penjualan,
+    Pembelian, Beban Ops, Pribadi** (`formatIDRShort`). **Penting:** 4 angka itu bukan rumus
+    laba — makanya diberi judul "Aktivitas periode" (laba akrual = penjualan − HPP terjual −
+    beban − pribadi − PPh, bukan penjumlahan pill). CSS: `.ma-hero-acti` (label kecil uppercase)
+    baru + `.ma-hero-pills` `margin-top:0` (label yang beri jarak). Grid `1fr 1fr` → 4 anak
+    auto-wrap jadi 2×2. Var `pengeluaran` yg tak terpakai dibuang. Diverifikasi via E2E login
+    (viewport 375px): hero render 2×2 rapi, angka laba tetap di atas.
+  - **Invoice bulanan — badge "Email terkirim" (centang)** (`invoices/invoice-list.tsx`).
+    Samakan dgn Riwayat Bayar Hutang: bila `email_sent_at` terisi, tampil badge hijau
+    `CheckCircle2` "Email terkirim" di kolom Status (tabel desktop) & baris badge (kartu
+    mobile). Data `email_sent_at` sudah ada di `v_monthly_invoices` + tipe `MonthlyInvoice`.
+  - tsc bersih.
+
 - **2026-09-17 — Revisi UX pasca-redesign mobile (RAB, Beli&Jual, dialog email).**
   Tiga revisi dari pemakaian nyata di HP, digabung satu batch:
   - **RAB editor — tombol "+ Tambah Item/Termin" pindah ke BAWAH baris** (ketiga tabel:

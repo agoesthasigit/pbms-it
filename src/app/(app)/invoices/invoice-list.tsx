@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Eye, Trash2, Loader2, Search } from "lucide-react";
+import { FileText, Eye, Trash2, Loader2, Search, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -114,7 +114,14 @@ export function InvoiceList({ invoices }: { invoices: MonthlyInvoice[] }) {
                       </TableCell>
                       <TableCell>{inv.due_date ? formatDate(inv.due_date) : "-"}</TableCell>
                       <TableCell>
-                        <Badge className={STATUS_STYLE[st]}>{INVOICE_STATUS_LABELS[st]}</Badge>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <Badge className={STATUS_STYLE[st]}>{INVOICE_STATUS_LABELS[st]}</Badge>
+                          {inv.email_sent_at && (
+                            <Badge variant="outline" className={SOFT_TONES.emerald}>
+                              <CheckCircle2 className="mr-1 h-3 w-3" /> Email terkirim
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right font-medium">
                         {formatIDR(Number(inv.total))}
@@ -159,6 +166,11 @@ export function InvoiceList({ invoices }: { invoices: MonthlyInvoice[] }) {
                             {BRAND_LABELS[toBrand(inv.brand)]}
                           </Badge>
                           <Badge className={STATUS_STYLE[st]}>{INVOICE_STATUS_LABELS[st]}</Badge>
+                          {inv.email_sent_at && (
+                            <Badge variant="outline" className={SOFT_TONES.emerald}>
+                              <CheckCircle2 className="mr-1 h-3 w-3" /> Email terkirim
+                            </Badge>
+                          )}
                         </div>
                       </div>
                       <p className="ma-num shrink-0 font-bold">{formatIDR(Number(inv.total))}</p>
