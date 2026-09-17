@@ -129,9 +129,6 @@ export function DashboardMobile({
   const netProfit = Number(pl?.net_profit ?? 0);
   const revenue = Number(pl?.revenue_total ?? 0);
   const marginPct = revenue > 0 ? (netProfit / revenue) * 100 : null;
-  const pengeluaran =
-    Number(summary?.total_op_expense ?? 0) +
-    Number(summary?.total_personal_expense ?? 0);
 
   const activeIdx = PRESETS.findIndex((p) => {
     const x = p.get();
@@ -189,6 +186,7 @@ export function DashboardMobile({
           {marginPct === null ? "Margin —" : `Margin ${marginPct.toFixed(1)}%`}
           <span className="opacity-70"> · akrual</span>
         </div>
+        <p className="ma-hero-acti">Aktivitas periode</p>
         <div className="ma-hero-pills">
           <div className="ma-hpill">
             <div className="l">
@@ -201,10 +199,30 @@ export function DashboardMobile({
           </div>
           <div className="ma-hpill">
             <div className="l">
-              <TrendingDown className="h-3.5 w-3.5" />
-              Pengeluaran
+              <ShoppingCart className="h-3.5 w-3.5" />
+              Pembelian
             </div>
-            <div className="v ma-num">{loading ? "…" : formatIDRShort(pengeluaran)}</div>
+            <div className="v ma-num">
+              {loading ? "…" : formatIDRShort(Number(summary?.total_purchase ?? 0))}
+            </div>
+          </div>
+          <div className="ma-hpill">
+            <div className="l">
+              <TrendingDown className="h-3.5 w-3.5" />
+              Beban Ops
+            </div>
+            <div className="v ma-num">
+              {loading ? "…" : formatIDRShort(Number(summary?.total_op_expense ?? 0))}
+            </div>
+          </div>
+          <div className="ma-hpill">
+            <div className="l">
+              <User2 className="h-3.5 w-3.5" />
+              Pribadi
+            </div>
+            <div className="v ma-num">
+              {loading ? "…" : formatIDRShort(Number(summary?.total_personal_expense ?? 0))}
+            </div>
           </div>
         </div>
       </div>
