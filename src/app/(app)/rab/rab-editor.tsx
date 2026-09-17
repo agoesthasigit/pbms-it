@@ -64,13 +64,8 @@ function BudgetTable({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+      <CardHeader>
         <CardTitle className="text-base">1. Detail RAB (Penawaran)</CardTitle>
-        {!readOnly && (
-          <Button type="button" variant="outline" size="sm" onClick={add}>
-            <Plus className="h-3.5 w-3.5" /> Tambah Item
-          </Button>
-        )}
       </CardHeader>
       <CardContent className="space-y-2">
         <div className="hidden grid-cols-12 gap-2 px-1 text-xs font-medium text-muted-foreground sm:grid">
@@ -110,6 +105,11 @@ function BudgetTable({
             )}
           </div>
         ))}
+        {!readOnly && (
+          <Button type="button" variant="outline" onClick={add} className="w-full border-dashed">
+            <Plus className="h-4 w-4" /> Tambah Item
+          </Button>
+        )}
         <div className="flex items-center justify-between rounded-lg bg-sky-50 px-4 py-2.5 text-sky-800 dark:bg-sky-500/10 dark:text-sky-300">
           <span className="font-medium">Grand Total RAB (Nilai Proyek)</span>
           <span className="text-lg font-bold">{formatIDR(total)}</span>
@@ -152,13 +152,8 @@ function ExpenseTable({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+      <CardHeader>
         <CardTitle className="text-base">2. Detail Pengeluaran (Realisasi)</CardTitle>
-        {!readOnly && (
-          <Button type="button" variant="outline" size="sm" onClick={add}>
-            <Plus className="h-3.5 w-3.5" /> Tambah Item
-          </Button>
-        )}
       </CardHeader>
       <CardContent className="space-y-3">
         {!readOnly && (
@@ -238,6 +233,11 @@ function ExpenseTable({
             </div>
           </div>
         ))}
+        {!readOnly && (
+          <Button type="button" variant="outline" onClick={add} className="w-full border-dashed">
+            <Plus className="h-4 w-4" /> Tambah Item
+          </Button>
+        )}
         <div className="flex items-center justify-between rounded-lg bg-amber-50 px-4 py-2.5 text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
           <span className="font-medium">Grand Total Pengeluaran</span>
           <span className="text-lg font-bold">{formatIDR(total)}</span>
@@ -298,13 +298,8 @@ function PaymentTable({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+      <CardHeader>
         <CardTitle className="text-base">3. Termin Pembayaran</CardTitle>
-        {!readOnly && (
-          <Button type="button" variant="outline" size="sm" onClick={add}>
-            <Plus className="h-3.5 w-3.5" /> Tambah Termin
-          </Button>
-        )}
       </CardHeader>
       <CardContent className="space-y-3">
         {!readOnly && (
@@ -367,6 +362,11 @@ function PaymentTable({
           </>
         )}
 
+        {!readOnly && (
+          <Button type="button" variant="outline" onClick={add} className="w-full border-dashed">
+            <Plus className="h-4 w-4" /> Tambah Termin
+          </Button>
+        )}
         <div className="flex items-center justify-between rounded-lg bg-emerald-50 px-4 py-2.5 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300">
           <span className="font-medium">Total Diterima</span>
           <span className="text-lg font-bold">{formatIDR(total)}</span>

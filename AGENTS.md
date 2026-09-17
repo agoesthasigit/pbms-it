@@ -86,6 +86,28 @@ lalu ditulis `value={walletId || undefined}`, render pertama jadi `undefined`
 
 ## Riwayat perbaikan
 
+- **2026-09-17 — Revisi UX pasca-redesign mobile (RAB, Beli&Jual, dialog email).**
+  Tiga revisi dari pemakaian nyata di HP, digabung satu batch:
+  - **RAB editor — tombol "+ Tambah Item/Termin" pindah ke BAWAH baris** (ketiga tabel:
+    Penawaran/Pengeluaran/Termin di `rab/rab-editor.tsx`). Dulu di header (pojok atas) →
+    kalau item banyak harus scroll jauh ke atas hanya untuk menambah. Kini tombol lebar
+    putus-putus tepat di atas Grand Total (hanya saat `!readOnly`). Berlaku web + mobile.
+  - **Beli & Jual (`purchases/quick-deal-form.tsx` + `actions.ts`):**
+    (1) **BUG error `invalid input syntax for type date: "2026-09"`** saat metode Invoice
+    Bulanan — `createQuickDeal` mengirim `period_month` mentah dari `<input type="month">`.
+    Fix di `purchases/actions.ts`: append `-01` bila `sale_method==="monthly_invoice"`
+    (samakan dgn `create_sale` di `sales/actions.ts`). (2) **UI mobile**: baris barang
+    (4 input + 2 ikon di 12 kolom) → ikon menimpa kolom "Jual"; disusun ulang jadi
+    (nama + ikon) lalu (Qty/Beli/Jual 3 kolom seimbang). Footer dipaksa `flex-row` (3
+    statistik + 2 tombol) → tombol Simpan kepotong; kini `flex-col` di mobile
+    (`sm:flex-row`), tombol full-width. Footer sale-form & purchase-form disamakan pola.
+  - **Dialog Kirim Email (`components/shared/send-email-dialog.tsx`)** — dipakai bersama
+    (Riwayat Bayar Hutang, NOTA penjualan, invoice). Dulu tanpa `max-height`/scroll →
+    konten tinggi meluber, tombol **Kirim** keluar layar & tak bisa diklik. Fix: DialogContent
+    `flex max-h-[90dvh] flex-col` + isi `flex-1 overflow-y-auto` + footer sticky (border-t),
+    tombol full-width di mobile. Pakai centering standar (bukan override `!important` yang
+    dulu diabaikan iOS). tsc bersih.
+
 - **2026-09-16 — Redesign MOBILE "PBMS Saku" (fintech premium, light+dark) — Fase 1–7.**
   Tampilan mobile dibangun ulang jadi seperti aplikasi finansial terpasang (bukan web yang
   dikecilkan), **tanpa mengubah desktop**. Dokumen kerja + checkpoint lengkap (fase, pola,
