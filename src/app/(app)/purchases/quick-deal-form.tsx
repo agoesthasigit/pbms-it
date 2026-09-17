@@ -206,49 +206,45 @@ export function QuickDealForm({
               </Button>
             </div>
             <div className="overflow-hidden rounded-lg border">
-              <div className="hidden grid-cols-12 gap-2 bg-muted/60 px-3 py-2 text-xs text-muted-foreground sm:grid">
-                <span className="col-span-4">Nama barang</span>
-                <span className="col-span-2 text-center">Qty</span>
-                <span className="col-span-2 text-right">Harga beli</span>
-                <span className="col-span-3 text-right">Harga jual</span>
-                <span className="col-span-1" />
-              </div>
               <div className="divide-y">
                 {lines.map((l, i) => (
-                  <div key={i} className="px-3 py-2.5">
-                    <div className="grid grid-cols-12 items-center gap-2">
-                      <div className="col-span-12 sm:col-span-4">
-                        <Input list="qd-product-suggestions" className="min-w-0"
-                          placeholder="Nama barang (mis. Printer Epson L3250)"
-                          value={l.name} onChange={(e) => setLine(i, { name: e.target.value })} />
-                      </div>
-                      <div className="col-span-3 sm:col-span-2">
+                  <div key={i} className="space-y-2 px-3 py-2.5">
+                    {/* Nama + aksi (ikon di kanan, tak menimpa input) */}
+                    <div className="flex items-center gap-2">
+                      <Input list="qd-product-suggestions" className="min-w-0 flex-1"
+                        placeholder="Nama barang (mis. Printer Epson L3250)"
+                        value={l.name} onChange={(e) => setLine(i, { name: e.target.value })} />
+                      <Button type="button" variant="ghost" size="icon-sm"
+                        className={l.showAdv ? "shrink-0 text-primary" : "shrink-0 text-muted-foreground hover:text-foreground"}
+                        aria-label="Atur garansi" onClick={() => setLine(i, { showAdv: !l.showAdv })}>
+                        <SlidersHorizontal className="h-4 w-4" />
+                      </Button>
+                      <Button type="button" variant="ghost" size="icon-sm"
+                        className="shrink-0 text-muted-foreground hover:text-destructive"
+                        aria-label="Hapus baris" onClick={() => removeLine(i)} disabled={lines.length === 1}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {/* Qty / Beli / Jual — 3 kolom seimbang */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground">Qty</Label>
                         <Input type="number" min={1} placeholder="Qty" className="text-center"
                           value={l.qty} onChange={(e) => setLine(i, { qty: e.target.value })} />
                       </div>
-                      <div className="col-span-4 sm:col-span-2">
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground">Harga beli</Label>
                         <CurrencyInput placeholder="Beli" className="text-right"
                           value={l.buyPrice} onValueChange={(v) => setLine(i, { buyPrice: v })} />
                       </div>
-                      <div className="col-span-4 sm:col-span-3">
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground">Harga jual</Label>
                         <CurrencyInput placeholder="Jual" className="text-right"
                           value={l.sellPrice} onValueChange={(v) => setLine(i, { sellPrice: v })} />
                       </div>
-                      <div className="col-span-1 flex items-center justify-end gap-0.5">
-                        <Button type="button" variant="ghost" size="icon-sm"
-                          className={l.showAdv ? "text-primary" : "text-muted-foreground hover:text-foreground"}
-                          aria-label="Atur garansi" onClick={() => setLine(i, { showAdv: !l.showAdv })}>
-                          <SlidersHorizontal className="h-4 w-4" />
-                        </Button>
-                        <Button type="button" variant="ghost" size="icon-sm"
-                          className="text-muted-foreground hover:text-destructive"
-                          aria-label="Hapus baris" onClick={() => removeLine(i)} disabled={lines.length === 1}>
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
                     </div>
-                    {/* margin per baris + garansi */}
-                    <div className="mt-1 flex items-center justify-between text-xs">
+                    {/* margin per baris */}
+                    <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">
                         Margin: <span className={toNumber(l.sellPrice) - toNumber(l.buyPrice) >= 0
                           ? "font-medium text-success" : "font-medium text-destructive"}>
@@ -257,7 +253,7 @@ export function QuickDealForm({
                       </span>
                     </div>
                     {l.showAdv && (
-                      <div className="mt-2 grid grid-cols-2 gap-3 rounded-lg bg-muted/50 p-3">
+                      <div className="grid grid-cols-2 gap-3 rounded-lg bg-muted/50 p-3">
                         <div className="space-y-1">
                           <Label className="text-xs">Garansi (bulan)</Label>
                           <Input type="number" min={0} placeholder="12"
@@ -374,7 +370,7 @@ export function QuickDealForm({
         </div>
 
         {/* Footer: modal / jual / margin + aksi */}
-        <DialogFooter className="mx-0 mb-0 flex-row items-center justify-between gap-3 border-t bg-muted px-5 py-3.5 sm:justify-between">
+        <DialogFooter className="mx-0 mb-0 flex-col items-stretch gap-3 border-t bg-muted px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex gap-4 text-xs">
             <div>
               <div className="text-muted-foreground">Modal</div>
@@ -392,8 +388,8 @@ export function QuickDealForm({
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Batal</Button>
-            <Button onClick={handleSave}
+            <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => onOpenChange(false)}>Batal</Button>
+            <Button className="flex-1 sm:flex-none" onClick={handleSave}
               disabled={pending || !buyWalletId || !clientId || totalSell <= 0 || (paysNow && !saleWalletId)}>
               {pending && <Loader2 className="h-4 w-4 animate-spin" />}
               Simpan Transaksi

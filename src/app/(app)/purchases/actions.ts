@@ -178,7 +178,12 @@ export async function createQuickDeal(input: {
       sell_price: i.sell_price,
       warranty_months: i.warranty_months ?? "",
     })),
-    p_period_month: input.period_month ?? null,
+    // Periode dari <input type="month"> = "YYYY-MM"; kolom DB `date` butuh
+    // tanggal penuh → append "-01" (samakan dengan create_sale).
+    p_period_month:
+      input.sale_method === "monthly_invoice" && input.period_month
+        ? `${input.period_month}-01`
+        : null,
     p_due_date: input.due_date ?? null,
   });
 

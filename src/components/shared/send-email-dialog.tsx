@@ -65,8 +65,8 @@ export function SendEmailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+        <DialogHeader className="border-b p-4">
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5 text-primary" /> {title}
           </DialogTitle>
@@ -75,7 +75,7 @@ export function SendEmailDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3">
+        <div className="flex-1 space-y-3 overflow-y-auto p-4">
           {sentAtLabel && (
             <div className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
               Terakhir dikirim <span className="font-medium">{sentAtLabel}</span>
@@ -119,11 +119,11 @@ export function SendEmailDialog({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={pending}>
+        <DialogFooter className="mx-0 mb-0 gap-2 border-t bg-muted p-4">
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)} disabled={pending}>
             Batal
           </Button>
-          <Button onClick={handleSend} disabled={pending || !to.trim() || !subject.trim()}>
+          <Button className="w-full sm:w-auto" onClick={handleSend} disabled={pending || !to.trim() || !subject.trim()}>
             {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             Kirim
           </Button>

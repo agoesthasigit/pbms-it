@@ -479,14 +479,14 @@ export function SaleForm({
         </div>
 
         {/* Footer menempel: total + aksi */}
-        <DialogFooter className="mx-0 mb-0 flex-row items-center justify-between gap-3 border-t bg-muted px-5 py-3.5 sm:justify-between">
-          <div>
+        <DialogFooter className="mx-0 mb-0 flex-col items-stretch gap-3 border-t bg-muted px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center justify-between sm:block">
             <div className="text-xs text-muted-foreground">Total Penjualan</div>
             <div className="text-lg font-bold">{formatIDR(total)}</div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Batal</Button>
-            <Button onClick={handleSave}
+            <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => onOpenChange(false)}>Batal</Button>
+            <Button className="flex-1 sm:flex-none" onClick={handleSave}
               disabled={pending || !clientId || total <= 0 || (paysNow && !walletId)}>
               {pending && <Loader2 className="h-4 w-4 animate-spin" />}
               Simpan Penjualan
